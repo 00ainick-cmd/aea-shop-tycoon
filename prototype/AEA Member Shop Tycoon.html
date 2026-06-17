@@ -1,0 +1,1211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>AEA Member Shop Tycoon</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet">
+<style>
+  :root{ --bay:#0d131b; --steel:#1b2632; --rivet:#2c3a49; --edge:#070b10; --hi:#44566a;
+    --amber:#ffb028; --amber-dk:#a96e10; --scope:#36e0a0; --beacon:#ff5a5f; --sky:#5cc6ff; --violet:#c792ff; --paper:#f3ede0; --ink:#ecf3fb; --muted:#8ea3ba; --caution:#ffd23f; }
+  *{box-sizing:border-box} html{ -webkit-text-size-adjust:100%; }
+  body{ margin:0; background:var(--bay); background-image:radial-gradient(120% 80% at 50% -10%, #1d3350 0%, #0d131b 55%);
+    color:var(--ink); font-family:'VT323',ui-monospace,monospace; font-size:21px; line-height:1.25; -webkit-font-smoothing:none;
+    min-height:100vh; min-height:100dvh; display:flex; justify-content:center; padding:10px; }
+  body::after{ content:""; position:fixed; inset:0; pointer-events:none; z-index:9000; background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px); mix-blend-mode:multiply; opacity:.5; }
+  .pix{ font-family:'Press Start 2P',monospace; }
+  .app{ width:100%; max-width:480px; display:flex; flex-direction:column; gap:8px; min-height:0; }
+  .panel{ background:var(--steel); border:3px solid var(--edge); border-radius:7px; box-shadow: inset 0 0 0 3px var(--rivet), inset 0 0 0 6px var(--steel), 0 6px 0 rgba(0,0,0,.45); padding:12px; }
+  .titlebar{ background:linear-gradient(180deg,#2b62a6,#1b2632); border:3px solid var(--edge); border-radius:7px; box-shadow: inset 0 0 0 2px #4a7fc4, 0 4px 0 rgba(0,0,0,.45); padding:9px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .titlebar .t{ font-size:11px; color:#dbe9ff; letter-spacing:.5px; }
+  #hud{ display:flex; align-items:stretch; gap:6px; }
+  #hud .cell{ flex:1; background:var(--steel); border:3px solid var(--edge); border-radius:6px; box-shadow: inset 0 0 0 2px var(--rivet); padding:7px 5px; text-align:center; min-width:0; }
+  #hud .lab{ font-family:'Press Start 2P',monospace; font-size:7px; color:var(--muted); display:block; margin-bottom:5px; letter-spacing:.3px; }
+  #hud .val{ font-family:'Press Start 2P',monospace; font-size:11px; color:var(--ink); }
+  #hud .val.cash{ color:var(--scope); } #hud .val.rep{ color:var(--amber); } #hud .val.neg{ color:var(--beacon); }
+  #soundbtn{ background:var(--steel); border:3px solid var(--edge); border-radius:6px; box-shadow: inset 0 0 0 2px var(--rivet); width:44px; cursor:pointer; color:var(--ink); display:flex; align-items:center; justify-content:center; padding:0; }
+  .seasonbar{ display:flex; align-items:center; gap:8px; padding:7px 11px; border:3px solid var(--edge); border-radius:7px; margin-bottom:6px; box-shadow: inset 0 0 0 2px rgba(255,255,255,0.10), 0 4px 0 rgba(0,0,0,.4); }
+  .seasonbar .sb-season{ font-family:'Press Start 2P',monospace; font-size:9px; letter-spacing:1px; color:#fff; text-shadow:1px 1px 0 rgba(0,0,0,.5); }
+  .seasonbar .sb-date{ font-family:'Press Start 2P',monospace; font-size:8px; color:rgba(255,255,255,0.92); }
+  .seasonbar .sb-note{ font-family:'Press Start 2P',monospace; font-size:7px; margin-left:auto; padding:5px 7px; border-radius:4px; background:rgba(0,0,0,0.34); color:#fff; }
+  .s-winter{ background:linear-gradient(180deg,#2f5680,#16273c); }
+  .s-spring{ background:linear-gradient(180deg,#2f8f5a,#16402a); }
+  .s-summer{ background:linear-gradient(180deg,#cf9a2a,#6a4a10); }
+  .s-fall{ background:linear-gradient(180deg,#b86a2a,#4a2814); }
+  .specgrid{ display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+  .speccell{ background:#16202b; border:3px solid var(--edge); border-radius:6px; box-shadow: inset 0 0 0 2px var(--rivet); padding:8px; }
+  .speccell .specname{ font-family:'Press Start 2P',monospace; font-size:6px; color:var(--muted); letter-spacing:.3px; line-height:1.6; }
+  .speccell .specrank{ display:inline-block; margin-top:5px; font-family:'Press Start 2P',monospace; font-size:6px; padding:3px 5px; border-radius:3px; border:2px solid var(--edge); }
+  .spectag{ display:inline-block; font-family:'Press Start 2P',monospace; font-size:6px; padding:3px 5px; border-radius:3px; border:2px solid var(--edge); background:#16202b; color:var(--muted); }
+  .hangarwrap .wave{ animation:wave 1.8s linear infinite; }
+  @keyframes wave{ 0%{ transform:translateX(0); } 100%{ transform:translateX(-8px); } }
+  #soundbtn svg{ display:block; }
+  #stage{ display:flex; flex-direction:column; gap:10px; min-height:0; }
+  h2.scrn{ font-family:'Press Start 2P',monospace; font-size:12px; color:var(--amber); margin:2px 0; letter-spacing:.5px; line-height:1.5; }
+  .sub{ color:var(--muted); font-size:19px; }
+  .eratag{ display:inline-block; font-family:'Press Start 2P',monospace; font-size:7px; padding:4px 6px; border-radius:4px; border:2px solid var(--edge); background:#16202b; color:var(--sky); }
+  .hangarwrap{ border:3px solid var(--edge); border-radius:7px; overflow:hidden; box-shadow: inset 0 0 0 3px var(--rivet); background:#0a0f15; }
+  .hangarwrap svg{ display:block; width:100%; height:auto; }
+  .hangarwrap .tarm{ transform-box:fill-box; transform-origin:50% 0%; animation:work-arm .62s ease-in-out infinite; }
+  .hangarwrap .spark{ animation:work-spark .9s steps(1) infinite; opacity:0; }
+  .hangarwrap .fly{ animation:fly-by linear infinite; }
+  .hangarwrap .cloud{ animation:drift 36s linear infinite; }
+  .hangarwrap .sock{ transform-box:fill-box; transform-origin:0% 50%; animation:sway 3.2s ease-in-out infinite; }
+  .hangarwrap .beacon{ animation:beacon-blink 1.1s steps(1) infinite; }
+  .hangarwrap .lamp{ animation:lamp-flick 4s ease-in-out infinite; }
+  @keyframes work-arm{ 0%,100%{ transform:rotate(3deg); } 50%{ transform:rotate(-15deg); } }
+  @keyframes work-spark{ 0%,62%,100%{ opacity:0; } 72%{ opacity:1; } 84%{ opacity:.4; } }
+  @keyframes fly-by{ 0%{ transform:translateX(-44px); } 100%{ transform:translateX(212px); } }
+  @keyframes drift{ 0%{ transform:translateX(-34px); } 100%{ transform:translateX(202px); } }
+  @keyframes sway{ 0%,100%{ transform:rotate(-7deg); } 50%{ transform:rotate(8deg); } }
+  @keyframes beacon-blink{ 0%,60%{ opacity:.25; } 70%,100%{ opacity:1; } }
+  @keyframes lamp-flick{ 0%,100%{ opacity:.82; } 50%{ opacity:1; } }
+  .card{ background:#16202b; border:3px solid var(--edge); border-radius:6px; box-shadow: inset 0 0 0 2px var(--rivet); padding:10px; cursor:pointer; display:flex; gap:10px; align-items:center; transition:transform .05s, box-shadow .1s; }
+  .card:hover{ box-shadow: inset 0 0 0 2px var(--hi); } .card:active{ transform:translateY(2px); }
+  .card.sel{ box-shadow: inset 0 0 0 2px var(--scope), 0 0 0 2px var(--scope); }
+  .card.flat{ cursor:default; } .card.flat:active{ transform:none; }
+  .card .ico{ width:56px; height:42px; flex:none; display:flex; align-items:center; justify-content:center; }
+  .card .ico svg{ width:100%; height:100%; }
+  .card .body{ flex:1; min-width:0; }
+  .card .nm{ font-family:'Press Start 2P',monospace; font-size:9px; color:var(--ink); line-height:1.5; }
+  .card .ds{ color:var(--muted); font-size:18px; margin-top:3px; }
+  .row2{ display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap:wrap; }
+  .badge{ font-family:'Press Start 2P',monospace; font-size:7px; padding:5px 6px; border-radius:4px; border:2px solid var(--edge); letter-spacing:.5px; }
+  .b-amazing{ background:var(--scope); color:#062018; } .b-solid{ background:var(--sky); color:#06243a; } .b-risky{ background:var(--amber); color:#2a1a00; } .b-dead{ background:var(--beacon); color:#2a0405; }
+  .pay{ font-family:'Press Start 2P',monospace; font-size:9px; color:var(--scope); margin-left:auto; }
+  .reason{ color:var(--muted); font-size:17px; margin-top:4px; font-style:italic; }
+  .cred{ font-family:'Press Start 2P',monospace; font-size:6px; padding:3px 5px; border-radius:3px; border:2px solid var(--edge); letter-spacing:.3px; }
+  .c0{ background:#28333f; color:#a9bcd0; } .c1{ background:var(--sky); color:#06243a; } .c2{ background:var(--violet); color:#1e0a35; } .c3{ background:var(--amber); color:#2a1700; }
+  .bay-empty{ border-style:dashed; border-color:var(--hi); background:#11181f; opacity:.92; }
+  .bay-empty .nm{ color:var(--muted); }
+  .bay-ready{ box-shadow: inset 0 0 0 2px var(--scope), 0 0 0 2px var(--scope); }
+  .baynum{ font-family:'Press Start 2P',monospace; font-size:7px; color:var(--muted); }
+  .qmeter{ height:9px; background:#0a0f15; border:2px solid var(--edge); border-radius:3px; overflow:hidden; margin-top:6px; }
+  .qmeter > div{ height:100%; background:linear-gradient(90deg,var(--amber-dk),var(--scope)); }
+  .dots{ display:flex; gap:4px; margin-top:6px; }
+  .d{ width:11px; height:11px; border:2px solid var(--edge); background:#28333f; border-radius:3px; } .d.done{ background:var(--scope); }
+  .stats{ display:grid; grid-template-columns:1fr 1fr; gap:3px 12px; margin-top:6px; }
+  .stat{ display:flex; align-items:center; gap:6px; font-size:18px; color:var(--muted); }
+  .stat b{ color:var(--ink); font-family:'Press Start 2P',monospace; font-size:8px; width:30px; text-align:right; }
+  .pips{ display:flex; gap:2px; } .pip{ width:6px; height:11px; background:#28333f; border:1px solid #0a0f15; } .pip.on{ background:var(--amber); }
+  .qbar{ margin:9px 0; }
+  .qbar .qt{ display:flex; justify-content:space-between; font-family:'Press Start 2P',monospace; font-size:8px; margin-bottom:5px; }
+  .qbar .qv{ color:var(--ink); }
+  .track{ height:16px; background:#0a0f15; border:2px solid var(--edge); border-radius:3px; box-shadow: inset 0 0 0 1px #20303d; overflow:hidden; }
+  .fill{ height:100%; width:0%; transition:width .5s cubic-bezier(.2,.8,.2,1); }
+  .f-work{ background:linear-gradient(90deg,var(--amber-dk),var(--amber)); } .f-diag{ background:linear-gradient(90deg,#159e6e,var(--scope)); }
+  .f-comp{ background:linear-gradient(90deg,#2b7fb8,var(--sky)); } .f-fin{ background:linear-gradient(90deg,#7c4fb0,var(--violet)); }
+  .l-work{ color:var(--amber); } .l-diag{ color:var(--scope); } .l-comp{ color:var(--sky); } .l-fin{ color:var(--violet); }
+  .opt{ width:100%; text-align:left; background:#16202b; border:3px solid var(--edge); border-radius:6px; box-shadow: inset 0 0 0 2px var(--rivet); padding:13px; color:var(--ink); font-family:'VT323',monospace; font-size:20px; cursor:pointer; margin-bottom:9px; line-height:1.25; min-height:54px; }
+  .opt:hover{ box-shadow: inset 0 0 0 2px var(--hi); } .opt:active{ transform:translateY(2px); }
+  .opt.good{ box-shadow: inset 0 0 0 3px var(--scope); background:#0f2a20; } .opt.bad{ box-shadow: inset 0 0 0 3px var(--beacon); background:#2a1213; } .opt:disabled{ cursor:default; opacity:.55; }
+  .opt .ok{ font-family:'Press Start 2P',monospace; font-size:9px; color:var(--amber); }
+  .opt .t{ display:block; font-family:'Press Start 2P',monospace; font-size:9px; color:var(--ink); line-height:1.55; margin-bottom:6px; }
+  .opt .sml{ display:block; opacity:.8; }
+  .segwrap{ margin-top:12px; } .seglab{ font-family:'Press Start 2P',monospace; font-size:8px; color:var(--muted); margin-bottom:7px; letter-spacing:.3px; }
+  .segrow{ display:flex; gap:7px; }
+  .seg{ flex:1; min-height:56px; border:3px solid var(--edge); background:#0e2233; color:var(--ink); font-family:'Press Start 2P',monospace; font-size:8px; border-radius:7px; box-shadow: inset 0 0 0 2px var(--rivet); padding:8px 4px; cursor:pointer; line-height:1.45; }
+  .seg:active{ transform:translateY(2px); } .seg.on{ border-color:var(--amber); background:rgba(255,194,40,0.18); box-shadow: inset 0 0 0 2px var(--amber-dk); }
+  .squawk-head{ border:3px solid var(--beacon); border-radius:7px; background:#26171a; padding:12px; box-shadow: inset 0 0 0 2px #5a2a2c; }
+  .squawk-head .s1{ font-family:'Press Start 2P',monospace; font-size:9px; color:var(--beacon); letter-spacing:.5px; margin-bottom:8px; }
+  .squawk-head .s2{ font-size:21px; color:#ffd9da; }
+  .explain{ background:#0f2a20; border:3px solid var(--scope); border-radius:7px; padding:11px; font-size:19px; color:#cfeede; box-shadow: inset 0 0 0 2px #1a4a38; margin-top:4px; }
+  .explain.miss{ background:#26171a; border-color:var(--beacon); color:#ffd9da; box-shadow: inset 0 0 0 2px #5a2a2c; }
+  .hf-head{ border:3px solid var(--caution); border-radius:7px; background:#2a2410; padding:12px; box-shadow: inset 0 0 0 2px #5a5020; }
+  .hf-head .h2{ font-size:21px; color:#fff4d6; }
+  .infobox{ background:#2a2410; border:3px solid var(--caution); border-radius:7px; padding:11px; font-size:19px; color:#fff4d6; box-shadow: inset 0 0 0 2px #5a5020; margin-top:4px; }
+  .reviewer{ display:flex; align-items:center; gap:10px; background:#16202b; border:3px solid var(--edge); border-radius:6px; box-shadow: inset 0 0 0 2px var(--rivet); padding:10px; margin-bottom:7px; }
+  .reviewer .who{ flex:1; } .reviewer .who .rn{ font-family:'Press Start 2P',monospace; font-size:9px; } .reviewer .who .rq{ color:var(--muted); font-size:17px; margin-top:3px; }
+  .score{ font-family:'Press Start 2P',monospace; font-size:16px; color:var(--amber); }
+  .total{ text-align:center; font-family:'Press Start 2P',monospace; padding:12px; border:3px solid var(--edge); border-radius:7px; box-shadow: inset 0 0 0 2px var(--rivet); background:#16202b; margin-top:4px; }
+  .total .tn{ font-size:10px; color:var(--muted); } .total .tv{ font-size:26px; color:var(--scope); margin-top:8px; } .total .hit{ color:var(--amber); font-size:12px; margin-top:10px; animation:pulse .6s infinite alternate; }
+  .ledger{ display:flex; justify-content:space-between; font-size:18px; color:var(--muted); margin-top:4px; } .ledger b{ color:var(--ink); }
+  .payout{ text-align:center; margin-top:8px; } .payout .pl{ font-family:'Press Start 2P',monospace; font-size:8px; color:var(--muted); } .payout .pv{ font-family:'Press Start 2P',monospace; font-size:20px; color:var(--scope); margin-top:7px; }
+  #bar{ display:flex; gap:8px; }
+  .btn{ flex:1; font-family:'Press Start 2P',monospace; font-size:10px; line-height:1.5; background:linear-gradient(180deg,#33455a,#1c2733); color:var(--ink); border:3px solid var(--edge); border-radius:7px; box-shadow: inset 0 0 0 2px var(--hi), 0 5px 0 var(--edge); padding:14px 8px; cursor:pointer; min-height:50px; }
+  .btn:active{ transform:translateY(3px); box-shadow: inset 0 0 0 2px var(--hi), 0 2px 0 var(--edge); } .btn:disabled{ opacity:.4; cursor:default; transform:none; }
+  .btn-go{ background:linear-gradient(180deg,#3fe6a8,#159e6e); color:#062018; box-shadow: inset 0 0 0 2px #9bf2d3, 0 5px 0 #0a4a34; } .btn-go:active{ box-shadow: inset 0 0 0 2px #9bf2d3, 0 2px 0 #0a4a34; }
+  .btn-amber{ background:linear-gradient(180deg,#ffc758,#c47f12); color:#2a1700; box-shadow: inset 0 0 0 2px #ffe2a3, 0 5px 0 #6b440a; } .btn-amber:active{ box-shadow: inset 0 0 0 2px #ffe2a3, 0 2px 0 #6b440a; }
+  .tokens{ display:flex; align-items:center; gap:8px; justify-content:center; font-family:'Press Start 2P',monospace; font-size:8px; color:var(--muted); margin:2px 0; }
+  .tok{ width:13px; height:18px; background:var(--amber); border:2px solid var(--edge); border-radius:2px; } .tok.spent{ background:#28333f; }
+  .note{ color:var(--muted); font-size:18px; text-align:center; } .hint{ color:var(--amber); font-size:18px; } .evtext{ font-size:21px; color:var(--ink); line-height:1.3; }
+  .chief{ border-left:4px solid var(--amber); padding-left:10px; font-size:21px; color:#ffe6b8; line-height:1.35; }
+  #toast{ position:fixed; left:50%; bottom:18px; transform:translateX(-50%) translateY(40px); opacity:0; background:#16202b; border:3px solid var(--amber); border-radius:7px; box-shadow: inset 0 0 0 2px var(--rivet), 0 6px 0 rgba(0,0,0,.5); padding:12px 16px; font-family:'Press Start 2P',monospace; font-size:9px; color:var(--amber); z-index:9999; transition:.3s; max-width:90vw; text-align:center; line-height:1.6; white-space:pre-line; }
+  #toast.show{ transform:translateX(-50%) translateY(0); opacity:1; }
+  .title-hero{ text-align:center; padding:8px 4px 4px; }
+  .title-hero .kick{ font-family:'Press Start 2P',monospace; font-size:8px; color:var(--sky); letter-spacing:1px; }
+  .title-hero .big{ font-family:'Press Start 2P',monospace; font-size:18px; color:var(--amber); line-height:1.7; text-shadow:0 3px 0 #6b440a; margin-top:10px; }
+  .title-hero .small{ font-family:'Press Start 2P',monospace; font-size:8px; color:var(--muted); margin-top:12px; letter-spacing:.5px; }
+  .blink{ animation:blink 1.1s steps(1) infinite; } @keyframes blink{ 50%{ opacity:0; } } @keyframes pulse{ to{ filter:brightness(1.5); } }
+  @media (prefers-reduced-motion: reduce){ *{ animation:none !important; transition:none !important; } .hangarwrap .spark{ opacity:0; } }
+  @media (max-width:380px){ body{ font-size:19px; } .title-hero .big{ font-size:15px; } }
+</style>
+</head>
+<body>
+<div class="app" id="app"><div id="hudwrap"></div><div id="stage"></div><div id="bar"></div></div>
+<div id="toast"></div>
+<script>
+"use strict";
+/* ---- AUDIO ---- */
+var AC=null,master=null,musicOn=true,musicTimer=null;
+function audioInit(){ if(AC)return; try{ AC=new (window.AudioContext||window.webkitAudioContext)(); master=AC.createGain(); master.gain.value=0.5; master.connect(AC.destination);}catch(e){ AC=null; } }
+function tone(f,d,t,v,w){ if(!AC)return; w=w||AC.currentTime; var o=AC.createOscillator(),g=AC.createGain(); o.type=t||'square'; o.frequency.value=f; g.gain.setValueAtTime(0.0001,w); g.gain.exponentialRampToValueAtTime(v||0.18,w+0.012); g.gain.exponentialRampToValueAtTime(0.0001,w+d); o.connect(g); g.connect(master); o.start(w); o.stop(w+d+0.02); }
+function noise(d,v,w){ if(!AC)return; w=w||AC.currentTime; var n=AC.createBufferSource(),b=AC.createBuffer(1,AC.sampleRate*d,AC.sampleRate),dd=b.getChannelData(0); for(var i=0;i<dd.length;i++) dd[i]=(Math.random()*2-1)*(1-i/dd.length); n.buffer=b; var g=AC.createGain(); g.gain.value=v||0.12; var ff=AC.createBiquadFilter(); ff.type='highpass'; ff.frequency.value=900; n.connect(ff); ff.connect(g); g.connect(master); n.start(w); n.stop(w+d); }
+function sBlip(){ tone(440,0.05,'square',0.12); } function sTab(){ tone(660,0.05,'square',0.12); }
+function sPing(i){ tone(523+(i||0)*42,0.07,'triangle',0.14); } function sOver(){ tone(330,0.08,'sawtooth',0.16); tone(495,0.12,'sawtooth',0.14,AC?AC.currentTime+0.05:0); }
+function sRatchet(){ if(!AC)return; var t=AC.currentTime; for(var i=0;i<5;i++){ noise(0.02,0.05,t+i*0.045); tone(150,0.03,'square',0.06,t+i*0.045); } }
+function sDrill(){ if(!AC)return; var t=AC.currentTime; for(var i=0;i<6;i++) tone(320-i*14,0.05,'sawtooth',0.07,t+i*0.035); noise(0.14,0.05,t); }
+function sHF(){ if(!AC)return; tone(587,0.1,'triangle',0.14); tone(440,0.13,'triangle',0.12,AC.currentTime+0.08); }
+function sGood(){ if(!AC)return; var t=AC.currentTime; [523,659,784,1047].forEach(function(f,i){ tone(f,0.12,'square',0.16,t+i*0.07); }); }
+function sBad(){ if(!AC)return; var t=AC.currentTime; [392,330,262].forEach(function(f,i){ tone(f,0.16,'sawtooth',0.16,t+i*0.09); }); noise(0.12,0.1); }
+function sCash(){ if(!AC)return; tone(988,0.06,'square',0.14); tone(1319,0.1,'square',0.13,AC.currentTime+0.05); }
+function sHit(){ if(!AC)return; var t=AC.currentTime; [523,659,784,1047,784,1047,1319].forEach(function(f,i){ tone(f,0.14,'square',0.17,t+i*0.08); }); }
+function sLevel(){ if(!AC)return; var t=AC.currentTime; [523,659,784,988,1319].forEach(function(f,i){ tone(f,0.16,'triangle',0.16,t+i*0.09); tone(f/2,0.16,'square',0.05,t+i*0.09); }); }
+function sEra(){ if(!AC)return; var t=AC.currentTime; [392,523,659,784,1047,1319].forEach(function(f,i){ tone(f,0.18,'triangle',0.15,t+i*0.1); tone(f/2,0.18,'square',0.06,t+i*0.1); }); }
+var melody=[0,3,5,7,5,3,0,-2,0,3,7,10,7,3,0,3];
+function hz(s){ return 220*Math.pow(2,s/12); }
+function startMusic(){ if(!AC||!musicOn)return; stopMusic(); var step=0,beat=0.28; (function loop(){ if(!AC||!musicOn)return; var t=AC.currentTime; tone(hz(melody[step%melody.length]),beat*0.9,'triangle',0.05,t); if(step%4===0) tone(hz(-12+(step%8<4?0:5)),beat*1.8,'square',0.045,t); step++; musicTimer=setTimeout(loop,beat*1000); })(); }
+function stopMusic(){ if(musicTimer){ clearTimeout(musicTimer); musicTimer=null; } }
+
+/* ---- ART ---- */
+function planeSVG(id){ var st="#c4d2e0",dk="#7f93a6",am="#ffb028"; switch(id){
+  case 'piston': return '<svg viewBox="0 0 64 48"><g fill="'+st+'"><rect x="29" y="8" width="6" height="32"/><rect x="6" y="18" width="52" height="6"/><rect x="24" y="38" width="16" height="4"/></g><rect x="30" y="6" width="4" height="6" fill="'+am+'"/><rect x="28" y="14" width="8" height="8" fill="'+dk+'"/></svg>';
+  case 'lsa': return '<svg viewBox="0 0 64 48"><g fill="#bfe6df"><rect x="8" y="15" width="48" height="4"/><rect x="29" y="17" width="6" height="20"/><rect x="26" y="35" width="12" height="3"/></g><rect x="31" y="12" width="3" height="5" fill="'+dk+'"/><rect x="27" y="19" width="10" height="7" fill="#5a8a82"/></svg>';
+  case 'taildragger': return '<svg viewBox="0 0 64 48"><g fill="'+am+'"><rect x="28" y="12" width="7" height="26"/><rect x="10" y="16" width="44" height="5"/><rect x="26" y="36" width="12" height="3"/></g><rect x="27" y="22" width="9" height="7" fill="#8a5a10"/></svg>';
+  case 'experimental': return '<svg viewBox="0 0 64 48"><g fill="#9be8c8"><rect x="29" y="10" width="6" height="28"/><polygon points="12,26 52,26 44,20 20,20"/><rect x="26" y="36" width="12" height="3"/></g><rect x="30" y="8" width="4" height="6" fill="'+am+'"/></svg>';
+  case 'twinpiston': return '<svg viewBox="0 0 64 48"><g fill="'+st+'"><rect x="29" y="8" width="6" height="32"/><rect x="6" y="20" width="52" height="5"/><rect x="24" y="38" width="16" height="4"/></g><rect x="14" y="18" width="8" height="9" fill="'+dk+'"/><rect x="42" y="18" width="8" height="9" fill="'+dk+'"/><rect x="14" y="14" width="4" height="5" fill="'+am+'"/><rect x="46" y="14" width="4" height="5" fill="'+am+'"/></svg>';
+  case 'warbird': return '<svg viewBox="0 0 64 48"><g fill="#6f7a4e"><rect x="28" y="11" width="8" height="27"/><rect x="8" y="19" width="48" height="6"/><rect x="26" y="36" width="12" height="3"/></g><circle cx="32" cy="12" r="6" fill="#4a5436"/><rect x="30" y="3" width="4" height="6" fill="#d8c84a"/><rect x="27" y="23" width="10" height="7" fill="#2f3622"/></svg>';
+  case 'heli': return '<svg viewBox="0 0 64 48"><g fill="'+st+'"><rect x="22" y="20" width="22" height="14" rx="6"/><rect x="42" y="24" width="14" height="4"/><rect x="52" y="20" width="3" height="12"/></g><rect x="8" y="13" width="48" height="3" fill="'+dk+'"/><rect x="31" y="13" width="3" height="8" fill="'+dk+'"/><rect x="24" y="22" width="10" height="7" fill="#0c1a14"/></svg>';
+  case 'floatplane': return '<svg viewBox="0 0 64 48"><g fill="#cfe0ee"><rect x="29" y="6" width="6" height="26"/><rect x="8" y="18" width="48" height="5"/></g><rect x="16" y="36" width="32" height="4" fill="'+dk+'"/><rect x="19" y="32" width="3" height="4" fill="#5a6b7d"/><rect x="42" y="32" width="3" height="4" fill="#5a6b7d"/><rect x="30" y="3" width="4" height="5" fill="'+am+'"/></svg>';
+  case 'tprop1': return '<svg viewBox="0 0 64 48"><g fill="'+st+'"><rect x="29" y="6" width="6" height="34"/><rect x="6" y="22" width="52" height="6"/><rect x="24" y="38" width="16" height="4"/></g><rect x="29" y="2" width="6" height="6" fill="'+dk+'"/><rect x="30" y="0" width="4" height="4" fill="'+am+'"/></svg>';
+  case 'tprop2': return '<svg viewBox="0 0 64 48"><g fill="'+st+'"><rect x="29" y="6" width="6" height="34"/><rect x="4" y="22" width="56" height="6"/><rect x="22" y="38" width="20" height="4"/></g><rect x="14" y="20" width="8" height="10" fill="'+dk+'"/><rect x="42" y="20" width="8" height="10" fill="'+dk+'"/><rect x="30" y="4" width="4" height="6" fill="'+am+'"/></svg>';
+  case 'ljet': return '<svg viewBox="0 0 64 48"><g fill="'+st+'"><rect x="29" y="5" width="6" height="36"/><polygon points="10,30 54,30 40,22 24,22"/><rect x="20" y="6" width="24" height="4"/></g><rect x="22" y="30" width="6" height="9" fill="'+dk+'"/><rect x="36" y="30" width="6" height="9" fill="'+dk+'"/><rect x="30" y="3" width="4" height="6" fill="'+am+'"/></svg>';
+  default: return '<svg viewBox="0 0 64 48"><g fill="'+st+'"><rect x="28" y="3" width="8" height="40"/><polygon points="6,32 58,32 42,21 22,21"/><rect x="18" y="5" width="28" height="5"/></g><rect x="20" y="32" width="7" height="10" fill="'+dk+'"/><rect x="37" y="32" width="7" height="10" fill="'+dk+'"/><rect x="30" y="1" width="4" height="6" fill="'+am+'"/></svg>'; } }
+function eraSky(){ var e=STATE.era; if(e<=1)return ['#ffb86b','#7a86c4','#2b3a63']; if(e===2)return ['#9fc6ff','#5a73b8','#27345e']; if(e===3)return ['#ffd27a','#c98a4a','#3a2f55']; return ['#a0e8ff','#4f8fd1','#203a63']; }
+/* ---- calendar + seasons (the year clock) ---- */
+var MONTHS=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function gMonth(){ return Math.floor((STATE.week-1)/4); }
+function gYear(){ return 1+Math.floor(gMonth()/12); }
+function gMonthName(){ return MONTHS[gMonth()%12]; }
+function seasonKey(){ var m=gMonth()%12; if(m>=2&&m<=4) return 'spring'; if(m>=5&&m<=7) return 'summer'; if(m>=8&&m<=10) return 'fall'; return 'winter'; }
+var SEASONS={
+  winter:{ name:'WINTER', sky:['#1fa6e8','#73d2f6','#cdeeff'], wash:'#2f8fd6', sun:'#eaf7ff', sunY:70, weather:'clear', tag:'Annual inspection season. The benches stay full while the field is grounded.' },
+  spring:{ name:'SPRING', sky:['#1f9bd6','#62c2ea','#d6f0d4'], wash:'#3fb56a', sun:'#fff2b0', sunY:60, weather:'clear', tag:'The AEA show is on the field, and the new gear is being revealed.' },
+  summer:{ name:'SUMMER', sky:['#1f8fe6','#5ab8f2','#ffe49a'], wash:'#ffd23f', sun:'#ffe27a', sunY:54, weather:'clear', tag:'Peak flying season. Owners want their planes back fast, not parked.' },
+  fall:{ name:'FALL', sky:['#2f9fd6','#f0a83a','#ffd676'], wash:'#f0922f', sun:'#ffcf5a', sunY:64, weather:'clear', tag:'Training season. Send your techs to the conference to keep them current.' }
+};
+function season(){ return SEASONS[seasonKey()]; }
+function seasonHint(){ var k=seasonKey(); return k==='spring'?'\u25C8 AEA SHOW':k==='summer'?'HIRING SEASON':k==='fall'?'CONFERENCE':'TAXES DUE'; }
+/* ---- shop specialties ---- */
+var SPECS=[ {k:'retrofit',n:'RETROFIT & PANEL',s:'RETROFIT'},{k:'autopilot',n:'AUTOPILOTS',s:'AUTOPILOT'},{k:'glass',n:'GLASS & DECKS',s:'GLASS'},{k:'surveillance',n:'SURVEILLANCE',s:'SURVEIL'},{k:'engine',n:'ENGINE MONITORING',s:'ENGINE'},{k:'cabin',n:'CABIN & CONNECT',s:'CABIN'},{k:'inspections',n:'INSPECTIONS & CERTS',s:'INSPECT'} ];
+var JOB_SPEC={ audio:'cabin', elt:'surveillance', cert:'inspections', xpdr:'inspections', harness:'retrofit', radio:'retrofit', glass:'glass', ap:'autopilot', eis:'engine', adsb:'surveillance', datalink:'cabin', radar:'cabin', traffic:'surveillance' };
+var SPEC_RANK=['Unrated','Familiar','Proficient','Specialist','Authority'];
+var SPEC_THRESH=[0,15,40,80,140];
+/* ---- labor rate (the sales lever) ---- */
+var RATES=[ {k:'value',n:'Value',mult:0.88,expect:-1.0,ds:'Lower bills, customers easy to please. Builds reputation fast.'},{k:'standard',n:'Standard',mult:1.0,expect:0,ds:'The going rate on the field.'},{k:'premium',n:'Premium',mult:1.28,expect:1.4,ds:'Bigger margins, but customers expect more for the price.'} ];
+function rateMult(){ return RATES[(STATE.rate==null?1:STATE.rate)].mult; }
+function rateExpect(){ return RATES[(STATE.rate==null?1:STATE.rate)].expect; }
+function specXP(k){ return (STATE.spec&&STATE.spec[k])||0; }
+function specRank(k){ var x=specXP(k), r=0; for(var i=0;i<SPEC_THRESH.length;i++){ if(x>=SPEC_THRESH[i]) r=i; } return r; }
+function specMeta(k){ for(var i=0;i<SPECS.length;i++) if(SPECS[i].k===k) return SPECS[i]; return {k:k,n:k,s:k}; }
+function specName(k){ return specMeta(k).n; }
+function specShort(k){ return specMeta(k).s; }
+function addSpecXP(k,amt){ if(!k) return; STATE.spec=STATE.spec||{}; STATE.spec[k]=(STATE.spec[k]||0)+amt; }
+function specRankCls(r){ return ['c0','c0','c1','c2','c3'][r]||'c0'; }
+function specBoard(){ return '<div class="specgrid">'+SPECS.map(function(sp){ var r=specRank(sp.k), x=specXP(sp.k), nextT=SPEC_THRESH[Math.min(r+1,4)], prevT=SPEC_THRESH[r], pct=r>=4?100:clamp((x-prevT)/(nextT-prevT)*100,0,100); return '<div class="speccell"><div class="specname">'+sp.n+'</div><div class="specrank '+specRankCls(r)+'">'+SPEC_RANK[r]+'</div><div class="qmeter" style="margin-top:6px"><div style="width:'+pct+'%"></div></div></div>'; }).join('')+'</div>'; }
+function crewSprite(x,y,col,id,delay){ var d=delay||0;
+  return '<g id="'+id+'" transform="translate('+x+','+y+')">'
+   +'<g class="cbody" style="animation-delay:'+d+'s"><rect x="-7" y="-30" width="14" height="13" fill="#e7c9a0"/><rect x="-9" y="-33" width="18" height="5" fill="#1b2632"/><rect x="-10" y="-17" width="20" height="20" fill="'+col+'"/><rect x="-7" y="-17" width="14" height="20" fill="#2b3a49"/><rect x="-10" y="-17" width="4" height="20" fill="'+col+'"/><rect x="6" y="-17" width="4" height="20" fill="'+col+'"/><rect x="-9" y="3" width="7" height="12" fill="#222d38"/><rect x="2" y="3" width="7" height="12" fill="#222d38"/></g>'
+   +'<g class="carm" style="animation-delay:'+d+'s"><rect x="-17" y="-15" width="6" height="13" fill="'+col+'"/><rect x="-21" y="-4" width="10" height="3" fill="#cbd6e2"/></g>'
+   +'<rect class="spark" style="animation-delay:'+d+'s" x="-23" y="-7" width="4" height="4" fill="#ffe27a"/></g>'; }
+var THEME={
+  1:{ floor:'#2f6a93', floorHi:'#4f93c2', wall:'#235c83', lights:1, signBorder:'#37c8ff', signBg:'#123c5c', accent:'#7fe0ff' },
+  2:{ floor:'#347aa6', floorHi:'#57a4d2', wall:'#266a93', lights:1, signBorder:'#37d0e0', signBg:'#103a52', accent:'#8fe8ff' },
+  3:{ floor:'#3a86b4', floorHi:'#5fb0e0', wall:'#2a76a0', lights:2, signBorder:'#ffb028', signBg:'#163a52', accent:'#ffd23f' },
+  4:{ floor:'#3f90c2', floorHi:'#66bce8', wall:'#2e80ac', lights:3, signBorder:'#36e0a0', signBg:'#143e2a', accent:'#5cffd2' },
+  5:{ floor:'#4499cc', floorHi:'#6fc6f0', wall:'#328ab8', lights:3, signBorder:'#ffd23f', signBg:'#3a2a10', accent:'#ffe27a' } };
+function featuredBay(){ var ip=null,rd=null; STATE.bays.forEach(function(b){ if(b.job){ if(b.shiftsDone<b.shiftsNeed){ if(!ip) ip=b; } else if(!rd) rd=b; } }); return ip||rd||null; }
+function flyer(s){ s=s||1; return '<g transform="scale('+s+')" fill="#16263a"><rect x="-7" y="-1" width="14" height="2"/><rect x="-1" y="-4" width="2" height="8"/><rect x="5" y="-3" width="2" height="3"/></g>'; }
+function stand(x,y){ return '<g transform="translate('+x+','+y+')"><rect x="-22" y="-2" width="44" height="3" fill="#7f93a6"/><rect x="-22" y="1" width="44" height="4" fill="#566576"/><rect x="-19" y="5" width="4" height="22" fill="#3a4654"/><rect x="15" y="5" width="4" height="22" fill="#3a4654"/><rect x="-19" y="14" width="34" height="3" fill="#3a4654"/></g>'; }
+function toolbox(x,y){ return '<g transform="translate('+x+','+y+')"><rect x="-14" y="-20" width="28" height="24" fill="#ff4b46" stroke="#0a0f15" stroke-width="2"/><rect x="-14" y="-13" width="28" height="2" fill="#b02a2a"/><rect x="-14" y="-6" width="28" height="2" fill="#b02a2a"/><rect x="-3" y="-19" width="6" height="2" fill="#ffd9da"/><circle cx="-8" cy="7" r="3" fill="#161e27"/><circle cx="8" cy="7" r="3" fill="#161e27"/></g>'; }
+function wkr(x,y,col,delay,scale,face){ var d=delay||'0', s=scale||1, f=face||1;
+  return '<g transform="translate('+x+','+y+') scale('+s+')">'
+   +'<rect x="-7" y="-34" width="14" height="13" fill="#e7c9a0"/><rect x="-9" y="-37" width="18" height="5" fill="#1b2632"/><rect x="-3" y="-36" width="3" height="3" fill="#36e0a0"/>'
+   +'<rect x="-11" y="-21" width="22" height="22" fill="'+col+'"/><rect x="-11" y="-21" width="22" height="4" fill="rgba(255,255,255,0.10)"/><rect x="-11" y="-21" width="4" height="22" fill="rgba(0,0,0,0.18)"/>'
+   +'<rect x="-9" y="1" width="8" height="14" fill="#222d38"/><rect x="1" y="1" width="8" height="14" fill="#222d38"/>'
+   +'<g transform="scale('+f+',1)"><g class="tarm" style="animation-delay:'+d+'s"><rect x="5" y="-21" width="5" height="15" fill="'+col+'"/><rect x="8" y="-9" width="12" height="4" fill="#d3ad84"/><rect x="19" y="-11" width="4" height="7" fill="#9fb0c2"/></g><rect class="spark" style="animation-delay:'+d+'s" x="22" y="-12" width="4" height="4" fill="#ffe27a"/></g>'
+   +'</g>'; }
+function lightCone(x,topY,botY,hT,hB){ var p='"'+(x-hT)+','+topY+' '+(x+hT)+','+topY+' '+(x+hB)+','+botY+' '+(x-hB)+','+botY+'"'; return '<polygon points='+p+' fill="url(#cone)"/>'; }
+function hangLamp(x){ return '<rect x="'+(x-1)+'" y="6" width="2" height="22" fill="#2c3a49"/><rect x="'+(x-7)+'" y="26" width="14" height="6" fill="#1c2733" stroke="#0a0f15" stroke-width="2"/><rect x="'+(x-4)+'" y="30" width="8" height="3" fill="#ffe6a8"/>'; }
+function ctrlTower(x,g){ return '<rect x="'+x+'" y="'+(g-44)+'" width="9" height="44" fill="#0e1722"/><rect x="'+(x-9)+'" y="'+(g-56)+'" width="27" height="15" fill="#15202c" stroke="#0a0f15" stroke-width="2"/><rect x="'+(x-6)+'" y="'+(g-52)+'" width="21" height="6" fill="#39a0c8" opacity="0.85"/><rect class="beacon" x="'+(x+1)+'" y="'+(g-64)+'" width="6" height="6" fill="#ff5a5f"/>'; }
+function pegboard(x,y){ return '<rect x="'+x+'" y="'+y+'" width="60" height="40" fill="#2a5276" stroke="#0a0f15" stroke-width="2"/><rect x="'+(x+8)+'" y="'+(y+6)+'" width="4" height="20" fill="#9fb0c2"/><rect x="'+(x+5)+'" y="'+(y+4)+'" width="10" height="5" fill="#cbd6e2"/><rect x="'+(x+22)+'" y="'+(y+7)+'" width="4" height="22" fill="#9fb0c2"/><circle cx="'+(x+46)+'" cy="'+(y+18)+'" r="6" fill="none" stroke="#9fb0c2" stroke-width="3"/><rect x="'+(x+33)+'" y="'+(y+6)+'" width="14" height="4" fill="#7f8ea0"/>'; }
+function testCart(x,b){ var sx=x+5; return '<rect x="'+x+'" y="'+(b-26)+'" width="34" height="24" fill="#1f9fd0" stroke="#0a0f15" stroke-width="2"/><rect x="'+(x+3)+'" y="'+(b-24)+'" width="28" height="15" fill="#06140e" stroke="#0a0f15" stroke-width="2"/><clipPath id="scr"><rect x="'+sx+'" y="'+(b-23)+'" width="24" height="13"/></clipPath><g clip-path="url(#scr)"><polyline class="wave" points="'+sx+','+(b-16)+' '+(sx+4)+','+(b-21)+' '+(sx+8)+','+(b-12)+' '+(sx+12)+','+(b-20)+' '+(sx+16)+','+(b-13)+' '+(sx+20)+','+(b-19)+' '+(sx+24)+','+(b-14)+' '+(sx+30)+','+(b-18)+' '+(sx+34)+','+(b-13)+'" fill="none" stroke="#36e0a0" stroke-width="2"/></g><circle cx="'+(x+8)+'" cy="'+b+'" r="3" fill="#11181f"/><circle cx="'+(x+26)+'" cy="'+b+'" r="3" fill="#11181f"/>'; }
+function platform(x,b){ return '<rect x="'+x+'" y="'+(b-3)+'" width="30" height="4" fill="#5a6b7d"/><rect x="'+x+'" y="'+(b+1)+'" width="6" height="13" fill="#3a4654"/><rect x="'+(x+24)+'" y="'+(b+1)+'" width="6" height="13" fill="#3a4654"/><rect x="'+(x-12)+'" y="'+(b+5)+'" width="16" height="3" fill="#5a6b7d"/><rect x="'+(x-12)+'" y="'+(b+9)+'" width="16" height="5" fill="#3a4654"/><rect x="'+(x+28)+'" y="'+(b-20)+'" width="3" height="20" fill="#3a4654"/>'; }
+function heroPlane(accent,jet){ var body='#eef3fb', shade='#b9c8d8', dk='#5f7488'; var s='';
+  s+='<polygon points="36,12 110,12 120,20 30,20" fill="'+shade+'"/><polygon points="36,12 110,12 112,14 36,14" fill="#f2f6fb" opacity="0.7"/>';
+  s+='<polygon points="120,2 150,-2 150,4 122,12" fill="'+body+'"/>';
+  s+='<polygon points="128,2 150,-2 150,-30 138,-34 130,-12" fill="'+accent+'"/><polygon points="130,-12 150,-30 150,-26 134,-8" fill="'+dk+'"/>';
+  s+='<polygon points="118,2 140,0 140,4 118,6" fill="'+shade+'"/>';
+  s+='<rect x="6" y="-12" width="116" height="22" rx="11" fill="'+body+'"/><rect x="6" y="-12" width="116" height="6" rx="6" fill="#f2f6fb" opacity="0.55"/><rect x="6" y="4" width="116" height="6" rx="6" fill="'+shade+'" opacity="0.7"/>';
+  if(jet){ s+='<polygon points="6,-10 6,8 -12,2 -9,-4" fill="'+body+'"/><rect x="96" y="-7" width="18" height="10" rx="4" fill="'+dk+'"/><circle cx="96" cy="-2" r="4" fill="#11181f"/>'; }
+  else { s+='<polygon points="6,-9 6,7 -4,4 -4,-6" fill="'+shade+'"/><ellipse cx="-3" cy="-1" rx="3" ry="14" fill="#9fb0c2" opacity="0.45"/><rect x="-5" y="-3" width="4" height="5" fill="#1b2632"/>'; }
+  s+='<rect x="-2" y="-3" width="124" height="3" fill="'+accent+'"/><rect x="-2" y="2" width="120" height="2" fill="'+accent+'" opacity="0.55"/><rect x="2" y="-9" width="9" height="18" rx="3" fill="'+accent+'"/>';
+  s+='<polygon points="20,-12 30,-21 60,-21 66,-12" fill="#10303f"/><polygon points="22,-12 31,-19 44,-19 44,-12" fill="#2f6f8c" opacity="0.85"/>';
+  s+='<rect x="70" y="-8" width="7" height="7" rx="1" fill="#11303f"/><rect x="82" y="-8" width="7" height="7" rx="1" fill="#11303f"/><rect x="94" y="-8" width="7" height="7" rx="1" fill="#11303f"/>';
+  s+='<circle cx="16" cy="-1" r="14" fill="url(#bayglow)"/><rect x="9" y="-7" width="13" height="12" fill="#06241b" stroke="#0a0f15" stroke-width="1.5"/><rect x="10" y="-6" width="11" height="3" fill="#36e0a0" opacity="0.9"/><rect x="10" y="-2" width="8" height="2" fill="#5cc6ff" opacity="0.85"/><rect x="10" y="2" width="10" height="2" fill="#ffd23f" opacity="0.8"/><polygon points="22,-7 30,-12 30,-6 22,0" fill="'+shade+'" stroke="#0a0f15" stroke-width="1"/>';
+  s+='<rect x="14" y="9" width="3" height="14" fill="#3a4654"/><circle cx="15" cy="24" r="4" fill="#11181f" stroke="#2c3a49" stroke-width="2"/><rect x="74" y="14" width="4" height="10" fill="#3a4654"/><circle cx="76" cy="25" r="5" fill="#11181f" stroke="#2c3a49" stroke-width="2"/>';
+  return s; }
+function hangarScene(opt){
+  var th=THEME[STATE.level]||THEME[1], S=season(), sky=S.sky;
+  var bay = opt ? {n:opt.n} : (function(){ var b=featuredBay(); return b?{n:Math.min(3,(b.crew&&b.crew.length)||1)}:null; })();
+  var active=!!bay, n=bay?bay.n:1, jet=STATE.era>=4, accent=th.signBorder, sheen=STATE.level/7, g0=166;
+  var defs='<defs>'
+   +'<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+sky[0]+'"/><stop offset="0.55" stop-color="'+sky[1]+'"/><stop offset="1" stop-color="'+sky[2]+'"/></linearGradient>'
+   +'<linearGradient id="cone" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff2b8" stop-opacity="0.40"/><stop offset="1" stop-color="#fff2b8" stop-opacity="0"/></linearGradient>'
+   +'<radialGradient id="pool" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#fff0b0" stop-opacity="0.32"/><stop offset="1" stop-color="#fff0b0" stop-opacity="0"/></radialGradient>'
+   +'<radialGradient id="bayglow" cx="0.5" cy="0.5" r="0.5"><stop offset="0" stop-color="#7affda" stop-opacity="0.98"/><stop offset="1" stop-color="#7affda" stop-opacity="0"/></radialGradient>'
+   +'</defs>';
+  var ceil='<rect width="480" height="46" fill="#123a58"/><g stroke="#4f93c2" stroke-width="3" fill="none"><polyline points="0,12 480,12"/><polyline points="0,26 40,12 80,26 120,12 160,26 200,12 240,26 280,12 320,26 360,12 400,26 440,12 480,26"/></g>'+hangLamp(200)+hangLamp(300);
+  var wall='<rect x="0" y="44" width="480" height="138" fill="'+th.wall+'"/><g stroke="#0a0f15" stroke-width="2" opacity="0.35"><line x1="0" y1="46" x2="480" y2="46"/><line x1="60" y1="46" x2="60" y2="182"/><line x1="420" y1="46" x2="420" y2="182"/></g>';
+  var door='<clipPath id="door"><rect x="146" y="46" width="210" height="120"/></clipPath>'
+   +'<rect x="146" y="46" width="210" height="124" fill="url(#sky)"/>'
+   +'<g clip-path="url(#door)">'
+   +'<circle cx="300" cy="'+S.sunY+'" r="12" fill="'+S.sun+'" opacity="0.92"/><circle cx="300" cy="'+S.sunY+'" r="22" fill="'+S.sun+'" opacity="0.12"/>'
+   +'<rect x="146" y="'+g0+'" width="210" height="6" fill="#3f5560" opacity="0.85"/><rect x="146" y="'+(g0-2)+'" width="210" height="2" fill="#33414f"/>'
+   +ctrlTower(330,g0)
+   +'<g fill="#0d1824" opacity="0.85"><rect x="176" y="'+(g0-10)+'" width="34" height="6" rx="3"/><rect x="190" y="'+(g0-15)+'" width="5" height="6"/><polygon points="176,'+(g0-7)+' 168,'+(g0-4)+' 176,'+(g0-4)+'"/><rect x="184" y="'+(g0-4)+'" width="18" height="4"/></g>'
+   +'<g style="opacity:0.4"><rect x="168" y="66" width="22" height="6" fill="#e9f1fb"/><rect x="176" y="61" width="14" height="6" fill="#f4f8fd"/></g>'
+   +'<g transform="translate(286,84)" opacity="0.8">'+flyer(0.8)+'</g>'
+   +'</g>'
+   +'<rect x="144" y="44" width="214" height="128" fill="none" stroke="#0a0f15" stroke-width="5"/>'
+   +'<rect x="354" y="120" width="3" height="40" fill="#3a4654"/><g><polygon points="357,120 373,123 373,129 357,132" fill="#ff8a3a"/></g>';
+  var glow = STATE.level>=4 ? '<rect x="56" y="92" width="74" height="30" fill="'+th.signBorder+'" opacity="0.18"/>' : '';
+  var sign=glow+'<rect x="60" y="95" width="66" height="24" fill="'+th.signBg+'" stroke="'+th.signBorder+'" stroke-width="3"/><rect x="66" y="102" width="8" height="8" fill="'+th.signBorder+'"/><text x="78" y="110" font-family="Press Start 2P" font-size="7" fill="'+th.accent+'">AVIONICS</text>';
+  var peg=pegboard(386,60);
+  var floor='<polygon points="0,178 480,178 480,270 0,270" fill="'+th.floor+'"/>'
+   +'<polygon points="0,178 480,178 480,206 0,206" fill="'+th.floorHi+'" opacity="'+(0.2+sheen*0.4).toFixed(2)+'"/>'
+   +'<g stroke="#0c141c" stroke-width="2" opacity="0.4"><line x1="0" y1="210" x2="480" y2="210"/><line x1="120" y1="178" x2="40" y2="270"/><line x1="360" y1="178" x2="440" y2="270"/></g>'
+   +'<rect x="0" y="250" width="480" height="8" fill="#ffd21f" opacity="0.7"/><rect x="0" y="250" width="480" height="2" fill="#1b1402" opacity="0.5"/>';
+  var pools='<ellipse cx="200" cy="226" rx="78" ry="20" fill="url(#pool)"/><ellipse cx="300" cy="230" rx="86" ry="22" fill="url(#pool)"/>';
+  var cones=lightCone(200,32,224,12,64)+lightCone(300,32,228,12,72);
+  var px=158, py=195, plane='';
+  plane += '<ellipse cx="'+(px+78)+'" cy="222" rx="86" ry="8" fill="#070b10" opacity="0.5"/>';
+  plane += '<g transform="translate('+px+','+py+')">'+heroPlane(accent,jet)+'</g>';
+  if(active){
+    plane += platform(120,213);
+    plane += '<path d="M126 230 Q150 224 164 200" stroke="#36e0a0" stroke-width="2" fill="none" opacity="0.7"/>';
+    plane += testCart(92,238);
+    plane += wkr(140,201,'#ffb028','0',0.82,1);
+    if(n>=2) plane += wkr(300,250,'#5cc6ff','0.3',0.8,-1);
+    if(n>=3) plane += wkr(356,252,'#36e0a0','0.5',0.74,1);
+  } else { plane += testCart(92,238); }
+  var fg=toolbox(404,250)
+   +'<rect x="430" y="232" width="26" height="18" fill="#4a7398" stroke="#0a0f15" stroke-width="2"/>'
+   +'<circle cx="372" cy="246" r="9" fill="none" stroke="#7fa8c4" stroke-width="4"/><circle cx="372" cy="246" r="3" fill="#1b2632"/>'
+   +'<polygon points="40,260 48,234 56,260" fill="#ff8a3a"/><polygon points="44,248 52,248 50,242 46,242" fill="#ffd9a0"/>';
+  var bench='<g transform="translate(4,210)"><rect x="0" y="24" width="92" height="40" fill="'+th.accent+'" opacity="0.12"/><rect x="0" y="26" width="92" height="38" fill="#33597e" stroke="#0a0f15" stroke-width="3"/><rect x="6" y="6" width="34" height="22" fill="#0c1a14" stroke="#0a0f15" stroke-width="3"/><polyline points="9,18 14,18 17,9 20,25 23,13 27,18 38,18" fill="none" stroke="#36e0a0" stroke-width="2"/><rect x="48" y="10" width="26" height="18" fill="#1c2733" stroke="#0a0f15" stroke-width="2"/><rect class="beacon" x="52" y="14" width="6" height="6" fill="#ff5a5f"/><rect x="62" y="14" width="6" height="6" fill="#5cc6ff"/><rect x="80" y="16" width="8" height="12" fill="#c43a3e"/></g>';
+  return '<div class="hangarwrap"><svg viewBox="0 0 480 270" preserveAspectRatio="xMidYMid meet" aria-label="hangar floor">'
+   + defs + '<rect width="480" height="270" fill="#1c557d"/>'
+   + ceil + wall + sign + peg + door
+   + floor + pools + cones
+   + plane + bench + fg
+   + '<rect width="480" height="270" fill="'+S.wash+'" opacity="0.05"/>'
+   + '</svg></div>'; }
+
+/* ---- DATA ---- */
+var ERAS=[ null,{name:'STEAM & RETROFIT'},{name:'THE GLASS WAVE'},{name:'ADS-B MANDATE'},{name:'THE CONNECTED COCKPIT'} ];
+var AIRCRAFT={
+  piston:{name:'Piston Single', ds:'4-seat GA tourer', tier:1.0, lvl:1},
+  lsa:{name:'Light Sport', ds:'two-seat sport plane', tier:0.7, lvl:1},
+  taildragger:{name:'Vintage Taildragger', ds:'1940s fabric classic', tier:0.75, lvl:1},
+  experimental:{name:'Experimental', ds:'owner-built homebuilt', tier:0.85, lvl:1},
+  twinpiston:{name:'Piston Twin', ds:'Baron-class twin', tier:1.15, lvl:1},
+  warbird:{name:'Vintage Warbird', ds:'restored radial classic', tier:1.1, lvl:1},
+  heli:{name:'Light Helicopter', ds:'GA rotorcraft', tier:1.3, lvl:1},
+  floatplane:{name:'Floatplane', ds:'utility on floats', tier:1.2, lvl:2},
+  tprop1:{name:'Turboprop Single', ds:'pressurized single', tier:1.7, lvl:2},
+  tprop2:{name:'King Air-Class Twin', ds:'business turboprop', tier:1.9, lvl:2},
+  ljet:{name:'Light Jet', ds:'entry business jet', tier:2.6, lvl:3},
+  mjet:{name:'Midsize Jet', ds:'transcon business jet', tier:3.2, lvl:3} };
+var JOBS={
+  audio:{name:'Audio Panel Upgrade', era:1, credReq:0, ds:'New audio panel, intercom, jacks.', w:{work:1,diag:0.6,comp:0.7,fin:1.3}, pay:6000, fit:{piston:'amazing',lsa:'amazing'}},
+  elt:{name:'ELT 406 Install', era:1, credReq:0, ds:'Modern beacon plus registration.', w:{work:1,diag:0.5,comp:1.4,fin:0.6}, pay:5000, fit:{}},
+  cert:{name:'Pitot-Static & Altimeter (91.411)', era:1, credReq:0, ds:'24-month static system, altimeter, and altitude-reporting test. Keeps the airplane IFR-legal.', w:{work:0.6,diag:1.3,comp:1.5,fin:0.4}, pay:4800, shifts:2, fit:{}},
+  xpdr:{name:'Transponder Test (91.413)', era:1, credReq:0, ds:'24-month ATC transponder check, Mode C and Mode S, run with the static test.', w:{work:0.5,diag:1.4,comp:1.4,fin:0.4}, pay:3600, shifts:2, fit:{}},
+  harness:{name:'Wiring Harness Fab', era:1, credReq:0, ds:'Build a clean custom harness.', w:{work:1.6,diag:0.7,comp:0.8,fin:1.1}, pay:7000, fit:{experimental:'amazing',warbird:'amazing'}},
+  radio:{name:'Com/Nav Radio Swap', era:1, credReq:0, ds:'Pull the old box, hang the new.', w:{work:1.1,diag:1,comp:0.8,fin:0.9}, pay:5000, fit:{}},
+  glass:{name:'Glass Panel Retrofit', era:2, credReq:1, ds:'Steam gauges out, PFD/MFD in.', w:{work:1.4,diag:0.9,comp:1.1,fin:1.3}, pay:24000, fit:{tprop1:'amazing',tprop2:'amazing',twinpiston:'amazing',taildragger:'dead',experimental:'risky',warbird:'risky'}},
+  ap:{name:'Autopilot Install', era:2, credReq:1, ds:'Servos, wiring, flight controller.', w:{work:1.3,diag:1.3,comp:1,fin:0.7}, pay:17000, fit:{tprop1:'amazing',tprop2:'amazing',twinpiston:'amazing',ljet:'amazing',mjet:'amazing',taildragger:'risky',experimental:'risky'}},
+  eis:{name:'Engine Monitor Install', era:2, credReq:0, ds:'Full EIS, probes, harness.', w:{work:1.2,diag:1,comp:0.9,fin:1}, pay:9000, fit:{piston:'amazing',experimental:'amazing',twinpiston:'amazing'}},
+  adsb:{name:'ADS-B Out Install', era:3, credReq:1, ds:'Mandate transponder + GPS source.', w:{work:1,diag:0.7,comp:1.5,fin:0.6}, pay:9000, fit:{piston:'amazing',lsa:'amazing',floatplane:'amazing',taildragger:'risky'}},
+  datalink:{name:'Cockpit Connectivity', era:4, credReq:2, ds:'Cabin/cockpit datalink + antenna.', w:{work:1.3,diag:1.1,comp:1,fin:1.2}, pay:32000, fit:{ljet:'amazing',mjet:'amazing',taildragger:'dead',piston:'dead',lsa:'dead',experimental:'dead',warbird:'dead',heli:'risky',floatplane:'risky'}},
+  radar:{name:'Weather Radar Install', era:4, credReq:2, ds:'Radome, waveguide, indicator.', w:{work:1.2,diag:1.3,comp:1,fin:0.9}, pay:21000, fit:{tprop1:'amazing',tprop2:'amazing',ljet:'amazing',mjet:'amazing',taildragger:'dead',lsa:'dead',warbird:'dead',experimental:'risky'}},
+  traffic:{name:'ADS-B In / Traffic', era:4, credReq:1, ds:'Traffic display and position feed.', w:{work:1,diag:1.2,comp:1.1,fin:0.8}, pay:11000, fit:{ljet:'amazing',mjet:'amazing',tprop1:'amazing',tprop2:'amazing',taildragger:'risky'}} };
+var FITMULT={amazing:1.4,solid:1.0,risky:0.7,dead:0.4};
+var FITWHY={ amazing:"Bread and butter for this shop.", solid:"Clean, profitable work.", risky:"Tight fit. Thin margin, real gotchas.", dead:"Wrong airplane. No STC, no business taking it." };
+function fitFor(a,j){ return (JOBS[j].fit && JOBS[j].fit[a]) || 'solid'; }
+var OWNERS=["Marlene","Doc Pruitt","the Hargrove estate","Captain Reyes","Big Tom","the county club","Wendy Osei","Sal from the FBO","the Aldridge trust","Hutch","a nervous first owner","the crop-dusting outfit"];
+
+var SQUAWKS={
+  audio:{ s:"The pilot hears a whine in the headset that rises with engine RPM.", opts:[{t:"Chase the alternator noise and grounding.",ok:true},{t:"Rotate the tires."},{t:"Recalibrate the altimeter."},{t:"Torque the propeller bolts."}], ex:"RPM-following whine in audio is textbook alternator noise getting in through a poor ground or an unshielded run." },
+  elt:{ s:"The 406 self-test passes, but the beacon never registered with the satellite system.", opts:[{t:"Confirm the unit ID is programmed and registered to the owner.",ok:true},{t:"Re-torque the prop."},{t:"Replace the dome light."},{t:"Bleed the brakes."}], ex:"A 406 ELT is useless until its ID is coded and registered. A passing self-test only checks the hardware, not the registration." },
+  cert:{ s:"During the static check the altimeter lags and will not hold the target.", opts:[{t:"Find the leak in the static plumbing and reseal it.",ok:true},{t:"Charge the battery."},{t:"Swap the COM antenna."},{t:"Adjust the seat rails."}], ex:"A lagging or dropping reading in a static test points straight at a leak in the static system plumbing." },
+  harness:{ s:"After the new harness goes in, a breaker pops the instant the avionics master is selected.", opts:[{t:"Find the pinched or mis-pinned wire causing the short.",ok:true},{t:"Top off the oil."},{t:"Clean the windscreen."},{t:"Rotate the tires."}], ex:"An instant breaker trip on power-up is a dead short, almost always a pinched conductor or a mis-pinned connector in the new harness." },
+  radio:{ s:"The new COM transmits fine but receive is weak and scratchy.", opts:[{t:"Check the antenna coax and connector for a poor connection.",ok:true},{t:"Replace a tire."},{t:"Recalibrate the altimeter."},{t:"Re-hang the door."}], ex:"Weak receive with good transmit usually means signal loss in the antenna feed, a bad coax or connector." },
+  glass:{ s:"The new PFD boots, but the AHRS will not align on the ground.", opts:[{t:"Confirm the AHRS is mounted level and torqued tight.",ok:true},{t:"Swap the COM antenna."},{t:"Recharge the battery."},{t:"Adjust the seat rails."}], ex:"An AHRS needs a stable, level, tight mount to align. A loose or canted tray is the classic no-align cause on a fresh install." },
+  ap:{ s:"Autopilot engages, then porpoises in pitch.", opts:[{t:"Recheck the pitch servo wiring and trim sense.",ok:true},{t:"Clean the windscreen."},{t:"Replace the dome light."},{t:"Re-hang the cabin door."}], ex:"Pitch oscillation points at the pitch servo loop: reversed trim sense or a wiring fault makes the AP fight itself." },
+  eis:{ s:"The new engine monitor reads CHT, but every EGT channel is dead.", opts:[{t:"Check the EGT probe ground and harness connections.",ok:true},{t:"Replace the battery."},{t:"Clean the static port."},{t:"Adjust tire pressure."}], ex:"All channels of one type dead points at the shared ground or harness for those probes, not the gauge itself." },
+  adsb:{ s:"On the ramp test the transponder shows NO REPLY.", opts:[{t:"Check the transponder antenna ground and coax.",ok:true},{t:"Bleed the brakes."},{t:"Update the moving map."},{t:"Replace the landing light."}], ex:"A NO REPLY almost always traces to the antenna path: a bad ground plane or a loose coax connector kills the reply chain." },
+  datalink:{ s:"The system connects on the ground but drops the link the moment the aircraft taxis.", opts:[{t:"Check the antenna mount and coax for a vibration-sensitive connection.",ok:true},{t:"Update the moving map."},{t:"Replace the landing light."},{t:"Re-torque the yoke."}], ex:"Works static, drops with motion equals a mechanical connection in the antenna path opening under vibration." },
+  radar:{ s:"The radar sweeps but paints nothing, even in known weather.", opts:[{t:"Check the waveguide run and the antenna drive.",ok:true},{t:"Clean the windscreen."},{t:"Charge the battery."},{t:"Rotate the tires."}], ex:"A sweeping display with no returns points at the transmit and receive path, the waveguide or antenna, not the indicator." },
+  traffic:{ s:"Traffic shows on the display, but the targets lag several seconds behind reality.", opts:[{t:"Verify the position source and the ADS-B In wiring integrity.",ok:true},{t:"Replace the dome light."},{t:"Bleed the brakes."},{t:"Adjust the seat."}], ex:"Laggy or stale targets trace to the position source feed and the data wiring, not the screen." },
+  generic:{ s:"A nav flag drops in only during turbulence.", opts:[{t:"Find the chafed wire or loose connector behind the panel.",ok:true},{t:"Clean the static port."},{t:"Replace the weak battery."},{t:"Adjust tire pressure."}], ex:"Intermittent only when the airframe flexes means a mechanical connection: a chafe or a backed-out pin that opens under vibration." } };
+
+/* ---- consequence-and-reward floor calls (each run() returns {t, tone}) ---- */
+var HF=[
+  { s:"The owner is in the bay, pushing you to sign it off so he can make a 2pm departure. The static check is not finished.",
+    safe:{ label:"Tell him it flies when the check is done.", run:function(){ STATE.safe.good++; nudge('comp',12); STATE.rep+=1; return {t:"You held the line. The check came back clean and he respected it. Quality up, and a little goodwill in the bank.", tone:'good'}; } },
+    risk:{ label:"Rush the check so he makes his slot.", run:function(){ if(Math.random()<0.35){ nudge('comp',6); return {t:"He made his 2 oclock and nothing bit you. That one was luck, and luck runs out.", tone:'neutral'}; } STATE.safe.bad++; nudge('comp',-20); STATE.cash-=800; return {t:"You missed a soft leak. It comes back as a squawk and a "+money(800)+" redo. The departure was not worth it.", tone:'bad'}; } } },
+  { s:"End of a long week, last hour of an autopilot rig, and your eyes are gone.",
+    safe:{ label:"Bag it for the morning, finish fresh.", run:function(){ STATE.safe.good++; crewRest(15); nudge('diag',6); return {t:"You came back rested and finished it right the first time. The crew is sharper for the rest.", tone:'good'}; } },
+    risk:{ label:"Push through and get it done tonight.", run:function(){ if(Math.random()<0.40){ STATE.tokens=Math.min(3,STATE.tokens+1); return {t:"You powered through and it held. One overtime token banked. Do not make a habit of it.", tone:'neutral'}; } STATE.safe.bad++; nudge('diag',-18); crewRest(-12); return {t:"Tired hands, tired mistake. You will be redoing this in the morning, and the crew is wrung out.", tone:'bad'}; } } },
+  { s:"The right crimper is loaned out. There is a pair of pliers sitting right here on the bench.",
+    safe:{ label:"Track down the right tool first.", run:function(){ STATE.safe.good++; nudge('work',12); return {t:"Right tool, clean crimp, solid joint. Worth the walk.", tone:'good'}; } },
+    risk:{ label:"The pliers will do for a couple crimps.", run:function(){ if(Math.random()<0.30){ nudge('work',5); return {t:"It held this time. Barely.", tone:'neutral'}; } STATE.safe.bad++; nudge('work',-18); STATE.cash-=600; return {t:"That crimp fails on the pull test. Scrap the pin, redo it, "+money(600)+" in parts gone.", tone:'bad'}; } } },
+  { s:"The front desk pulls you off a half-pinned connector to take a customer call. Ten minutes gone.",
+    safe:{ label:"Back up three steps and re-verify.", run:function(){ STATE.safe.good++; nudge('work',10); return {t:"You found your place and kept the run clean. No surprises later.", tone:'good'}; } },
+    risk:{ label:"Pick up where you think you stopped.", run:function(){ if(Math.random()<0.40){ nudge('work',4); return {t:"You guessed right. This time.", tone:'neutral'}; } STATE.safe.bad++; nudge('work',-16); return {t:"You skipped a pin. Caught on the test, but it cost you a teardown to get back to it.", tone:'bad'}; } } },
+  { s:"Second shift is taking the harness job, but the pin map is only in your head.",
+    safe:{ label:"Write the handoff before you leave.", run:function(){ STATE.safe.good++; nudge('comp',12); return {t:"They picked it up clean off your notes. Nothing dropped between shifts.", tone:'good'}; } },
+    risk:{ label:"Tell them quick on the way out.", run:function(){ if(Math.random()<0.40){ nudge('comp',4); return {t:"They remembered it right. You got away with it.", tone:'neutral'}; } STATE.safe.bad++; nudge('comp',-14); nudge('fin',-8); return {t:"They guessed wrong on two connectors. Rework, and a messy section to clean up.", tone:'bad'}; } } },
+  { s:"You spot a chafe point the lead already signed off on. He is senior and in a hurry.",
+    safe:{ label:"Speak up and show him the chafe.", run:function(){ STATE.safe.good++; nudge('diag',14); STATE.rep+=1; return {t:"You called it. The lead thanked you later, quietly. That wire would have been a fire.", tone:'good'}; } },
+    risk:{ label:"He is the lead. Leave it alone.", run:function(){ if(Math.random()<0.25){ return {t:"It held. You got lucky, and you know it.", tone:'neutral'}; } STATE.safe.bad++; nudge('diag',-16); STATE.rep=Math.max(0,STATE.rep-1); STATE.cash-=700; return {t:"It chafed through in service. Warranty fix, "+money(700)+", and a ding to the shop name.", tone:'bad'}; } } },
+  { s:"You have hung this same audio panel fifty times. The card says torque-check the rack.",
+    safe:{ label:"Do the torque check anyway.", run:function(){ STATE.safe.good++; nudge('work',10); return {t:"The card is the card. Everything tight, everything signed.", tone:'good'}; } },
+    risk:{ label:"Skip it, you have never had one back out.", run:function(){ if(Math.random()<0.35){ STATE.tokens=Math.min(3,STATE.tokens+1); return {t:"Saved a few minutes and nothing moved. A token banked, and a bad habit forming.", tone:'neutral'}; } STATE.safe.bad++; nudge('work',-16); return {t:"One screw backed out on the first flight. The whole rack comes back out. Redo.", tone:'bad'}; } } },
+  { s:"You and Sparks disagree on how to route the new harness. The tension is rising.",
+    safe:{ label:"Talk it out against the drawing.", run:function(){ STATE.safe.good++; nudge('fin',12); crewRest(8); return {t:"Better route, and the crew is tighter for sorting it like adults.", tone:'good'}; } },
+    risk:{ label:"Do it your way, let him sort his.", run:function(){ if(Math.random()<0.40){ nudge('fin',4); return {t:"Your route worked out. The mood on the floor did not.", tone:'neutral'}; } STATE.safe.bad++; nudge('fin',-14); crewRest(-10); return {t:"Two routes that fight each other and a sour shop. The section looks it, and morale dips.", tone:'bad'}; } } },
+  { s:"The old hands here always safety-wire it a certain way. The manual shows a different method.",
+    safe:{ label:"Follow the manual.", run:function(){ STATE.safe.good++; nudge('comp',12); return {t:"By the data. The inspector will not have a word to say.", tone:'good'}; } },
+    risk:{ label:"Do it the shop way, like always.", run:function(){ if(Math.random()<0.35){ nudge('comp',4); return {t:"Nobody checked. This time.", tone:'neutral'}; } STATE.safe.bad++; nudge('comp',-16); STATE.cash-=500; return {t:"It does not match the approved data. Redo the wire and the paperwork, "+money(500)+" of time gone.", tone:'bad'}; } } },
+  { s:"Stuff at home is heavy and your head is not in the bay today.",
+    safe:{ label:"Take routine bench work, off the critical rig.", run:function(){ STATE.safe.good++; nudge('work',8); crewRest(6); return {t:"You stayed in your lane and kept it clean. Smart to know it was not your day for the hard stuff.", tone:'good'}; } },
+    risk:{ label:"Grab the complex job anyway.", run:function(){ if(Math.random()<0.30){ nudge('work',5); return {t:"You held it together. Today.", tone:'neutral'}; } STATE.safe.bad++; nudge('work',-16); nudge('diag',-8); return {t:"Your head was somewhere else and it showed on a job that could not afford it. Mistakes to unwind.", tone:'bad'}; } } },
+  { s:"You are about to power up the bus, but you have not checked whether anyone has hands in the panel.",
+    safe:{ label:"Call it out and clear the bay first.", run:function(){ STATE.safe.good++; nudge('diag',10); STATE.rep+=1; return {t:"Clear and called. Everybody safe, everybody sharp. That is how a floor should run.", tone:'good'}; } },
+    risk:{ label:"Flip it, everyone knows the drill.", run:function(){ if(Math.random()<0.30){ return {t:"Nobody was reaching in. This time.", tone:'neutral'}; } STATE.safe.bad++; nudge('diag',-14); STATE.cash-=900; crewRest(-12); return {t:"Popped a board with a hand still in it. A scare, a "+money(900)+" repair, and a rattled crew.", tone:'bad'}; } } },
+  { s:"This connectivity box is new to you and the wiring is not obvious.",
+    safe:{ label:"Pull the manual and ask Echo.", run:function(){ STATE.safe.good++; nudge('diag',12); return {t:"You did it right the first time instead of fast the wrong way.", tone:'good'}; } },
+    risk:{ label:"Wing it from a similar install.", run:function(){ if(Math.random()<0.35){ nudge('diag',5); return {t:"Close enough to the last one that it worked. Could have gone the other way.", tone:'neutral'}; } STATE.safe.bad++; nudge('diag',-16); STATE.cash-=700; return {t:"Wrong assumption, a small puff of smoke, and a "+money(700)+" board to replace. Rework.", tone:'bad'}; } } } ];
+
+var CREW_POOL=[
+  {key:'reroute', name:'Reroute', tag:"Left the airline life looking for shorter hours.", wiring:6,integ:7,trouble:6,paper:6, cred:1, fee:12000, lvl:1, color:'#5cc6ff'},
+  {key:'sparks',  name:'Sparks',  tag:"Install and sheet-metal ace. Wires like a sewing machine.", wiring:8,integ:8,trouble:5,paper:4, cred:1, fee:18000, lvl:2, color:'#ffb028'},
+  {key:'ledger',  name:'Ledger',  tag:"Slow, meticulous, and her paperwork is airtight.", wiring:4,integ:5,trouble:5,paper:9, cred:2, fee:16000, lvl:2, color:'#c792ff'},
+  {key:'echo',    name:'Echo',    tag:"RF and comm specialist. Talks to antennas.", wiring:5,integ:6,trouble:9,paper:5, cred:2, fee:20000, lvl:3, color:'#36e0a0'} ];
+var UPGRADES=[
+  {lvl:2, name:'Second Bay & a Crew', req:12, cost:20000, desc:"A second bay, two more crew slots, and turboprop work. Run two jobs at once."},
+  {lvl:3, name:'Avionics Center', req:35, cost:60000, desc:"A third bay, another hand, jet work, and dealer authorizations."},
+  {lvl:4, name:'Regional Powerhouse', req:70, cost:150000, desc:"A fourth bay, a fifth hand, and your own STC line (passive income)."},
+  {lvl:5, name:'The Second Hangar', req:110, cost:320000, desc:"A fifth bay, a sixth and seventh hand, a polished flagship floor, and the run at Shop of the Year."} ];
+
+var EVENTS=[
+  { key:'aog', title:'AOG EMERGENCY', weight:3, text:"A charter operator has a jet stranded on the ramp with a dead box. Crew and passengers are waiting. They will pay a premium for a same-day fix.",
+    choices:[ {label:'DROP EVERYTHING', run:function(){ launchSquawk(pickSquawk(), function(ok){ if(ok){ var p=Math.round(9000+Math.random()*6000); STATE.cash+=p; STATE.rep+=4; result("AOG saved. They wired "+money(p)+" and told everyone on the field. +4 rep."); } else { STATE.rep=Math.max(0,STATE.rep-2); result("You chased the wrong lead and they called another shop. -2 rep."); } }); return null; }},
+      {label:'STAY ON SCHEDULE', run:function(){ STATE.rep=Math.max(0,STATE.rep-1); return "You kept your commitments to the bays already open. The operator went elsewhere. -1 rep, but no broken promises."; }} ]},
+  { key:'audit', title:'SURPRISE FAA AUDIT', weight:2, text:"An FAA inspector drops in unannounced to audit your records and conformity. Time to open the logbooks.",
+    choices:[ {label:'SHOW THE LOGBOOKS', run:function(){ if(bestStat('paper')>=7 || STATE.rep>=40){ STATE.rep+=3; return "Clean records. The inspector left impressed and the field heard about it. +3 rep."; } var fine=Math.round(2000+Math.random()*2000); STATE.cash-=fine; return "A few paperwork gaps. Minor finding and a "+money(fine)+" fix-it. Worth having someone who lives in the records."; }} ]},
+  { key:'backorder', title:'PART BACKORDERED', weight:2, text:"The part for one of your jobs is backordered. You can wait for normal shipping or pay to expedite.",
+    choices:[ {label:'EXPEDITE ($1,800)', run:function(){ if(STATE.cash<1800) return "You cannot cover the expedite right now. The order waits."; STATE.cash-=1800; return "Overnighted. The line keeps moving. -"+money(1800)+"."; }},
+      {label:'WAIT IT OUT', run:function(){ STATE.week+=2; return "You wait two weeks for the part. Patience is free, the schedule slips a little."; }} ]},
+  { key:'connect', title:'AEA CONNECT IS IN TOWN', weight:2, text:"The AEA Connect convention is on. The training sessions can move a tech down the road on their skills, and the booth builds your name.",
+    choices:[ {label:'ATTEND ($4,000)', run:function(){ if(STATE.cash<4000) return "You cannot swing the booth this year. Maybe next."; STATE.cash-=4000; var c=pick(STATE.crew); ['wiring','integ','trouble','paper'].forEach(function(k){ c[k]=Math.min(10,c[k]+0.6); }); STATE.rep+=3; STATE.conventions++; STATE.aeaRep+=2; return c.name+" came home from the training sharper across the board, and the field saw your booth. +3 rep."; }},
+      {label:'SKIP IT', run:function(){ return "You stayed on the bench and kept billing. The work does not stop for a convention."; }} ]},
+  { key:'dealer', title:'A MANUFACTURER CALLS', min:3, weight:2, text:"A regional rep from one of the avionics makers stops by the shop. They like what they see on the floor and want you selling their line.",
+    choices:[ {label:'TALK SHOP', run:function(){ var era=STATE.era; var pl = era>=4?['stratoline','tempest','quanta']:era>=3?['quanta','vireon','tindall']:era>=2?['vireon','tindall','kestrel']:['larkfield','kestrel']; var o=pl[Math.floor(Math.random()*pl.length)]; STATE.oemSales[o]=(STATE.oemSales[o]||0)+2; STATE.rep+=2; return "You walked them through a few installs. They left demo units and put two sales on your "+OEMS[o].name+" record, two steps closer to that dealership. +2 rep."; }},
+      {label:'STAY INDEPENDENT', run:function(){ return "You kept the shop unaligned for now. There is freedom in owing no one a sales quota."; }} ]},
+  { key:'apprentice', title:'A NEW GRAD WALKS IN', weight:2, text:"A fresh graduate is at the counter asking for a shot. Low hours, eager, cheap, and an apprentice you can grow. Needs an open crew slot.",
+    choices:[ {label:'TAKE A CHANCE ($3,000)', run:function(){ if(STATE.crew.length>=crewSlots()) return "Every bench is full. You took their number for when a slot opens."; if(STATE.cash<3000) return "You cannot cover the start cost right now."; STATE.cash-=3000; STATE.crew.push(mkCrew('Rook',"Green out of school. Raw skills, but soaks up everything.",3,3,3,3,0,'#9be8c8')); return "Rook is on the payroll as an apprentice. Put them on jobs and run them through training and they will grow."; }},
+      {label:'REFER THEM OUT', run:function(){ STATE.rep+=1; return "You pointed them to a shop that was hiring. Good for the trade, good for your name. +1 rep."; }} ]},
+  { key:'warranty', title:'WARRANTY CALLBACK', weight:2, text:"A panel you delivered last quarter has an intermittent squawk and the owner is unhappy. The shop stands behind its work.",
+    choices:[ {label:'GO FIX IT', run:function(){ launchSquawk(SQUAWKS.generic, function(ok){ if(ok){ STATE.rep+=2; result("You stood behind the work and nailed it on the comeback. The owner is a fan for life. +2 rep."); } else { var f=Math.round(1500+Math.random()*1500); STATE.cash-=f; STATE.rep=Math.max(0,STATE.rep-2); result("Took a couple tries and a "+money(f)+" goodwill credit. -2 rep. Quality compounds, good and bad."); } }); return null; }} ]},
+  { key:'feature', title:'TRADE MAGAZINE FEATURE', min:2, weight:1, text:"The industry magazine wants to feature your shop and a recent job. Free press, big reach.",
+    choices:[ {label:'GIVE THEM THE TOUR', run:function(){ STATE.rep+=5; return "The spread runs and the phone starts ringing. +5 rep. Money cannot buy that kind of reach."; }} ]},
+  { key:'tooling', title:'NEW TEST SET FOR SALE', weight:1, text:"A clean ramp test set comes up for sale. Buy it and every job gets a small quality edge.",
+    choices:[ {label:'BUY IT ($6,000)', run:function(){ if(STATE.cash<6000) return "You cannot cover the test set yet."; if(STATE.auths.tooling) return "You already upgraded your bench tooling."; STATE.cash-=6000; STATE.auths.tooling=true; return "New iron on the bench. Every job now starts a step ahead on quality."; }},
+      {label:'MAKE DO', run:function(){ return "The old set still works. You pocket the cash."; }} ]},
+  { key:'club', title:'FLYING CLUB CONTRACT', weight:1, text:"The county flying club wants a standing maintenance contract. Steady, smaller money on every job you turn from now on.",
+    choices:[ {label:'SIGN THE CONTRACT', run:function(){ STATE.passive+=600; STATE.rep+=2; return "Signed. A steady trickle now lands on every job you complete. +2 rep."; }},
+      {label:'STAY PROJECT-BY-PROJECT', run:function(){ return "You kept your schedule open for the big stuff."; }} ]},
+  { key:'scholarship', title:'SPONSOR A SCHOLARSHIP', weight:1, text:"The AEA Educational Foundation asks your shop to sponsor a scholarship for a student getting into the trade.",
+    choices:[ {label:'SPONSOR ($5,000)', run:function(){ if(STATE.cash<5000) return "You want to, but the cash is not there this quarter."; STATE.cash-=5000; STATE.rep+=4; STATE.scholarships++; STATE.aeaRep+=2; return "You put a kid through. The whole field hears about it, and one day that kid may walk into your shop. +4 rep."; }},
+      {label:'NOT THIS YEAR', run:function(){ return "You passed for now. The mission will be there next quarter."; }} ]},
+  { key:'veteran', title:'A VET WANTS IN', min:2, weight:1, text:"An Air Force avionics technician is transitioning out and wants into the civilian side. Strong fundamentals, ready to work. Needs an open slot.",
+    choices:[ {label:'BRING THEM ON ($10,000)', run:function(){ if(STATE.crew.length>=crewSlots()) return "No open bench right now. You promised to call when one opens."; if(STATE.cash<10000) return "You cannot cover the start cost yet."; STATE.cash-=10000; STATE.crew.push(mkCrew('Sarge',"Air Force avionics vet. Disciplined, sharp, no drama.",7,6,8,6,2,'#ffd27a')); return "Sarge is on the team, already certified and steady. Military fundamentals translate straight to the bench."; }},
+      {label:'PASS', run:function(){ return "Not the right time. You wished them luck."; }} ]},
+  { key:'poach', title:'COMPETITOR POACHING', min:2, weight:1, text:"A bigger shop across the field is trying to hire one of your best techs away with a fat offer.",
+    choices:[ {label:'COUNTER-OFFER ($4,000)', run:function(){ if(STATE.cash<4000) return "You cannot match the offer in cash. You make your case on culture and hope it holds."; STATE.cash-=4000; STATE.rep+=1; return "You took care of your people and they stayed. Loyalty is cheaper than turnover. +1 rep."; }},
+      {label:'LET THEM SHOP AROUND', run:function(){ return "You trusted the relationship. They tested the market, kicked the tires, and stayed put."; }} ]},
+  { key:'changeorder', title:'CUSTOMER WANTS MORE', weight:2, cond:function(){ return STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); }, text:"A customer with a job on the bench wants to add a backup radio while you are already in the panel.", choices:[ {label:'WRITE THE CHANGE ORDER', run:function(){ var ip=STATE.bays.filter(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); if(!ip.length) return "By the time you called back, the bay had already closed up. No change made."; var b=ip[Math.floor(Math.random()*ip.length)]; var add=Math.round(2500+Math.random()*2500); if(b.job.quote){ b.job.quote.total+=add; b.job.quote.parts=(b.job.quote.parts||0)+Math.round(add*0.12); } b.shiftsNeed+=1; STATE.rep+=1; return "Change order signed. About "+money(add)+" added to that ticket and one more shift on the bay. +1 rep."; }}, {label:'HOLD THE SCOPE', run:function(){ return "You kept the job tight so it ships clean and on time. The owner understood."; }} ] },
+  { key:'anxious', title:'THE CUSTOMER CALLS', weight:2, cond:function(){ return STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); }, text:"An owner whose airplane is torn down is nervous about the downtime and wants to hear from you.", choices:[ {label:'TALK THEM THROUGH IT', run:function(){ if((STATE.charisma||3)>=5 || Math.random()<0.6){ STATE.culture=clamp(STATE.culture+2,0,100); STATE.rep+=1; return "You walked them through the work and set expectations. They hung up reassured. +1 rep."; } return "You did your best to reassure them. Still a little anxious, but they appreciated the call."; }}, {label:'TELL THEM IT IS HANDLED', run:function(){ if(Math.random()<0.5){ STATE.rep=Math.max(0,STATE.rep-1); return "You brushed it off. They felt dismissed and grumbled to a hangar neighbor. -1 rep."; } return "Short and to the point. They let it go this time."; }} ] } ];
+
+/* ---- STATE ---- */
+function mkCrew(name,tag,wi,ig,tr,pa,cred,color){ return {name:name,tag:tag,wiring:wi,integ:ig,trouble:tr,paper:pa,cred:cred,color:color,bay:null,power:100,elig:cred,loyalty:70,oemCerts:{},wage:Math.round(500+cred*350+((wi+ig+tr+pa)/4)*60),lastTrain:1}; }
+function freshBay(){ return {job:null,owner:null,bars:{work:0,diag:0,comp:0,fin:0},shiftsDone:0,shiftsNeed:4,crew:[]}; }
+function makeState(){
+  return { cash:6000, rep:0, week:1, fans:0, tokens:3, level:1, era:1, spec:{}, rate:1, screen:'title', shopName:'BEACON AVIONICS',
+    crew:[ mkCrew('Dana',"Bench vet. Finds a chafed wire by smell. Allergic to paperwork.",8,6,9,4,2,'#ffb028'),
+           mkCrew('Gary',"Fresh school grad with his CAET. Eager. Labels everything twice.",4,4,3,6,1,'#36e0a0') ],
+    bays:[ freshBay() ], floorPlane:'piston', board:[], fillBay:0, pendingJob:null, sel:[], _tr:0, detailBay:0,
+    activeSquawk:null, activeBay:0, deliverQueue:[], scores:null, lastPayout:0, lastNet:0, jobsDone:0,
+    hired:{}, auths:{}, passive:0, hf:null, hfResult:null, recentHF:[], safe:{good:0,bad:0},
+    event:null, _result:null, recentEvents:[], pendingEra:0, adsbRush:0,
+    aeaRep:0, charisma:3, warm:0, hotBoard:false, lastHustle:0, culture:68, oemSales:{}, dealers:{}, courses:{}, apprentice:false, grant:false, gradCount:0,
+    branches:[], conventions:0, scholarships:0, lastShowYear:0, lastStmt:1, lastStmtData:null, awardWon:false,
+    pendingHire:null, personnel:null, lastPersonnel:0 };
+}
+var STATE=makeState();
+var REVIEW_TARGET=210, MAXBAR=320;
+var CRED_SKILL=[0, 4.0, 6.5, 8.5];
+var CRED_FEE=[0, 3000, 6000, 10000];
+
+/* ---- HELPERS ---- */
+var $=function(s,r){ return (r||document).querySelector(s); };
+function money(n){ return (n<0?'-$':'$')+Math.abs(Math.round(n)).toLocaleString('en-US'); }
+function clamp(v,a,b){ return Math.max(a,Math.min(b,v)); }
+function rnd(x){ return Math.round(x); }
+function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
+function shuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+function bayCount(){ return [0,1,2,3,4,5][STATE.level]; }
+function crewSlots(){ return [0,2,4,5,6,7][STATE.level]; }
+function bestStat(k){ var m=0; STATE.crew.forEach(function(c){ if(c[k]>m) m=c[k]; }); return m; }
+function avgSkill(c){ return (c.wiring+c.integ+c.trouble+c.paper)/4; }
+function canCertify(c){ var n=c.cred+1; return n<=3 && avgSkill(c)>=CRED_SKILL[n]; }
+function skillCost(v){ return 1000 + rnd(v)*200; }
+function credName(c){ return ['Apprentice','CAET','CAET Advanced','Master'][c]||'Apprentice'; }
+function credCls(c){ return 'c'+c; }
+function pips(v){ var n=clamp(rnd(v),0,10); var h=''; for(var i=0;i<10;i++) h+='<span class="pip'+(i<n?' on':'')+'"></span>'; return '<span class="pips">'+h+'</span>'; }
+function unlockedAircraft(){ return Object.keys(AIRCRAFT).filter(function(k){ return AIRCRAFT[k].lvl<=STATE.level; }); }
+function unlockedJobs(){ return Object.keys(JOBS).filter(function(k){ return JOBS[k].era<=STATE.era; }); }
+function pickSquawk(){ return SQUAWKS[pick(unlockedJobs())]||SQUAWKS.generic; }
+function freeCrew(){ var r=[]; STATE.crew.forEach(function(c,i){ if(c.bay===null) r.push(i); }); return r; }
+function toast(msg){ var el=$('#toast'); el.innerHTML=msg; el.classList.add('show'); clearTimeout(el._t); el._t=setTimeout(function(){ el.classList.remove('show'); },2800); }
+function ipBays(fn){ STATE.bays.forEach(function(b){ if(b.job && b.shiftsDone<b.shiftsNeed) fn(b); }); }
+function nudge(dim,amt){ ipBays(function(b){ b.bars[dim]=Math.max(0,b.bars[dim]+amt); }); }
+function crewRest(amt){ ipBays(function(b){ b.crew.forEach(function(ci){ STATE.crew[ci].power=clamp(STATE.crew[ci].power+amt,15,100); }); }); }
+
+function renderHUD(){
+  var spk = musicOn ? '<svg width="22" height="20" viewBox="0 0 22 20"><rect x="2" y="7" width="5" height="6" fill="#ecf3fb"/><polygon points="7,7 13,2 13,18 7,13" fill="#ecf3fb"/><path d="M15 6 q3 4 0 8" stroke="#36e0a0" stroke-width="2" fill="none"/><path d="M17 4 q5 6 0 12" stroke="#36e0a0" stroke-width="2" fill="none"/></svg>'
+    : '<svg width="22" height="20" viewBox="0 0 22 20"><rect x="2" y="7" width="5" height="6" fill="#8ea3ba"/><polygon points="7,7 13,2 13,18 7,13" fill="#8ea3ba"/><line x1="15" y1="6" x2="20" y2="14" stroke="#ff5a5f" stroke-width="2"/><line x1="20" y1="6" x2="15" y2="14" stroke="#ff5a5f" stroke-width="2"/></svg>';
+  var S=season();
+  $('#hudwrap').innerHTML = '<div class="seasonbar s-'+seasonKey()+'"><span class="sb-season">'+S.name+'</span><span class="sb-date">'+gMonthName()+' \u2022 Year '+gYear()+'</span><span class="sb-note">'+seasonHint()+'</span></div>'
+    +'<div id="hud"><div class="cell"><span class="lab">Shop</span><span class="val">Lv '+STATE.level+'</span></div>'
+    +'<div class="cell"><span class="lab">Cash</span><span class="val '+(STATE.cash<0?'neg':'cash')+'">'+money(STATE.cash)+'</span></div>'
+    +'<div class="cell"><span class="lab">Rep</span><span class="val rep">'+STATE.rep+(STATE.fans?(' \u2605'+STATE.fans):'')+'</span></div>'
+    +'<div id="soundbtn" role="button" aria-label="toggle sound" tabindex="0">'+spk+'</div></div>';
+  $('#soundbtn').onclick=function(){ musicOn=!musicOn; if(musicOn){ audioInit(); startMusic(); } else stopMusic(); renderHUD(); };
+}
+
+/* ---- SCREENS ---- */
+var SCREENS={};
+SCREENS.title=function(){
+  return { html:'<div class="panel title-hero"><div class="kick">AIRCRAFT ELECTRONICS ASSOCIATION PRESENTS</div><div class="big">SHOP<br>TYCOON</div><div class="small">RUN AN AEA MEMBER SHOP \u2022 BUILD THE INDUSTRY</div></div>'
+    + hangarScene({plane:'tprop2',n:3})
+    +'<div class="panel"><div class="note" style="text-align:left;line-height:1.4">Win the right work. Put the right tech on it. Build it clean, chase the squawk, and live with the calls you make on the floor. Grow one bay into the go-to shop on the field.</div><div class="hint" style="text-align:center;margin-top:8px">\u25BA PRESS START</div></div>',
+    actions:[ {label:'PRESS START', cls:'btn-go', on:function(){ audioInit(); if(musicOn) startMusic(); sHit(); go('intro'); }} ] };
+};
+SCREENS.intro=function(){
+  return { html:'<h2 class="scrn">DAY ONE</h2>'
+    +'<div class="panel"><div class="chief">Chief leans on the bench and looks you over.<br><br>"So you finally did it. Your name is on the door, you are an AEA member shop now, and that means something on this field.<br><br>Here is the deal. The work is honest, the customers talk, and the inspector remembers everything. Win the right jobs, put the right people on them, and never let a squawk leave the building.<br><br>Your people are not certified by paying a fee. They earn it on the bench, one job at a time. Grow them. Take care of them. Doors open in five."</div></div>',
+    actions:[ {label:'OPEN THE DOORS \u25BA', cls:'btn-go', on:function(){ newBoard(); go('floor'); }} ] };
+};
+function previewPay(a,j,fit){ var base=JOBS[j].pay*AIRCRAFT[a].tier*FITMULT[fit]; if(j==='adsb'&&STATE.adsbRush>0) base*=1.15; var oem=JOB_OEM[j]; if(oem&&STATE.dealers[oem]) base*=OEMS[oem].margin[STATE.dealers[oem]]; base*=rateMult(); return Math.round(base); }
+function newBoard(){ var ai=unlockedAircraft(), ji=unlockedJobs();
+  function gen(){ var a=pick(ai); var j; if(STATE.adsbRush>0 && Math.random()<0.4 && JOBS.adsb.era<=STATE.era) j='adsb'; else if(Math.random()<0.32) j=pick(['cert','xpdr']); else j=pick(ji); return {a:a,j:j,fit:fitFor(a,j),owner:pick(OWNERS)}; }
+  var board=[gen(),gen(),gen()];
+  if(!board.some(function(b){ return b.fit==='amazing'||b.fit==='solid'; })){ var a=pick(ai); var good=ji.filter(function(j){ return fitFor(a,j)!=='dead'; }); var jj=good[0]||ji[0]; board[0]={a:a,j:jj,fit:fitFor(a,jj),owner:pick(OWNERS)}; }
+  if(STATE.hotBoard){ board=board.map(function(b){ var f=fitFor(b.a,b.j); if(f==='dead'||f==='risky'){ var good=ji.filter(function(jj){ var ff=fitFor(b.a,jj); return ff==='amazing'||ff==='solid'; }); if(good.length){ var nj=pick(good); return {a:b.a,j:nj,fit:fitFor(b.a,nj),owner:b.owner}; } } return b; }); STATE.hotBoard=false; }
+  STATE.board=board; }
+
+/* ---- The salesman side: meet the customer, win the work, build the quote ---- */
+var CUSTYPES=[
+ {k:'budget', name:'Budget-minded owner', val:'rapport', tol:1.05, hint:'Watches every dollar. Wants honest value.', blurb:'I love this airplane, but I am not made of money. What is this really going to run me?'},
+ {k:'status', name:'Status-seeker', val:'premium', tol:1.36, hint:'Wants the best panel, and will pay for it.', blurb:'I want the nicest panel at the field. Show me the good stuff.'},
+ {k:'safety', name:'Safety-minded pilot', val:'safety', tol:1.20, hint:'Wants it right and legal. Lead with safety.', blurb:'I fly hard IFR with my family aboard. I want this done right and legal, period.'},
+ {k:'tire', name:'Tire-kicker', val:'rapport', tol:1.02, hint:'Just shopping numbers. Hard to close cold.', blurb:'Just getting some quotes. Not committing to anything today.'}
+];
+function ctype(k){ for(var i=0;i<CUSTYPES.length;i++) if(CUSTYPES[i].k===k) return CUSTYPES[i]; return CUSTYPES[0]; }
+var APPROACHES=[
+ {k:'rapport', label:'TALK SHOP', ds:'Hangar talk and flying stories. Earn their trust.'},
+ {k:'safety', label:'LEAD WITH SAFETY', ds:'Make the case for doing it right and IFR-legal.'},
+ {k:'premium', label:'SELL THE DREAM PANEL', ds:'Paint the nicest panel on the ramp.'}
+];
+SCREENS.meet=function(){
+  var pj=STATE.pendingJob, ct=ctype(pj.ctype), j=JOBS[pj.j], a=AIRCRAFT[pj.a], cha=STATE.charisma||3;
+  var card='<div class="panel"><div class="nm pix" style="font-size:9px;color:var(--amber)">'+pj.owner+'</div>'
+    +'<div class="ds" style="margin-top:4px">'+ct.name+' \u2022 '+a.name+'</div>'
+    +'<div class="reason" style="margin-top:8px">\u201C'+ct.blurb+'\u201D</div>'
+    +'<div class="ds" style="margin-top:8px;opacity:.85">They want: <b style="color:var(--ink)">'+j.name+'</b></div>'
+    +'<div class="note" style="text-align:left;margin-top:8px">Your read: '+ct.hint+'</div></div>';
+  var btns=APPROACHES.map(function(ap){ return '<button class="opt" data-ap="'+ap.k+'"><span class="t">'+ap.label+'</span><span class="sml">'+ap.ds+'</span></button>'; }).join('');
+  return { html:'<h2 class="scrn">MEET THE CUSTOMER</h2>'+card+'<div class="sub">Your charisma '+pips(cha)+' &nbsp; Pick your approach.</div>'+btns,
+    actions:[ {label:'WALK AWAY', on:function(){ go('floor'); }} ],
+    init:function(){ document.querySelectorAll('.opt[data-ap]').forEach(function(el){ el.onclick=function(){ var ap=el.dataset.ap, match=(ap===ct.val);
+        var interest=clamp(26+(match?34:8)+Math.round(cha*4)+Math.round(Math.random()*8)+(STATE.warm||0),0,100); STATE.warm=0;
+        pj.interest=interest; pj.matched=match; pj.qsel=null;
+        if(match){ STATE.charisma=Math.min(10,(STATE.charisma||3)+0.1); sGood(); } else sBlip();
+        go('quote'); }; }); } };
+};
+SCREENS.quote=function(){
+  var pj=STATE.pendingJob, ct=ctype(pj.ctype), cha=STATE.charisma||3;
+  if(!pj.qsel) pj.qsel={gear:'standard', cons:'standard'};
+  var oem=JOB_OEM[pj.j], dt=oem?dealerTier(oem):0;
+  var base=Math.round(JOBS[pj.j].pay*AIRCRAFT[pj.a].tier*FITMULT[pj.fit]*rateMult()*((STATE.adsbRush>0&&pj.j==='adsb')?1.15:1));
+  var gearStd=oem?Math.round(base*0.35):Math.round(base*0.12);
+  var consStd=Math.round(base*0.12), feeAmt=oem?Math.round(base*0.03):0;
+  var labor=base-gearStd-consStd-feeAmt;
+  var gearMul={budget:0.8,standard:1.0,premium:1.5}, consMul={lean:0.6,standard:1.0,padded:1.5};
+  var gear=Math.round(gearStd*(oem?gearMul[pj.qsel.gear]:1)), cons=Math.round(consStd*consMul[pj.qsel.cons]);
+  var total=labor+gear+cons+feeAmt;
+  var kickback=(oem&&dt>0&&pj.qsel.gear==='premium')?Math.round(gear*(OEMS[oem].margin[dt]-1)):0;
+  var ceiling=Math.round(base*ct.tol*(1+(pj.interest||40)/200)*(1+cha*0.01));
+  var ratio=total/ceiling, mood=ratio<=0.93?{c:'var(--scope)',t:'They like the number.'}:(ratio<=1.0?{c:'var(--amber)',t:'Right at their limit.'}:{c:'var(--beacon)',t:'Over budget. Trim it or sell harder.'});
+  var warmth=Math.round((pj.interest||40)/10);
+  var hrRate=Math.round(95*rateMult()), hrs=Math.max(1,Math.round(labor/hrRate));
+  var gearLbl={budget:'their budget pick',standard:'standard line',premium:'premium upsell'}[pj.qsel.gear];
+  var consLbl={lean:'lean estimate',standard:'standard',padded:'padded'}[pj.qsel.cons];
+  function group(label,grp,opts,sel){ var b=opts.map(function(o){ var on=o.k===sel; return '<button class="seg'+(on?' on':'')+'" data-q="'+grp+'" data-v="'+o.k+'">'+o.label+'</button>'; }).join(''); return '<div class="segwrap"><div class="seglab">'+label+'</div><div class="segrow">'+b+'</div></div>'; }
+  var html='<h2 class="scrn">BUILD THE QUOTE</h2>'
+   +'<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--amber)">'+pj.owner+' \u2022 '+JOBS[pj.j].name+'</div><div class="sub" style="margin-top:6px">Customer warmth '+pips(warmth)+'</div></div>';
+  if(oem) html+=group('Avionics line ('+OEMS[oem].name+(dt>0?', you are a '+TIER_NAME[dt]:', not your dealer yet')+')','gear',[{k:'budget',label:'BUDGET'},{k:'standard',label:'STANDARD'},{k:'premium',label:'PREMIUM'}],pj.qsel.gear);
+  html+=group('Consumables estimate','cons',[{k:'lean',label:'LEAN'},{k:'standard',label:'STANDARD'},{k:'padded',label:'PADDED'}],pj.qsel.cons);
+  html+='<div class="panel" style="margin-top:10px">'
+   +'<div class="ledger"><span>Labor ('+hrs+' hrs @ '+money(hrRate)+'/hr)</span><b>'+money(labor)+'</b></div>'
+   +(oem?'<div class="ledger"><span>Avionics ('+gearLbl+')</span><b>'+money(gear)+'</b></div>':'<div class="ledger"><span>Shop-supplied materials</span><b>'+money(gear)+'</b></div>')
+   +'<div class="ledger"><span>Consumables ('+consLbl+')</span><b>'+money(cons)+'</b></div>'
+   +(feeAmt>0?'<div class="ledger"><span>Dealer fee</span><b>'+money(feeAmt)+'</b></div>':'')
+   +(kickback>0?'<div class="ledger"><span>Your '+OEMS[oem].name+' kickback</span><b style="color:var(--scope)">+'+money(kickback)+'</b></div>':'')
+   +'<div class="payout"><div class="pl">QUOTE TOTAL</div><div class="pv">'+money(total)+'</div></div></div>'
+   +'<div class="sub" style="margin-top:8px;color:'+mood.c+'">'+mood.t+'</div>';
+  return { html:html,
+    actions:[ {label:'WALK AWAY', on:function(){ go('floor'); }}, {label:'SEND QUOTE \u25BA', cls:'btn-go', on:function(){
+        if(total<=ceiling){ pj.quote={total:total,parts:cons,kickback:kickback,gear:pj.qsel.gear,oem:oem}; sHit(); toast('Sold. The ticket is yours.'); go('assign'); }
+        else { sBad(); toast('They balked at the price. Trim it or talk them up.'); } }} ],
+    init:function(){ document.querySelectorAll('button[data-q]').forEach(function(el){ el.onclick=function(){ pj.qsel[el.dataset.q]=el.dataset.v; sTab(); go('quote'); }; }); } };
+};
+/* ---- Outbound: go drum up business (warm the pipeline) ---- */
+SCREENS.hustle=function(){
+  var cha=STATE.charisma||3, canRamp=((STATE.lastHustle||0) < STATE.week);
+  var warmNote=(STATE.warm||0)>0?'<div class="sub" style="margin-top:8px;color:var(--scope)">A warm lead is in hand. Your next customer walks in interested.</div>':'';
+  var card='<div class="panel"><div class="nm pix" style="font-size:9px;color:var(--amber)">DRUM UP BUSINESS</div><div class="ds" style="margin-top:6px">Go find the work. A warm customer is easier to close and more open to the premium panel, where your kickback lives.</div><div class="sub" style="margin-top:8px">Your charisma '+pips(cha)+'</div>'+warmNote+'</div>';
+  function opt(k,title,cost,ds,dis){ return '<button class="opt" data-hus="'+k+'"'+(dis?' disabled':'')+'><span class="t">'+title+' &nbsp;'+cost+'</span><span class="sml">'+ds+'</span></button>'; }
+  var html='<h2 class="scrn">GET WORK</h2>'+card
+   +opt('ramp','WORK THE RAMP', canRamp?'<span class="pay" style="color:var(--scope)">free</span>':'<span class="pay" style="color:var(--muted)">done</span>', canRamp?'Chat up owners on the field. Charisma carries it.':'You already worked the ramp this shift. Run a shift, then come back.', !canRamp)
+   +opt('flyin','FLY-IN BOOTH','<span class="pay">'+money(1800)+'</span>','Set up at a regional fly-in. Reach and name, two warm leads.', false)
+   +opt('ad','LOCAL AD SPEND','<span class="pay">'+money(1200)+'</span>','Run ads and sponsor the club. Warms the next board of prospects.', false);
+  return { html:html, actions:[ {label:'BACK', on:function(){ go('shop'); }} ],
+    init:function(){ document.querySelectorAll('.opt[data-hus]').forEach(function(el){ if(el.disabled) return; el.onclick=function(){ var k=el.dataset.hus; sTab(); var msg;
+        if(k==='ramp'){ STATE.lastHustle=STATE.week; if(Math.random()< clamp(0.40+cha*0.05,0,0.92)){ STATE.warm=Math.max(STATE.warm||0,22); sGood(); msg='You worked the line and a King Air owner likes your story. Your next customer comes in warm.'; } else { sBlip(); msg='Slow day on the ramp. A few hellos, no real bites. Run a shift and try again.'; } }
+        else if(k==='flyin'){ if(STATE.cash<1800){ toast('Need '+money(1800)+'.'); return; } STATE.cash-=1800; STATE.warm=Math.max(STATE.warm||0,30); STATE.rep+=2; STATE.aeaRep+=1; sCash(); msg='The booth paid off. Owners took your card and the field knows your name. A strong warm lead is in hand. +2 rep.'; }
+        else { if(STATE.cash<1200){ toast('Need '+money(1200)+'.'); return; } STATE.cash-=1200; STATE.warm=Math.max(STATE.warm||0,16); STATE.hotBoard=true; STATE.rep+=1; sCash(); msg='Ads are out and the club is talking. Better-fit prospects on the board next, and a warmer reception. +1 rep.'; }
+        STATE._hustle=msg; renderHUD(); go('hustleResult'); }; }); } };
+};
+SCREENS.hustleResult=function(){
+  return { html:'<h2 class="scrn">GET WORK</h2><div class="panel" style="border-color:var(--amber)"><div class="evtext">'+(STATE._hustle||'')+'</div></div>',
+    actions:[ {label:'TO THE FLOOR \u25BA', cls:'btn-go', on:function(){ go('floor'); }}, {label:'GET MORE WORK', on:function(){ go('hustle'); }} ] };
+};
+SCREENS.floor=function(){
+  var standing = STATE.rep<8?"Nobody knows you yet. Win clean work and the calls start." : STATE.rep<35?"Word is getting around the field." : STATE.rep<70?"You are the regional go-to shop." : "You own the field. Now own the stack.";
+  var bays=STATE.bays.map(function(bay,i){
+    if(!bay.job){ return '<div class="card bay-empty" data-fill="'+i+'"><div class="ico"><svg viewBox="0 0 56 42"><rect x="6" y="10" width="44" height="26" fill="none" stroke="#44566a" stroke-width="2" stroke-dasharray="4 3"/></svg></div><div class="body"><div class="baynum">BAY '+(i+1)+'</div><div class="nm">EMPTY</div><div class="ds">Tap to take a job onto this bay.</div></div></div>'; }
+    var j=JOBS[bay.job.j], a=AIRCRAFT[bay.job.a], ready=bay.shiftsDone>=bay.shiftsNeed;
+    var comp=clamp((bay.bars.work+bay.bars.diag+bay.bars.comp+bay.bars.fin)/4/MAXBAR*100,0,100);
+    var dots=''; for(var k=0;k<bay.shiftsNeed;k++) dots+='<span class="d '+(k<bay.shiftsDone?'done':'')+'"></span>';
+    var crewn=bay.crew.map(function(ci){ return STATE.crew[ci].name; }).join(', ')||'no crew';
+    return '<div class="card '+(ready?'bay-ready':'')+'" data-bay="'+i+'"><div class="ico">'+planeSVG(bay.job.a)+'</div><div class="body"><div class="baynum">BAY '+(i+1)+' \u2022 '+a.name+'</div><div class="nm">'+j.name+'</div>'
+      +'<div class="ds">'+crewn+(ready?'':' \u2022 '+bay.shiftsDone+'/'+bay.shiftsNeed+' shifts')+'</div>'
+      + (ready?'<div class="row2"><span class="badge b-amazing">READY TO DELIVER</span></div>':'<div class="dots">'+dots+'</div><div class="qmeter"><div style="width:'+comp+'%"></div></div>')+'</div></div>';
+  }).join('');
+  var canRun=STATE.bays.some(function(b){ return b.job && b.crew.length && b.shiftsDone<b.shiftsNeed; });
+  return { html:'<div class="titlebar"><span class="t pix">'+STATE.shopName+'</span><span class="t pix">Bays '+bayCount()+' \u2022 Crew '+STATE.crew.length+'/'+crewSlots()+'</span></div>'
+      + hangarScene()
+      +'<div class="panel"><div class="row2" style="margin-top:0"><span class="eratag">ERA '+STATE.era+': '+ERAS[STATE.era].name+'</span>'+ (STATE.passive>0?'<span class="eratag" style="color:var(--scope)">+'+money(STATE.passive)+'/job</span>':'') + (hasPremier()?'<span class="eratag" style="color:var(--amber)">PREMIER</span>':'')+'</div><div class="note" style="text-align:left;margin-top:8px;color:'+season().sun+'">'+season().tag+'</div><div class="note" style="text-align:left;margin-top:6px">'+standing+'</div></div>'
+      + bays,
+    actions:[ {label:'RUN A SHIFT', cls:'btn-go', disabled:!canRun, on:runShift}, {label:'THE SHOP', cls:'btn-amber', on:function(){ go('shop'); }} ],
+    init:function(){
+      document.querySelectorAll('.card[data-fill]').forEach(function(el){ el.onclick=function(){ sTab(); STATE.fillBay=+el.dataset.fill; newBoard(); go('board'); }; });
+      document.querySelectorAll('.card[data-bay]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.bay, bay=STATE.bays[i]; sTab(); if(bay.shiftsDone>=bay.shiftsNeed){ STATE.deliverQueue=[i]; startDelivery(); } else { STATE.detailBay=i; go('baydetail'); } }; });
+    } };
+};
+
+SCREENS.board=function(){
+  var cards=STATE.board.map(function(b,i){ var a=AIRCRAFT[b.a], j=JOBS[b.j];
+    return '<div class="card" data-i="'+i+'"><div class="ico">'+planeSVG(b.a)+'</div><div class="body"><div class="nm">'+j.name+'</div><div class="ds">'+a.name+' \u2022 for '+b.owner+'</div><div class="ds" style="opacity:.7">'+specName(JOB_SPEC[b.j])+' work</div>'
+      +'<div class="row2"><span class="badge b-'+b.fit+'">'+b.fit.toUpperCase()+' FIT</span>'+ (j.credReq>0?'<span class="cred '+credCls(j.credReq)+'">'+credName(j.credReq).toUpperCase()+'</span>':'') +'<span class="pay">~'+money(previewPay(b.a,b.j,b.fit))+'</span></div>'
+      +'<div class="reason">'+FITWHY[b.fit]+'</div></div></div>'; }).join('');
+  return { html:'<h2 class="scrn">JOB BOARD</h2><div class="sub">Loading Bay '+(STATE.fillBay+1)+'. Watch the fit.</div>'+cards,
+    actions:[ {label:'BACK', on:function(){ go('floor'); }} ],
+    init:function(){ document.querySelectorAll('.card[data-i]').forEach(function(el){ el.onclick=function(){ sTab(); var b=STATE.board[+el.dataset.i]; STATE.pendingJob={a:b.a,j:b.j,fit:b.fit,owner:b.owner,ctype:pick(CUSTYPES).k}; STATE.sel=[]; STATE.floorPlane=b.a; go('meet'); }; }); } };
+};
+
+SCREENS.assign=function(){
+  var fc=freeCrew();
+  var cards=fc.map(function(ci){ var c=STATE.crew[ci]; var on=STATE.sel.indexOf(ci)>=0;
+    return '<div class="card '+(on?'sel':'')+'" data-c="'+ci+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'as'+ci,0)+'</svg></div><div class="body"><div class="nm">'+c.name+(on?'  \u2713':'')+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds">'+c.tag+'</div>'
+      +'<div class="stats"><span class="stat">Wiring <b>'+rnd(c.wiring)+'</b>'+pips(c.wiring)+'</span><span class="stat">Integ <b>'+rnd(c.integ)+'</b>'+pips(c.integ)+'</span><span class="stat">T-shoot <b>'+rnd(c.trouble)+'</b>'+pips(c.trouble)+'</span><span class="stat">Paper <b>'+rnd(c.paper)+'</b>'+pips(c.paper)+'</span></div></div></div>'; }).join('');
+  var j=JOBS[STATE.pendingJob.j], a=AIRCRAFT[STATE.pendingJob.a];
+  var wKey=Object.keys(j.w).sort(function(x,y){ return j.w[y]-j.w[x]; })[0]; var wname={work:'Workmanship',diag:'Diagnostics',comp:'Compliance',fin:'Finish'}[wKey];
+  var credLine = j.credReq>0 ? 'Recommended credential: <b style="color:var(--ink)">'+credName(j.credReq)+'</b>. Under that and the crew works above its training, slower and rougher.' : 'No special credential needed. Good work for any hand.';
+  var none = fc.length===0;
+  return { html:'<h2 class="scrn">CREW CALL</h2><div class="panel"><div class="nm pix" style="font-size:9px;color:var(--amber)">'+j.name+'</div><div class="ds" style="margin-top:6px">'+a.name+' \u2022 for '+STATE.pendingJob.owner+'</div><div class="reason" style="margin-top:6px">Leans on <b style="color:var(--ink)">'+wname+'</b>. '+credLine+'</div></div>'
+      + (none?'<div class="panel"><div class="note" style="text-align:left">Every tech is already on a bay. Deliver a job to free someone up, or hire more crew.</div></div>':'<div class="sub">Pick up to 3 techs. They learn on the job.</div>'+cards),
+    actions:[ {label:'BACK', on:function(){ go('board'); }}, {label:'START THE JOB', cls:'btn-go', disabled:STATE.sel.length===0, on:function(){ if(STATE.sel.length===0){ toast('Assign at least one tech.'); return; }
+        var bay=freshBay(); bay.job=STATE.pendingJob; bay.shiftsNeed=JOBS[STATE.pendingJob.j].shifts||4; bay.owner=STATE.pendingJob.owner; bay.crew=STATE.sel.slice();
+        STATE.sel.forEach(function(ci){ STATE.crew[ci].bay=STATE.fillBay; STATE.crew[ci].power=100; });
+        STATE.bays[STATE.fillBay]=bay; toast('Bay '+(STATE.fillBay+1)+' loaded.'); go('floor'); }} ],
+    init: none ? null : function(){ document.querySelectorAll('.card[data-c]').forEach(function(el){ el.onclick=function(){ var ci=+el.dataset.c, p=STATE.sel.indexOf(ci); if(p>=0){ STATE.sel.splice(p,1); sBlip(); } else { if(STATE.sel.length>=3){ toast('Three techs max on a bay.'); return; } STATE.sel.push(ci); sTab(); } go('assign'); }; }); } };
+};
+
+function barRowStatic(bars,key,label,cls,lcls){ var v=bars[key], pct=clamp(v/MAXBAR*100,0,100);
+  return '<div class="qbar"><div class="qt"><span class="'+lcls+'">'+label+'</span><span class="qv">'+Math.round(v)+'</span></div><div class="track"><div class="fill '+cls+'" data-pct="'+pct+'"></div></div></div>'; }
+function initFills(){ document.querySelectorAll('.fill[data-pct]').forEach(function(el){ var p=el.getAttribute('data-pct'); requestAnimationFrame(function(){ el.style.width=p+'%'; }); }); }
+
+SCREENS.baydetail=function(){
+  var bay=STATE.bays[STATE.detailBay], j=JOBS[bay.job.j], a=AIRCRAFT[bay.job.a];
+  var dots=''; for(var k=0;k<bay.shiftsNeed;k++) dots+='<span class="d '+(k<bay.shiftsDone?'done':'')+'"></span>';
+  var toks=''; for(var t=0;t<3;t++) toks+='<span class="tok'+(t>=STATE.tokens?' spent':'')+'"></span>';
+  var crewn=bay.crew.map(function(ci){ return STATE.crew[ci].name+' ('+credName(STATE.crew[ci].cred)+')'; }).join(', ');
+  var bestCred=bay.crew.length?Math.max.apply(null,bay.crew.map(function(ci){ return STATE.crew[ci].cred; })):0;
+  var under = bestCred < j.credReq;
+  return { html:'<div class="titlebar"><span class="t pix">BAY '+(STATE.detailBay+1)+': '+j.name+'</span><span class="t pix">FIT '+bay.job.fit.toUpperCase()+'</span></div>'
+      +'<div class="panel"><div class="ds" style="margin-bottom:6px">'+a.name+' \u2022 for '+bay.owner+'. On it: '+crewn+'.</div>'
+      + (under?'<div class="infobox" style="margin-bottom:8px">This job wants '+credName(j.credReq)+'. Your crew is working above its training, so the build runs slower and rougher.</div>':'')
+      +'<div class="dots" style="justify-content:center">'+dots+'</div>'
+      + barRowStatic(bay.bars,'work','WORKMANSHIP','f-work','l-work')+barRowStatic(bay.bars,'diag','DIAGNOSTICS','f-diag','l-diag')+barRowStatic(bay.bars,'comp','COMPLIANCE','f-comp','l-comp')+barRowStatic(bay.bars,'fin','FINISH','f-fin','l-fin')
+      +'<div class="tokens">OVERTIME '+toks+'</div></div>',
+    actions:[ {label:'BACK', on:function(){ go('floor'); }}, {label:'OVERTIME', cls:'btn-amber', disabled:STATE.tokens<=0, on:function(){ go('overtime'); }} ],
+    init:initFills };
+};
+SCREENS.overtime=function(){
+  var b=function(k,label,lcls){ return '<button class="opt" data-ot="'+k+'"><span class="'+lcls+' pix" style="font-size:9px">'+label+'</span> &nbsp; push this hard on Bay '+(STATE.detailBay+1)+'</button>'; };
+  return { html:'<h2 class="scrn">CALL OVERTIME</h2><div class="sub">Burn a token, slam one area forward. Tires the crew a little.</div>'
+      + b('work','WORKMANSHIP','l-work')+b('diag','DIAGNOSTICS','l-diag')+b('comp','COMPLIANCE','l-comp')+b('fin','FINISH','l-fin'),
+    actions:[ {label:'NEVER MIND', on:function(){ go('baydetail'); }} ],
+    init:function(){ document.querySelectorAll('.opt[data-ot]').forEach(function(el){ el.onclick=function(){ var k=el.dataset.ot, bay=STATE.bays[STATE.detailBay]; bay.bars[k]+=110; STATE.tokens--; bay.crew.forEach(function(ci){ STATE.crew[ci].power=clamp(STATE.crew[ci].power-15,15,100); }); sOver(); toast('Overtime on Bay '+(STATE.detailBay+1)+'.'); go('baydetail'); }; }); } };
+};
+
+/* ---- the work day ---- */
+function gainFor(c,mult){ var pf=0.55+0.45*((c.power||100)/100); var tool=STATE.auths.tooling?1.08:1;
+  var cw=STATE.courses.wiring?1.10:1, cc=STATE.courses.compliance?1.10:1;
+  return { work:(c.wiring*3+c.integ*1.4)*mult*pf*tool*cw, diag:(c.trouble*3+c.wiring*0.5)*mult*pf*tool, comp:(c.paper*3+c.integ*0.5)*mult*pf*tool*cc, fin:(c.integ*3+c.wiring*0.5)*mult*pf*tool }; }
+function gainXP(c,job){ var w=job.w, tot=w.work+w.diag+w.comp+w.fin, base=0.40, map={work:'wiring',diag:'trouble',comp:'paper',fin:'integ'}, lbl={wiring:'Wiring',trouble:'Troubleshooting',paper:'Paperwork',integ:'Integration'};
+  ['work','diag','comp','fin'].forEach(function(dim){ var k=map[dim], b4=Math.floor(c[k]); c[k]=Math.min(10, c[k]+ base*(w[dim]/tot)); if(Math.floor(c[k])>b4){ STATE._otj=(STATE._otj||[]); STATE._otj.push(c.name+' leveled up '+lbl[k]); } });
+  c.lastTrain=STATE.week; }
+function runShift(){
+  var advanced=false, nudged=null;
+  STATE.bays.forEach(function(bay){ if(bay.job && bay.crew.length && bay.shiftsDone<bay.shiftsNeed){
+    var bestCred=Math.max.apply(null,bay.crew.map(function(ci){ return STATE.crew[ci].cred; }));
+    var credPen=bestCred<(JOBS[bay.job.j].credReq||0)?0.7:1; var mult=FITMULT[bay.job.fit]*credPen;
+    var oem=JOB_OEM[bay.job.j]; if(oem && bay.crew.some(function(ci){ return STATE.crew[ci].oemCerts&&STATE.crew[ci].oemCerts[oem]; })) mult*=1.12;
+    if(STATE.courses.pitot && (bay.job.j==='cert'||bay.job.j==='xpdr')) mult*=1.08;
+    if(STATE.courses.cyber && (bay.job.j==='datalink'||bay.job.j==='traffic')) mult*=1.08;
+    bay.crew.forEach(function(ci){ var c=STATE.crew[ci], g=gainFor(c,mult), j=0.9+Math.random()*0.2; bay.bars.work+=g.work*j; bay.bars.diag+=g.diag*j; bay.bars.comp+=g.comp*j; bay.bars.fin+=g.fin*j; c.power=clamp((c.power||100)-12,15,100); gainXP(c,JOBS[bay.job.j]); });
+    bay.shiftsDone++; advanced=true;
+  }});
+  if(!advanced){ toast('Staff a bay with a job first.'); return; }
+  var overworked=0; STATE.crew.forEach(function(c){ if(c.bay!==null && (c.power||100)<=40) overworked++; });
+  if(overworked>0) STATE.culture=clamp(STATE.culture - overworked*0.7, cultureFloor(), 100);
+  STATE.crew.forEach(function(c){ if(canCertify(c) && (c.elig||0) < c.cred+1){ c.elig=c.cred+1; if(!nudged) nudged=c.name; } });
+  STATE.week++; sRatchet(); sPing(1); renderHUD();
+  if(nudged) toast(nudged+" is ready to certify.\nSee Training.");
+  if(STATE._otj && STATE._otj.length){ toast(STATE._otj.slice(0,2).join(' / ')); STATE._otj=[]; }
+  endShift();
+}
+function endShift(){
+  var anyInProgress=STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; });
+  if(anyInProgress && Math.random()<0.14){ var hf=rollHF(); if(hf){ STATE.hf=hf; STATE.hfResult=null; sHF(); go('hf'); return; } }
+  afterShiftEffects();
+}
+function afterShiftEffects(){
+  STATE.deliverQueue=[]; STATE.bays.forEach(function(bay,i){ if(bay.job && bay.shiftsDone>=bay.shiftsNeed) STATE.deliverQueue.push(i); });
+  if(STATE.deliverQueue.length){ startDelivery(); } else { go('floor'); }
+}
+
+/* ---- consequence calls ---- */
+function rollHF(){ var idxs=[]; for(var i=0;i<HF.length;i++) if(STATE.recentHF.indexOf(i)<0) idxs.push(i); if(!idxs.length){ STATE.recentHF=[]; for(i=0;i<HF.length;i++) idxs.push(i); } var p=idxs[Math.floor(Math.random()*idxs.length)]; STATE.recentHF.push(p); if(STATE.recentHF.length>5) STATE.recentHF.shift(); return HF[p]; }
+SCREENS.hf=function(){
+  var h=STATE.hf;
+  return { html:'<h2 class="scrn">ON THE FLOOR</h2><div class="hf-head"><div class="h2">'+h.s+'</div></div><div class="sub" style="margin-top:8px">Your call. It rides on the work.</div>'
+      +'<button class="opt" data-hf="safe">'+h.safe.label+'</button><button class="opt" data-hf="risk">'+h.risk.label+'</button>',
+    actions:[],
+    init:function(){ document.querySelectorAll('.opt[data-hf]').forEach(function(el){ el.onclick=function(){ var ch = el.dataset.hf==='safe'?h.safe:h.risk; sTab(); var r=ch.run(); STATE.culture=clamp(STATE.culture+(r.tone==='good'?3:(r.tone==='bad'?-7:0)),0,100); if(r.tone==='good') sGood(); else if(r.tone==='bad') sBad(); else sCash(); STATE.hfResult=r; renderHUD(); go('hfResult'); }; }); } };
+};
+SCREENS.hfResult=function(){
+  var r=STATE.hfResult;
+  var head = r.tone==='good'?'\u2713 Good call.':(r.tone==='bad'?'\u2717 That one costs you.':'\u2014 It worked out.');
+  return { html:'<h2 class="scrn">THE FLOOR</h2><div class="infobox"><b>'+head+'</b><br><br>'+r.t+'</div>',
+    actions:[ {label:'BACK TO WORK \u25BA', cls:'btn-go', on:afterShiftEffects} ] };
+};
+
+/* ---- delivery ---- */
+function launchSquawk(def, onResolve){ STATE.activeSquawk={ def:def, opts:shuffle(def.opts), result:null, onResolve:onResolve }; go('squawk'); }
+function startDelivery(){ if(!STATE.deliverQueue.length){ finishDeliveries(); return; } var idx=STATE.deliverQueue[0]; STATE.activeBay=idx; var bay=STATE.bays[idx]; var ts=0; bay.crew.forEach(function(ci){ ts=Math.max(ts,STATE.crew[ci].trouble||0); }); var diag=bay.bars.diag||0; var chance=clamp(0.45+ts*0.05+diag/700,0.25,0.96); var ok=Math.random()<chance; computeScores(idx, ok); go('review'); }
+SCREENS.squawk=function(){
+  var sq=STATE.activeSquawk, answered=sq.result!==null;
+  var opts=sq.opts.map(function(o,i){ var cls=''; if(answered){ if(o.ok) cls='good'; else if(sq.result.idx===i && !o.ok) cls='bad'; } return '<button class="opt '+cls+'" data-sq="'+i+'" '+(answered?'disabled':'')+'>'+o.t+'</button>'; }).join('');
+  var bayName = (typeof STATE.activeBay==='number' && STATE.bays[STATE.activeBay] && STATE.bays[STATE.activeBay].job) ? ('BAY '+(STATE.activeBay+1)+' FUNCTIONAL TEST') : 'FUNCTIONAL TEST';
+  var html='<h2 class="scrn">'+bayName+'</h2><div class="squawk-head"><div class="s1">\u26A0 SQUAWK FOUND</div><div class="s2">'+sq.def.s+'</div></div><div class="sub" style="margin-top:8px">'+(answered?'':'Pick the right move. A wrong call costs you on the floor.')+'</div>'+opts;
+  if(answered) html+='<div class="explain'+(sq.result.ok?'':' miss')+'">'+(sq.result.ok?'\u2713 Cleared. ':'\u2717 Wrong tree. ')+sq.def.ex+'</div>';
+  return { html:html, actions: answered ? [ {label:'CONTINUE \u25BA', cls:'btn-go', on:function(){ var ok=sq.result.ok, cb=sq.onResolve; STATE.activeSquawk=null; cb(ok); }} ] : [],
+    init: answered ? null : function(){ document.querySelectorAll('.opt[data-sq]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.sq, ok=STATE.activeSquawk.opts[i].ok; STATE.activeSquawk.result={idx:i,ok:ok}; var bay=(typeof STATE.activeBay==='number')?STATE.bays[STATE.activeBay]:null; if(ok){ if(bay&&bay.job) bay.bars.diag+=70; sGood(); } else { if(bay&&bay.job) bay.bars.diag=Math.max(0,bay.bars.diag-45); sBad(); } go('squawk'); }; }); } };
+};
+function score10(w,tgt){ return clamp(Math.round(w/(tgt||REVIEW_TARGET)*10),1,10); }
+function bayTarget(bay){ return REVIEW_TARGET*(((bay&&bay.shiftsNeed)||4)/4); }
+function weightedBy(bars,w){ var s=0,t=0; for(var k in w){ s+=bars[k]*w[k]; t+=w[k]; } return s/t; }
+function computeScores(bayIdx, squawkOk){
+  var bay=STATE.bays[bayIdx], j=JOBS[bay.job.j], tgt=bayTarget(bay);
+  var cust=clamp(Math.round(score10(weightedBy(bay.bars,j.w),tgt)-rateExpect()),1,10);
+  var insp=score10(weightedBy(bay.bars,{comp:1.6,work:1.2,fin:0.5,diag:0.4}),tgt);
+  var pilot=clamp(score10(weightedBy(bay.bars,{fin:1.5,work:1,diag:0.8,comp:0.4}),tgt)+(squawkOk?1:-1),1,10);
+  var total=cust+insp+pilot, mult=FITMULT[bay.job.fit];
+  var q=bay.job.quote; var payout = q ? Math.round(q.total*(0.85+total/30*0.30)) : Math.round(previewPay(bay.job.a,bay.job.j,bay.job.fit)*(0.5+total/30*0.9));
+  STATE.scores={cust:cust,insp:insp,pilot:pilot,total:total,hit:total>=24,squawkOk:squawkOk};
+  STATE.lastPayout=payout; STATE._repGain=Math.max(1,Math.round((total-12)*mult));
+}
+SCREENS.review=function(){
+  var s=STATE.scores, bay=STATE.bays[STATE.activeBay], j=JOBS[bay.job.j];
+  var rv=function(n,q,sc){ return '<div class="reviewer"><div class="who"><div class="rn">'+n+'</div><div class="rq">'+q+'</div></div><div class="score">'+sc+'/10</div></div>'; };
+  var cQ=s.cust>=8?'"Looks factory. I am bringing the whole fleet here." - '+bay.owner:s.cust>=5?'"Good work. Fair price." - '+bay.owner:'"It works, I guess." - '+bay.owner;
+  var iQ=s.insp>=8?'"Paperwork is airtight. Signed."':s.insp>=5?'"A couple notes, but it conforms."':'"Logbook is a mess. Fix it."';
+  var pQ=s.pilot>=8?'"Flies clean, panel is gorgeous."':s.pilot>=5?'"Solid. No complaints in the air."':'"There is still something off up there."';
+  var q=bay.job.quote; var partsCost = q ? q.parts : Math.round(STATE.lastPayout*0.15); var kb = (q&&q.kickback)?q.kickback:0; var net=STATE.lastPayout+STATE.passive-partsCost+kb; STATE.lastNet=net;
+  return { html:'<h2 class="scrn">DELIVERY: '+j.name.toUpperCase()+'</h2>'+rv('THE CUSTOMER',cQ,s.cust)+rv('THE INSPECTOR',iQ,s.insp)+rv('THE PILOT',pQ,s.pilot)
+      +'<div class="panel">'+barRowStatic(bay.bars,'work','WORKMANSHIP','f-work','l-work')+barRowStatic(bay.bars,'diag','DIAGNOSTICS','f-diag','l-diag')+barRowStatic(bay.bars,'comp','COMPLIANCE','f-comp','l-comp')+barRowStatic(bay.bars,'fin','FINISH','f-fin','l-fin')+'</div>'
+      +'<div class="sub" style="margin-top:8px;color:'+(s.squawkOk?'var(--scope)':'var(--caution)')+'">Functional test: '+(s.squawkOk?'cleared on the bench':'a squawk slipped to the test flight')+'</div><div class="total"><div class="tn">FINAL SCORE</div><div class="tv">'+s.total+' / 30</div>'+(s.hit?'<div class="hit">\u2605 HIT! THE FIELD IS TALKING \u2605</div>':'')+'</div>'
+      +'<div class="panel" style="margin-top:8px"><div class="ledger"><span>Job payout</span><b style="color:var(--scope)">'+money(STATE.lastPayout)+'</b></div>'+ (STATE.passive>0?'<div class="ledger"><span>Standing contracts</span><b style="color:var(--scope)">+'+money(STATE.passive)+'</b></div>':'') +'<div class="ledger"><span>'+(q?'Consumables':'Parts and materials')+'</span><b style="color:var(--beacon)">-'+money(partsCost)+'</b></div>'+(kb>0?'<div class="ledger"><span>Dealer kickback</span><b style="color:var(--scope)">+'+money(kb)+'</b></div>':'')+'<div class="payout"><div class="pl">NET</div><div class="pv" id="payv">'+money(0)+'</div></div></div>',
+    actions:[ {label:'COLLECT', cls:'btn-go', on:collect} ],
+    init:function(){ initFills(); countUp($('#payv'),net); sCash(); if(s.hit) setTimeout(sHit,400); } };
+};
+function collect(){
+  var idx=STATE.activeBay, bay=STATE.bays[idx];
+  STATE.cash+=STATE.lastNet; STATE.rep+=STATE._repGain; STATE.jobsDone++; STATE.floorPlane=bay.job.a;
+  var soldOem=JOB_OEM[bay.job.j]; if(soldOem){ STATE.oemSales[soldOem]=(STATE.oemSales[soldOem]||0)+1; }
+  addSpecXP(JOB_SPEC[bay.job.j], STATE.scores&&STATE.scores.hit?12:8);
+  if(STATE.culture<45 && Math.random() < (0.45-STATE.culture/100)){ var rw=Math.round(STATE.lastPayout*0.10)+300; STATE.cash-=rw; STATE.rep=Math.max(0,STATE.rep-1); toast('Callback. A squawk came back.\n-'+money(rw)+' \u2022 weak safety culture.'); }
+  if(STATE.scores.hit){ STATE.tokens=Math.min(3,STATE.tokens+1); STATE.fans+=1; }
+  if(STATE.adsbRush>0) STATE.adsbRush--;
+  bay.crew.forEach(function(ci){ STATE.crew[ci].bay=null; STATE.crew[ci].power=100; });
+  STATE.bays[idx]=freshBay();
+  sCash(); renderHUD();
+  STATE.deliverQueue=STATE.deliverQueue.filter(function(b){ return b!==idx; });
+  if(STATE.deliverQueue.length){ startDelivery(); } else { finishDeliveries(); }
+}
+function finishDeliveries(){
+  STATE.scores=null;
+  if(checkAward()){ go('victory'); return; }
+  if(STATE.cash<-4000){ go('gameover'); return; }
+  var eraGate={3:2,7:3,12:4};
+  if(eraGate[STATE.jobsDone] && STATE.era<eraGate[STATE.jobsDone]){ STATE.pendingEra=eraGate[STATE.jobsDone]; go('eraEvent'); return; }
+  if(seasonKey()==='spring' && (STATE.lastShowYear||0) < gYear()){ STATE.lastShowYear=gYear(); startShow(); return; }
+  if(STATE.week - STATE.lastStmt >= 4){ runStatement(); go('finance'); return; }
+  if(STATE.week - (STATE.lastPersonnel||0) >= 3 && Math.random()<0.5){ var pr=personnelEvent(); if(pr){ STATE.lastPersonnel=STATE.week; go(pr); return; } }
+  if(STATE.cash<1500) toast('Cash is tight.\nKeep the work flowing.');
+  if(Math.random()<0.5){ var e=rollEvent(); if(e){ STATE.event=e; go('event'); return; } }
+  go('floor');
+}
+
+SCREENS.eraEvent=function(){
+  var e=STATE.pendingEra, info={
+    2:{t:'THE GLASS WAVE', x:"Owners are ripping out steam gauges for glass. PFDs, MFDs, integrated autopilots. The shops that learn it now own the next decade.", un:"Glass retrofits, autopilots, and engine monitors are on the board. Glass and autopilot want CAET.", chief:"Chief: This is the one we trained for. Get your people their CAET and ride it."},
+    3:{t:'THE ADS-B MANDATE', x:"The FAA sets a hard ADS-B Out deadline. Every owner on the field needs it, all at once. This is a gold rush, and it has an expiration date.", un:"ADS-B Out work is live and demand is spiking. Ride the wave while it lasts.", chief:"Chief: Every bird out there needs this by the deadline. Do not blink."},
+    4:{t:'THE CONNECTED COCKPIT', x:"The cabin is the cockpit now. Datalink, connectivity, weather, traffic. The top shops are flying-office integrators.", un:"Connectivity, weather radar, and traffic are unlocked. The big ones want CAET Advanced.", chief:"Chief: This is the deep end. Your Advanced techs lead these, or you eat the rework."}
+  }[e];
+  return { html:'<div class="panel" style="text-align:center"><div class="kick pix" style="font-size:8px;color:var(--sky)">A NEW ERA</div><div class="big pix" style="font-size:15px;color:var(--amber);line-height:1.6;margin:12px 0">'+info.t+'</div></div>'
+      +'<div class="panel"><div class="evtext">'+info.x+'</div><div class="infobox" style="border-color:var(--scope);background:#0f2a20;color:#cfeede;box-shadow:inset 0 0 0 2px #1a4a38;margin-top:10px">'+info.un+'</div><div class="chief" style="margin-top:10px">'+info.chief+'</div></div>',
+    actions:[ {label:'BRING IT ON \u25BA', cls:'btn-go', on:function(){ STATE.era=e; if(e===3) STATE.adsbRush=4; sEra(); STATE.pendingEra=0; toast('ERA '+e+': '+ERAS[e].name); go('floor'); }} ] };
+};
+
+function rollEvent(){ var pool=EVENTS.filter(function(e){ return (!e.min || STATE.level>=e.min) && (!e.cond || e.cond()) && STATE.recentEvents.indexOf(e.key)<0; }); if(!pool.length){ STATE.recentEvents=[]; pool=EVENTS.filter(function(e){ return (!e.min || STATE.level>=e.min) && (!e.cond || e.cond()); }); }
+  var wsum=0; pool.forEach(function(e){ wsum+=(e.weight||1); }); var r=Math.random()*wsum, e=pool[0]; for(var i=0;i<pool.length;i++){ r-=(pool[i].weight||1); if(r<=0){ e=pool[i]; break; } } STATE.recentEvents.push(e.key); if(STATE.recentEvents.length>4) STATE.recentEvents.shift(); return e; }
+SCREENS.event=function(){
+  var e=STATE.event; var btns=e.choices.map(function(c,i){ return '<button class="opt" data-ev="'+i+'">'+c.label+'</button>'; }).join('');
+  return { html:'<div class="panel" style="border-color:var(--amber);box-shadow:inset 0 0 0 2px var(--rivet),0 6px 0 rgba(0,0,0,.45)"><div class="h2 pix" style="font-size:9px;color:var(--amber)">\u2691 '+e.title+'</div></div><div class="panel"><div class="evtext">'+e.text+'</div></div>'+btns,
+    actions:[], init:function(){ document.querySelectorAll('.opt[data-ev]').forEach(function(el){ el.onclick=function(){ sTab(); var c=STATE.event.choices[+el.dataset.ev]; var res=c.run(); if(res===null) return; renderHUD(); result(res); }; }); } };
+};
+function result(text){ STATE._result=text; renderHUD(); go('result'); }
+SCREENS.result=function(){
+  return { html:'<div class="panel"><div class="explain" style="background:#16202b;border-color:var(--hi);color:var(--ink);box-shadow:inset 0 0 0 2px var(--rivet)">'+STATE._result+'</div></div>',
+    actions:[ {label:'CONTINUE \u25BA', cls:'btn-go', on:function(){ if(STATE.cash<-4000){ go('gameover'); return; } if(checkAward()){ go('victory'); return; } go('floor'); }} ] };
+};
+
+/* ===== expansion: OEMs, dealers, courses, finance, award ===== */
+var OEMS={
+ larkfield:{name:'Larkfield Audio', dom:'Audio panels and intercoms', era:1, buyin:[0,4000,9000,16000], annual:[0,500,1100,2000], salesReq:[0,2,6,12], repReq:[0,8,28,60], certReq:[0,0,1,2], margin:[1,1.08,1.16,1.26]},
+ kestrel:{name:'Kestrel Instruments', dom:'Engine monitors and EIS', era:1, buyin:[0,4500,10000,18000], annual:[0,500,1200,2200], salesReq:[0,2,7,14], repReq:[0,10,30,62], certReq:[0,0,1,2], margin:[1,1.08,1.17,1.28]},
+ vireon:{name:'Vireon Avionics', dom:'Integrated flight decks', era:2, buyin:[0,9000,20000,40000], annual:[0,1000,2200,4000], salesReq:[0,3,9,18], repReq:[0,22,48,85], certReq:[0,1,2,3], margin:[1,1.10,1.22,1.38]},
+ tindall:{name:'Tindall Aerosystems', dom:'Autopilots and flight control', era:2, buyin:[0,7000,16000,32000], annual:[0,900,2000,3600], salesReq:[0,3,8,16], repReq:[0,20,45,80], certReq:[0,1,2,3], margin:[1,1.10,1.20,1.34]},
+ halcyon:{name:'Halcyon Dynamics', dom:'Experimental and non-cert glass', era:2, buyin:[0,5000,11000,20000], annual:[0,600,1300,2400], salesReq:[0,3,8,15], repReq:[0,14,36,68], certReq:[0,0,1,2], margin:[1,1.09,1.18,1.30]},
+ quanta:{name:'Quanta Avionics', dom:'Transponders, ADS-B, surveillance', era:3, buyin:[0,6000,14000,26000], annual:[0,800,1700,3000], salesReq:[0,4,10,20], repReq:[0,18,42,75], certReq:[0,1,2,2], margin:[1,1.10,1.20,1.32]},
+ stratoline:{name:'Stratoline', dom:'Cabin connectivity and datalink', era:4, buyin:[0,12000,26000,50000], annual:[0,1400,2800,5000], salesReq:[0,2,6,12], repReq:[0,30,55,92], certReq:[0,1,2,3], margin:[1,1.12,1.24,1.40]},
+ tempest:{name:'Tempest Systems', dom:'Weather radar and hazard awareness', era:4, buyin:[0,10000,22000,42000], annual:[0,1200,2500,4400], salesReq:[0,2,6,12], repReq:[0,26,52,88], certReq:[0,1,2,3], margin:[1,1.11,1.22,1.36]}
+};
+var OEM_ORDER=['larkfield','kestrel','vireon','tindall','halcyon','quanta','stratoline','tempest'];
+var JOB_OEM={ audio:'larkfield', elt:null, cert:null, xpdr:null, harness:null, radio:'vireon', glass:'vireon', ap:'tindall', eis:'kestrel', adsb:'quanta', datalink:'stratoline', radar:'tempest', traffic:'quanta' };
+/* ---- AEA Convention: new-product showcase (cinematic reveal) ---- */
+var SHOW_PRODUCTS=[
+ {n:'SkyView Audio 6', mk:'larkfield', kind:'audio', era:1, hype:'Six-place intercom, Bluetooth audio, and the clearest sidetone on the field.'},
+ {n:'BeaconLink 406', mk:'larkfield', kind:'adsb', era:1, hype:'A 406 ELT with built-in GPS that hands your position straight to the satellites.'},
+ {n:'EngineEye EIS-900', mk:'kestrel', kind:'eis', era:1, hype:'Every cylinder, every probe, one bright screen the pilot actually reads.'},
+ {n:'ClearGlass PFD', mk:'vireon', kind:'efis', era:2, hype:'Steam gauges retire. A synthetic-vision primary flight display takes the panel.'},
+ {n:'TrueTrack AP', mk:'tindall', kind:'autopilot', era:2, hype:'Two-axis digital autopilot with envelope protection and a level button that saves lives.'},
+ {n:'OpenDeck X', mk:'halcyon', kind:'efis', era:2, hype:'Experimental glass for the homebuilt crowd. All the features, none of the cert tax.'},
+ {n:'Sentinel XPDR-S', mk:'quanta', kind:'xpdr', era:3, hype:'Mode S, ADS-B Out, and the whole mandate handled in one slim box.'},
+ {n:'SkyTraffic In', mk:'quanta', kind:'adsb', era:3, hype:'See every target on the map and on your tablet, with free weather included.'},
+ {n:'CabinNet Datalink', mk:'stratoline', kind:'datalink', era:4, hype:'Cockpit and cabin online at altitude. The connected cockpit finally arrives.'},
+ {n:'StormScan Radar', mk:'tempest', kind:'radar', era:4, hype:'Solid-state weather radar that paints the cell long before it paints you.'}
+];
+function productArt(kind){
+  var bz='#0c1a26', frame='#1a2d3c', metal='#2a4256';
+  var maps={
+   efis:'<rect x="20" y="16" width="80" height="40" fill="#0a2238"/><rect x="20" y="37" width="80" height="19" fill="#5a3a1a"/><polygon points="20,37 100,31 100,37" fill="#7fd0ff" opacity="0.6"/><rect x="56" y="31" width="8" height="10" fill="#ffd23f"/>',
+   gps:'<rect x="20" y="16" width="80" height="40" fill="#06241b"/><path d="M28 50 L52 22 L70 44 L92 20" stroke="#36e0a0" stroke-width="2" fill="none"/><rect x="58" y="34" width="6" height="6" fill="#ffd23f"/>',
+   audio:'<rect x="20" y="16" width="80" height="40" fill="#101c26"/>'+(function(){var r='';for(var i=0;i<5;i++){r+='<rect x="'+(26+i*15)+'" y="22" width="11" height="11" rx="2" fill="#1f9fd0"/><rect x="'+(26+i*15)+'" y="38" width="11" height="11" rx="2" fill="#2a4256"/>';}return r;})(),
+   xpdr:'<rect x="20" y="16" width="80" height="40" fill="#0a1a26"/><text x="60" y="44" text-anchor="middle" font-family="VT323,monospace" font-size="24" fill="#36e0a0">1200</text>',
+   adsb:'<rect x="20" y="16" width="80" height="40" fill="#06120a"/><circle cx="60" cy="36" r="16" fill="none" stroke="#36e0a0" stroke-width="2"/><circle cx="60" cy="36" r="2" fill="#36e0a0"/><rect x="72" y="26" width="4" height="4" fill="#ffd23f"/><rect x="46" y="46" width="4" height="4" fill="#ff5a5f"/>',
+   eis:'<rect x="20" y="16" width="80" height="40" fill="#0a1626"/>'+(function(){var r='';for(var i=0;i<6;i++){var h=8+(i*5)%22;r+='<rect x="'+(26+i*12)+'" y="'+(52-h)+'" width="8" height="'+h+'" fill="'+(i>4?'#ff5a5f':'#36e0a0')+'"/>';}return r;})(),
+   datalink:'<rect x="20" y="16" width="80" height="40" fill="#0a1426"/><circle cx="60" cy="52" r="3" fill="#7fd0ff"/>'+(function(){var r='';for(var i=1;i<=3;i++){r+='<path d="M'+(60-i*9)+' '+(52-i*4)+' Q60 '+(52-i*9)+' '+(60+i*9)+' '+(52-i*4)+'" stroke="#7fd0ff" stroke-width="2" fill="none" opacity="'+(1-i*0.22).toFixed(2)+'"/>';}return r;})(),
+   radar:'<rect x="20" y="16" width="80" height="40" fill="#0a1a14"/><path d="M60 54 L60 20 A34 34 0 0 1 86 40 Z" fill="#36e0a0" opacity="0.35"/><path d="M30 44 A34 34 0 0 1 60 20" stroke="#ffd23f" stroke-width="2" fill="none"/>'
+  };
+  var scr=maps[kind]||'<rect x="20" y="16" width="80" height="40" fill="#0a1a26"/>';
+  return '<svg viewBox="0 0 120 78" width="216" height="140">'
+   +'<rect x="2" y="2" width="116" height="74" rx="6" fill="'+frame+'" stroke="#0a0f15" stroke-width="3"/>'
+   +'<rect x="10" y="10" width="100" height="52" rx="3" fill="'+bz+'" stroke="#0a0f15" stroke-width="2"/>'
+   + scr
+   +'<rect x="10" y="62" width="100" height="2" fill="#0a0f15"/>'
+   +'<circle cx="22" cy="69" r="4" fill="'+metal+'" stroke="#0a0f15" stroke-width="1.5"/><circle cx="98" cy="69" r="4" fill="'+metal+'" stroke="#0a0f15" stroke-width="1.5"/>'
+   +'<rect x="40" y="66" width="40" height="6" rx="2" fill="#2a4256"/>'
+   +'</svg>';
+}
+function startShow(){ var pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=STATE.era+1; }); if(pool.length<3) pool=SHOW_PRODUCTS.slice(); var sh=shuffle(pool.slice()).slice(0,3); STATE.showSeq={ items:sh, i:0 }; sEra(); go('aeaShow'); }
+SCREENS.aeaShow=function(){
+  var sq=STATE.showSeq, i=sq.i;
+  var stage=function(inner){ return '<div class="hangarwrap"><svg viewBox="0 0 480 270" preserveAspectRatio="xMidYMid meet" aria-label="convention stage">'
+    +'<defs><radialGradient id="spot" cx="0.5" cy="0.15" r="0.85"><stop offset="0" stop-color="#fff2b8" stop-opacity="0.55"/><stop offset="1" stop-color="#fff2b8" stop-opacity="0"/></radialGradient></defs>'
+    +'<rect width="480" height="270" fill="#13386a"/>'
+    +'<rect x="0" y="0" width="480" height="40" fill="#0e2c55"/>'
+    +'<rect x="40" y="8" width="400" height="24" rx="4" fill="#0a2142" stroke="#ffd23f" stroke-width="3"/><text x="240" y="25" text-anchor="middle" font-family="Press Start 2P" font-size="9" fill="#ffd23f">AEA CONVENTION</text>'
+    +'<polygon points="150,40 330,40 300,196 180,196" fill="url(#spot)"/>'
+    +'<rect x="0" y="196" width="480" height="74" fill="#0e2c55"/>'
+    +'<rect x="0" y="190" width="480" height="8" fill="#ffd23f"/>'
+    +'<rect x="0" y="40" width="46" height="156" fill="#a31f3a"/><rect x="40" y="40" width="6" height="156" fill="#7a1630"/>'
+    +'<rect x="434" y="40" width="46" height="156" fill="#a31f3a"/><rect x="434" y="40" width="6" height="156" fill="#7a1630"/>'
+    +(function(){var r='';for(var k=0;k<14;k++){r+='<circle cx="'+(30+k*32)+'" cy="250" r="11" fill="#0a1c38"/>';}return r;})()
+    + inner +'</svg></div>'; };
+  if(i===0){
+    var intro=stage('<rect x="120" y="86" width="240" height="74" fill="#0a2142" stroke="#7fd0ff" stroke-width="3"/><text x="240" y="116" text-anchor="middle" font-family="Press Start 2P" font-size="11" fill="#fff">NEW PRODUCT</text><text x="240" y="140" text-anchor="middle" font-family="Press Start 2P" font-size="11" fill="#ffd23f">SHOWCASE</text>');
+    return { html:'<h2 class="scrn">THE AEA SHOW</h2>'+intro+'<div class="note" style="text-align:center;margin-top:8px">'+gMonthName()+' \u2022 Year '+gYear()+'. The hall lights drop and the reveals begin.</div>',
+      actions:[ {label:'START THE SHOW \u25BA', cls:'btn-go', on:function(){ sq.i++; sBlip(); go('aeaShow'); }} ] };
+  }
+  if(i>=1 && i<=sq.items.length){
+    var p=sq.items[i-1], mk=OEMS[p.mk]?OEMS[p.mk].name:'a show exhibitor';
+    var pod='<g transform="translate(208,150)"><rect x="-36" y="8" width="72" height="14" fill="#0a2142"/><rect x="-30" y="0" width="60" height="10" fill="#2a4256"/></g>'
+      +'<g transform="translate(132,64)">'+productArt(p.kind)+'</g>';
+    return { html:'<h2 class="scrn">REVEAL '+i+' / '+sq.items.length+'</h2>'+stage(pod)
+        +'<div class="panel" style="margin-top:8px"><div class="nm pix" style="font-size:11px;color:var(--amber)">'+p.n+'</div><div class="ds" style="margin-top:4px">by '+mk+'</div><div class="reason" style="margin-top:8px">'+p.hype+'</div></div>',
+      actions:[ {label:(i<sq.items.length?'NEXT \u25BA':'SEE THE FLOOR \u25BA'), cls:'btn-go', on:function(){ sq.i++; sBlip(); go('aeaShow'); }} ] };
+  }
+  var outro=stage('<rect x="104" y="92" width="272" height="64" fill="#0a2142" stroke="#36e0a0" stroke-width="3"/><text x="240" y="118" text-anchor="middle" font-family="Press Start 2P" font-size="8" fill="#fff">THE FIELD IS</text><text x="240" y="140" text-anchor="middle" font-family="Press Start 2P" font-size="8" fill="#36e0a0">TALKING ABOUT YOU</text>');
+  return { html:'<h2 class="scrn">SHOW FLOOR</h2>'+outro+'<div class="note" style="text-align:center;margin-top:8px">You worked the booths and shook the right hands. The shop is on everyone\u2019s short list this season.</div>',
+    actions:[ {label:'BACK TO THE SHOP \u25BA', cls:'btn-go', on:function(){ STATE.rep+=3; STATE.aeaRep+=4; STATE.showSeq=null; sHit(); renderHUD(); toast('Convention buzz: +3 reputation, +4 AEA standing.'); go('floor'); }} ] };
+};
+var TIER_NAME=['None','Stocking Dealer','Authorized Dealer','Premier Dealer'];
+OEM_ORDER.forEach(function(o){ OEMS[o].certReq[1]=0; });
+function dealerTier(oem){ return STATE.dealers[oem]||0; }
+function oemCertCount(oem){ var n=0; STATE.crew.forEach(function(c){ if(c.oemCerts&&c.oemCerts[oem]) n++; }); return n; }
+function dealerReqMet(oem,tier){ var o=OEMS[oem]; return (STATE.oemSales[oem]||0)>=o.salesReq[tier] && STATE.rep>=o.repReq[tier] && oemCertCount(oem)>=o.certReq[tier] && (tier<3 || STATE.culture>=70); }
+function buyDealer(oem){ var t=dealerTier(oem)+1; if(t>3){ toast('Already Premier.'); return; } var o=OEMS[oem]; if(!dealerReqMet(oem,t)){ toast('Requirements not met for '+TIER_NAME[t]+'.'); return; } if(STATE.cash<o.buyin[t]){ toast('Need '+money(o.buyin[t])+'.'); return; } STATE.cash-=o.buyin[t]; STATE.dealers[oem]=t; sLevel(); renderHUD(); toast(o.name+': '+TIER_NAME[t]+'.'); go('dealers'); }
+
+var COURSES={
+ compliance:{name:'Compliance and Recordkeeping', cost:4000, ds:'Lifts compliance on every job and your odds in an audit.'},
+ wiring:{name:'Wiring and EWIS', cost:4500, ds:'Raises workmanship across the whole bench.'},
+ hf:{name:'Human Factors and SMS', cost:5000, ds:'Raises your safety-culture floor. The shop runs cleaner.'},
+ pitot:{name:'Pitot-Static Authority', cost:3500, ds:'Sharper transponder and static certification work.'},
+ cyber:{name:'Connected Aircraft Cybersecurity', cost:6000, ds:'Improves connectivity and datalink work.'},
+ business:{name:'Business of the Shop', cost:7000, ds:'Cuts your quarterly overhead. The owner is a student too.'}
+};
+var COURSE_ORDER=['compliance','wiring','hf','pitot','cyber','business'];
+function cultureFloor(){ return STATE.courses.hf?55:0; }
+function buyCourse(k){ var co=COURSES[k]; if(STATE.courses[k]){ toast('Already completed.'); return; } if(STATE.cash<co.cost){ toast('Need '+money(co.cost)+'.'); return; } STATE.cash-=co.cost; STATE.courses[k]=true; STATE.aeaRep+=3; STATE.crew.forEach(function(cc){ cc.lastTrain=STATE.week; }); if(k==='hf') STATE.culture=Math.max(STATE.culture,60); if(k==='business') STATE.charisma=Math.min(10,(STATE.charisma||3)+2); sLevel(); renderHUD(); toast('AEA course complete:\n'+co.name); go('courses'); }
+
+var RECRUIT=[
+ {key:'college', name:'College Open House', tag:'Eager grad, fresh off the program. Soaks up everything.', ds:'Booth at a Part 147 avionics program. Green grads, good volume.', cost:5000, cred:1, lo:60, sk:[5,5,4,5], color:'#5cc6ff'},
+ {key:'cte', name:'High School CTE', tag:'Raw out of high school. Loyal, and yours to shape.', ds:'Sponsor a CTE class and a skills competition. Raw, loyal, long game.', cost:2500, cred:0, lo:90, sk:[3,3,3,4], color:'#36e0a0'},
+ {key:'military', name:'Military Transition', tag:'Service avionics background. Disciplined and steady.', ds:'Hire a separating avionics technician. Disciplined, near ready, lifts the shop.', cost:11000, cred:2, lo:70, sk:[7,6,8,6], color:'#ffd27a'},
+ {key:'poach', name:'Poach a Competitor', tag:'Came over for the money. Skilled, and a flight risk.', ds:'Buy a certified tech off a rival. Fast, costly, and low loyalty.', cost:20000, cred:2, lo:30, sk:[7,7,7,6], color:'#ff8a3a'}
+];
+function recruitFrom(src){ if(STATE.crew.length>=crewSlots()){ toast('No open slot. Upgrade the shop.'); return; } var cost=src.cost; if(src.key==='cte'&&STATE.apprentice) cost=Math.round(cost*0.5); if(STATE.cash<cost){ toast('Need '+money(cost)+'.'); return; } STATE.cash-=cost; var names=['Rook','Wrench','Patch','Volt','Lex','Mac','Indy','Sol','Rae','Bit','Cole','Nyx']; var nm=names[Math.floor(Math.random()*names.length)]; var c=mkCrew(nm,src.tag,src.sk[0],src.sk[1],src.sk[2],src.sk[3],src.cred,src.color); c.loyalty=src.lo; c.lastTrain=STATE.week; if(src.key==='military') STATE.culture=clamp(STATE.culture+3,0,100); if(src.key==='cte'&&STATE.apprentice) STATE.aeaRep+=2; STATE.crew.push(c); sHit(); renderHUD(); toast(nm+' joined the shop.'); go('recruit'); }
+
+function quarterCosts(){ var rent=[0,600,1400,2800,5000,8000][STATE.level]||600; var payroll=0; STATE.crew.forEach(function(c){ payroll += (c.wage||marketWage(c)); }); if(STATE.courses.business){ rent=Math.round(rent*0.8); payroll=Math.round(payroll*0.8); } var insurance=clamp(Math.round(1200 - STATE.culture*10),300,1300); var fees=0; OEM_ORDER.forEach(function(o){ var t=dealerTier(o); if(t) fees+=OEMS[o].annual[t]; }); return {rent:rent,payroll:payroll,insurance:insurance,fees:fees}; }
+function quarterRevenue(){ var grant=0; if(STATE.apprentice&&STATE.grant){ var appr=0; STATE.crew.forEach(function(c){ if(c.cred===0) appr++; }); grant=2500+appr*1200; } return {grant:grant}; }
+function runStatement(){ var co=quarterCosts(), r=quarterRevenue(); var net=r.grant-(co.rent+co.payroll+co.insurance+co.fees); STATE.cash+=net; STATE.lastStmt=STATE.week; STATE.lastStmtData={c:co,r:r,net:net}; STATE.culture=clamp(STATE.culture+(STATE.courses.hf?3:1),cultureFloor(),100);
+  STATE.crew.forEach(function(c){ var mkt=marketWage(c); var gap=mkt-(c.wage||mkt); var d=1; if(gap>0) d-=Math.min(9,Math.round(gap/110)); else d+=1; if(STATE.culture>=75) d+=2; else if(STATE.culture<45) d-=2; c.loyalty=clamp((c.loyalty==null?70:c.loyalty)+d,0,100); if(STATE.week-(c.lastTrain||0)>40){ ['wiring','integ','trouble','paper'].forEach(function(k){ c[k]=Math.max(2,Math.round((c[k]-0.1)*10)/10); }); } });
+  renderHUD(); }
+function marketWage(c){ return Math.round(500 + c.cred*350 + avgSkill(c)*60); }
+function lowestLoyalty(){ if(!STATE.crew.length) return 100; var lo=100; STATE.crew.forEach(function(c){ var L=(c.loyalty==null?70:c.loyalty); if(L<lo) lo=L; }); return lo; }
+function removeCrew(idx){ STATE.crew.splice(idx,1); STATE.bays.forEach(function(b){ if(b.crew&&b.crew.length){ b.crew=b.crew.filter(function(ci){ return ci!==idx; }).map(function(ci){ return ci>idx?ci-1:ci; }); } }); STATE.sel=[]; }
+function personnelEvent(){ if(!STATE.crew.length) return null; var idx=-1, lo=999; STATE.crew.forEach(function(c,i){ var L=(c.loyalty==null?70:c.loyalty); if(L<lo){ lo=L; idx=i; } }); if(idx<0) return null; var c=STATE.crew[idx], mkt=marketWage(c), wage=(c.wage||mkt), underpaid=wage<mkt*0.95; if(lo<38){ STATE.personnel={idx:idx,type:'poach',offer:Math.round(Math.max(mkt,wage)*1.18)}; return 'personnel'; } if(lo<60 && underpaid && Math.random()<0.6){ STATE.personnel={idx:idx,type:'raise',offer:mkt}; return 'personnel'; } return null; }
+
+function sumCreds(){ var s=0; STATE.crew.forEach(function(c){ s+=c.cred; }); return s; }
+function sumDealerTiers(){ var s=0; OEM_ORDER.forEach(function(o){ s+=dealerTier(o); }); return s; }
+function hasPremier(){ return OEM_ORDER.some(function(o){ return dealerTier(o)>=3; }); }
+function awardParts(){ var biz=Math.min(30, STATE.level*4 + clamp(STATE.cash/4000,0,8) + STATE.jobsDone*0.25); var rep=Math.min(25, STATE.rep*0.22 + STATE.aeaRep*0.35); var deal=Math.min(20, sumDealerTiers()*2.2); var work=Math.min(20, STATE.gradCount*3 + sumCreds()*0.7 + (STATE.apprentice?4:0)); var safe=Math.min(15, STATE.culture*0.15); var inv=Math.min(10, STATE.scholarships*2.5 + STATE.conventions*1.5 + STATE.branches.length*3); return {biz:biz,rep:rep,deal:deal,work:work,safe:safe,inv:inv,total:biz+rep+deal+work+safe+inv}; }
+function awardScore(){ return awardParts().total; }
+var AWARD_TARGET=100;
+function checkAward(){ if(STATE.awardWon) return false; if(awardScore()>=AWARD_TARGET && STATE.culture>=70 && (hasPremier()||STATE.level>=5)){ STATE.awardWon=true; return true; } return false; }
+function cultureBar(){ var c=Math.round(STATE.culture); var col=c>=70?'var(--scope)':(c>=45?'var(--caution)':'var(--beacon)'); var lab=c>=85?'exemplary':c>=70?'strong':c>=45?'shaky':'poor'; return '<div class="ledger"><span>Safety culture</span><b style="color:'+col+'">'+c+' \u2022 '+lab+'</b></div><div class="qmeter"><div style="width:'+c+'%;background:'+col+'"></div></div>'; }
+
+/* ---- the shop (management) ---- */
+SCREENS.shop=function(){
+  var nextUp=UPGRADES.filter(function(u){ return u.lvl===STATE.level+1; })[0];
+  var upCard, upAction=null;
+  if(nextUp){ var can=STATE.rep>=nextUp.req && STATE.cash>=nextUp.cost;
+    upCard='<div class="card flat"><div class="body"><div class="nm" style="color:var(--amber)">UPGRADE \u2192 LEVEL '+nextUp.lvl+': '+nextUp.name+'</div><div class="ds">'+nextUp.desc+'</div><div class="row2"><span class="badge '+(STATE.rep>=nextUp.req?'b-solid':'b-dead')+'">REP '+STATE.rep+'/'+nextUp.req+'</span><span class="pay">'+money(nextUp.cost)+'</span></div></div></div>';
+    upAction={label:'UPGRADE', cls:can?'btn-go':'', disabled:!can, on:function(){ buyUpgrade(nextUp); }};
+  } else { upCard='<div class="card flat"><div class="body"><div class="nm" style="color:var(--scope)">MAX SHOP LEVEL</div><div class="ds">Five bays and your own STC line. Now chase the award.</div></div></div>'; }
+  var ap=awardParts(); var dealerN=OEM_ORDER.filter(function(o){ return dealerTier(o); }).length; var ml=lowestLoyalty();
+  var dash='<div class="panel"><div class="ledger"><span>Bank</span><b style="color:var(--scope)">'+money(STATE.cash)+'</b></div>'
+    +(STATE.lastStmtData?'<div class="ledger"><span>Last quarter net</span><b style="color:'+(STATE.lastStmtData.net<0?'var(--beacon)':'var(--scope)')+'">'+money(STATE.lastStmtData.net)+'</b></div>':'')
+    +'<div class="ledger"><span>Field rep \u2022 AEA standing</span><b style="color:var(--amber)">'+STATE.rep+' \u2022 '+STATE.aeaRep+'</b></div>'
+    +'<div class="ledger"><span>Dealer authorizations</span><b style="color:var(--sky)">'+dealerN+'/8'+(hasPremier()?' \u2605':'')+'</b></div>'
+    +(STATE.apprentice?'<div class="ledger"><span>Apprentices graduated</span><b style="color:var(--scope)">'+STATE.gradCount+'</b></div>':'')
+    +'<div class="ledger"><span>Crew morale</span><b style="color:'+(ml<40?'var(--caution)':(ml<60?'var(--amber)':'var(--scope)'))+'">'+(ml>=75?'strong':ml>=60?'steady':ml>=40?'restless':'flight risk')+'</b></div>'
+    +'<div class="ledger"><span>Labor rate</span><b style="color:var(--amber)">'+RATES[(STATE.rate==null?1:STATE.rate)].n+'</b></div>'
+    +'<div class="ledger"><span>Owner charisma</span><b style="color:var(--sky)">'+rnd(STATE.charisma||3)+'/10</b></div>'
+    +cultureBar()+'</div>';
+  var award='<div class="card" data-go="awardeval"><div class="body"><div class="nm" style="color:var(--amber)">\u2605 SHOP OF THE YEAR</div><div class="ds">Progress '+Math.round(ap.total)+' / '+AWARD_TARGET+'. Tap for the scorecard.</div><div class="qmeter"><div style="width:'+clamp(ap.total/AWARD_TARGET*100,0,100)+'%"></div></div></div></div>';
+  var nav='<div class="card" data-go="recruit"><div class="body"><div class="nm">RECRUIT CREW</div><div class="ds">Slots '+STATE.crew.length+'/'+crewSlots()+'. College, CTE, military, or poach.</div></div></div>'
+    +'<div class="card" data-go="training"><div class="body"><div class="nm">TRAINING</div><div class="ds">Credentials, AEA courses, OEM factory training, apprenticeship.</div></div></div>'
+    +'<div class="card" data-go="dealers"><div class="body"><div class="nm">OEM DEALERS</div><div class="ds">Sell their gear, qualify, and climb the dealer ladder.</div></div></div>'
+    +'<div class="card" data-act="rate"><div class="body"><div class="nm">LABOR RATE: '+RATES[(STATE.rate==null?1:STATE.rate)].n.toUpperCase()+'</div><div class="ds">'+RATES[(STATE.rate==null?1:STATE.rate)].ds+' Tap to change.</div></div></div>'
+    +'<div class="card" data-go="hustle"><div class="body"><div class="nm" style="color:var(--sky)">DRUM UP BUSINESS</div><div class="ds">Work the ramp, fly-ins, and ads. Warm up customers before they walk in.</div></div></div>';
+  var actions=[]; if(upAction) actions.push(upAction); actions.push({label:'BACK', on:function(){ go('floor'); }});
+  return { html:'<h2 class="scrn">THE SHOP</h2>'+dash+'<div class="panel"><div class="sub" style="margin-top:0">Shop specialties</div><div class="note" style="text-align:left;margin:4px 0 8px">Every job builds a specialty. Climb from Unrated to Authority for the work that defines your shop.</div>'+specBoard()+'</div>'+award+nav+upCard, actions:actions,
+    init:function(){ document.querySelectorAll('.card[data-go]').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.go); }; }); var rc=document.querySelector('.card[data-act="rate"]'); if(rc) rc.onclick=function(){ STATE.rate=(((STATE.rate==null?1:STATE.rate))+1)%3; sTab(); go('shop'); }; } };
+};
+function buyUpgrade(u){ if(STATE.rep<u.req){ toast('Need rep '+u.req+'.'); return; } if(STATE.cash<u.cost){ toast('Not enough cash.'); return; }
+  STATE.cash-=u.cost; STATE.level=u.lvl; while(STATE.bays.length<bayCount()) STATE.bays.push(freshBay());
+  if(u.lvl===4){ STATE.passive+=1200; } if(u.lvl===5){ STATE.passive+=1500; }
+  sHit(); renderHUD(); toast('LEVEL '+u.lvl+'.\nNew bay + crew + aircraft.'); go('floor'); }
+
+SCREENS.hire=function(){
+  var open=STATE.crew.length<crewSlots(); var avail=CREW_POOL.filter(function(c){ return c.lvl<=STATE.level && !STATE.hired[c.key]; });
+  var body='';
+  if(!open){ body='<div class="panel"><div class="note" style="text-align:left">Every bench is full ('+STATE.crew.length+'/'+crewSlots()+'). Upgrade the shop to open another slot.</div></div>'; }
+  else if(!avail.length){ body='<div class="panel"><div class="note" style="text-align:left">No new candidates right now. Grow the shop to attract bigger talent, and watch the floor for walk-ins.</div></div>'; }
+  else { body=avail.map(function(c){ return '<div class="card flat" data-h="'+c.key+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'h'+c.key,0)+'</svg></div><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds">'+c.tag+'</div><div class="stats"><span class="stat">Wir <b>'+c.wiring+'</b></span><span class="stat">Int <b>'+c.integ+'</b></span><span class="stat">T/S <b>'+c.trouble+'</b></span><span class="stat">Pap <b>'+c.paper+'</b></span></div><div class="row2"><span class="pay">'+money(c.fee)+'</span></div></div></div>'; }).join(''); }
+  return { html:'<h2 class="scrn">HIRE CREW</h2><div class="sub">Slots '+STATE.crew.length+'/'+crewSlots()+'. Tap a candidate to sign.</div>'+body,
+    actions:[ {label:'BACK', on:function(){ go('shop'); }} ],
+    init:(open&&avail.length)?function(){ document.querySelectorAll('.card[data-h]').forEach(function(el){ el.onclick=function(){ var c=CREW_POOL.filter(function(x){ return x.key===el.dataset.h; })[0]; if(STATE.crew.length>=crewSlots()){ toast('No open slot.'); return; } if(STATE.cash<c.fee){ toast('Not enough cash.'); return; } STATE.cash-=c.fee; STATE.hired[c.key]=true; STATE.crew.push(mkCrew(c.name,c.tag,c.wiring,c.integ,c.trouble,c.paper,c.cred,c.color)); sHit(); renderHUD(); toast(c.name+' joined the shop.'); go('shop'); }; }); }:null };
+};
+
+SCREENS.train=function(){
+  var cards=STATE.crew.map(function(c,i){ var av=avgSkill(c); var status; if(c.bay!==null) status='On a bay right now'; else if(canCertify(c)) status='Ready to certify: '+credName(c.cred+1); else if(c.cred<3) status='Train toward '+credName(c.cred+1)+' (avg '+av.toFixed(1)+' / '+CRED_SKILL[c.cred+1].toFixed(1)+')'; else status='Master. Fully certified';
+    var col = canCertify(c)&&c.bay===null?'color:var(--scope)':'';
+    return '<div class="card" data-tr="'+i+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'tr'+i,0)+'</svg></div><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds" style="'+col+'">'+status+'</div><div class="ds" style="font-size:9px;opacity:.8">'+money(c.wage||0)+'/qtr \u2022 loyalty '+(c.loyalty==null?70:c.loyalty)+' \u2022 '+((STATE.week-(c.lastTrain||0)>40)?'<span style="color:var(--caution)">skills rusty</span>':'<span style="color:var(--scope)">sharp</span>')+'</div></div></div>'; }).join('');
+  return { html:'<h2 class="scrn">AEA TRAINING PATHWAY</h2><div class="sub">Skills grow on the bench and on the job. When a tech is sharp enough, certify them up a level. Tap a tech to train.</div>'+cards,
+    actions:[ {label:'BACK', on:function(){ go('training'); }} ],
+    init:function(){ document.querySelectorAll('.card[data-tr]').forEach(function(el){ el.onclick=function(){ STATE._tr=+el.dataset.tr; sTab(); go('traintech'); }; }); } };
+};
+SCREENS.traintech=function(){
+  var c=STATE.crew[STATE._tr];
+  if(c.bay!==null){ return { html:'<h2 class="scrn">'+c.name.toUpperCase()+'</h2><div class="panel"><div class="note" style="text-align:left">'+c.name+' is on a bay right now. Deliver that job to free them up before sending them to training.</div></div>', actions:[ {label:'BACK', on:function(){ go('train'); }} ] }; }
+  var row=function(key,lab){ var v=c[key], cost=skillCost(v), dis=(v>=10||STATE.cash<cost); return '<button class="opt" data-sk="'+key+'" '+(dis?'disabled':'')+'>'+lab+' '+v.toFixed(1)+' '+pips(v)+' <span class="ok" style="float:right">'+(v>=10?'MAX':'+1  '+money(cost))+'</span></button>'; };
+  var certBlock; var n=c.cred+1;
+  if(c.cred>=3){ certBlock='<div class="infobox" style="border-color:var(--amber);color:#ffe6b8;background:#2a2410">Master. There is no higher rung. This one trains the rest now.</div>'; }
+  else { var av=avgSkill(c), need=CRED_SKILL[n], fee=CRED_FEE[n];
+    if(canCertify(c)){ certBlock='<button class="opt good" data-cert="1" '+(STATE.cash<fee?'disabled':'')+'>CERTIFY \u2192 '+credName(n).toUpperCase()+' <span class="ok" style="float:right">'+(STATE.cash<fee?'NEED '+money(fee):money(fee))+'</span></button>'; }
+    else { certBlock='<div class="infobox">To reach '+credName(n)+', this tech needs average skill '+need.toFixed(1)+'. Right now it is '+av.toFixed(1)+'. Keep training and working jobs.</div>'; }
+  }
+  return { html:'<h2 class="scrn">TRAIN '+c.name.toUpperCase()+'</h2><div class="panel"><div class="row2" style="margin-top:0"><span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span><span class="ds">avg skill '+avgSkill(c).toFixed(1)+'</span></div></div>'
+      +'<div class="sub">Bench training, one point at a time.</div>'+row('wiring','Wiring')+row('integ','Integration')+row('trouble','Troubleshooting')+row('paper','Documentation')
+      +'<div class="sub" style="margin-top:10px">Credential</div>'+certBlock,
+    actions:[ {label:'BACK', on:function(){ go('train'); }} ],
+    init:function(){
+      document.querySelectorAll('.opt[data-sk]').forEach(function(el){ el.onclick=function(){ var k=el.dataset.sk, v=c[k], cost=skillCost(v); if(v>=10){ toast(c.name+' is maxed there.'); return; } if(STATE.cash<cost){ toast('Need '+money(cost)+'.'); return; } STATE.cash-=cost; c[k]=Math.min(10,c[k]+1); c.lastTrain=STATE.week; sDrill(); renderHUD(); if(canCertify(c)) toast(c.name+' is ready to certify.'); go('traintech'); }; });
+      var cb=document.querySelector('.opt[data-cert]'); if(cb) cb.onclick=function(){ var nn=c.cred+1, fee=CRED_FEE[nn]; if(!canCertify(c)){ toast('Skills not there yet.'); return; } if(STATE.cash<fee){ toast('Need '+money(fee)+'.'); return; } STATE.cash-=fee; c.cred=nn; c.elig=nn; if(nn===1&&STATE.apprentice){ STATE.gradCount++; STATE.aeaRep+=4; } sLevel(); renderHUD(); toast(c.name+' earned '+credName(nn)+'.'); go('train'); };
+    } };
+};
+
+SCREENS.gameover=function(){
+  return { html:'<div class="panel" style="text-align:center;border-color:var(--beacon)"><div class="big pix" style="font-size:15px;color:var(--beacon);line-height:1.6;margin:8px 0">THE SHOP<br>FOLDED</div></div>'
+      +'<div class="panel"><div class="chief">Chief: "It happens. You ran out of runway. The owners who make it learn to pass on the dead-fit jobs and keep the crew lean. Dust off and open the doors again."</div><div class="ledger" style="margin-top:10px"><span>Jobs completed</span><b>'+STATE.jobsDone+'</b></div><div class="ledger"><span>Peak reputation</span><b>'+STATE.rep+'</b></div></div>',
+    actions:[ {label:'OPEN A NEW SHOP', cls:'btn-go', on:function(){ STATE=makeState(); newBoard(); sHit(); go('floor'); }} ] };
+};
+SCREENS.victory=function(){
+  var sr=STATE.safe.good+STATE.safe.bad;
+  return { html:'<div class="panel" style="text-align:center;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">THE AEA NAMES YOUR SHOP</div><div class="big pix" style="font-size:14px;color:var(--amber);line-height:1.7;margin:12px 0">SHOP OF<br>THE YEAR</div></div>'
+      +'<div class="panel"><div class="chief">Chief: "You took one bay and built the shop the whole field trusts. A wall of dealer authorizations, people you trained from apprentice to Master, and a safety record that sets the standard. You stopped selling labor by the hour and started owning the work. That is the whole game. Proud of you, boss."</div>'
+      +'<div class="ledger" style="margin-top:10px"><span>Jobs completed</span><b>'+STATE.jobsDone+'</b></div><div class="ledger"><span>Final reputation</span><b style="color:var(--amber)">'+STATE.rep+'</b></div><div class="ledger"><span>Bank</span><b style="color:var(--scope)">'+money(STATE.cash)+'</b></div><div class="ledger"><span>Safety record</span><b style="color:var(--caution)">'+STATE.safe.good+' good of '+sr+'</b></div></div>',
+    actions:[ {label:'KEEP BUILDING', cls:'btn-go', on:function(){ go('floor'); }}, {label:'NEW SHOP', on:function(){ STATE=makeState(); newBoard(); go('floor'); }} ] };
+};
+
+/* ===== expansion screens ===== */
+SCREENS.dealers=function(){
+  var avail=OEM_ORDER.filter(function(o){ return OEMS[o].era<=STATE.era; });
+  var cards=avail.map(function(o){ var O=OEMS[o], t=dealerTier(o), nt=t+1, sales=STATE.oemSales[o]||0; var line;
+    if(t>=3){ line='<span class="badge b-amazing">PREMIER DEALER</span>'; }
+    else { var met=dealerReqMet(o,nt); line='<span class="badge '+(met?'b-solid':'b-dead')+'">to '+TIER_NAME[nt]+'</span><span class="cred c0">sales '+sales+'/'+O.salesReq[nt]+'</span><span class="cred c0">rep '+STATE.rep+'/'+O.repReq[nt]+'</span>'+(O.certReq[nt]?'<span class="cred c0">certs '+oemCertCount(o)+'/'+O.certReq[nt]+'</span>':'')+(nt>=3?'<span class="cred c0">culture '+Math.round(STATE.culture)+'/70</span>':''); }
+    return '<div class="card flat" data-oem="'+o+'"><div class="body"><div class="nm">'+O.name+(t?' <span class="cred c1">'+TIER_NAME[t]+'</span>':'')+'</div><div class="ds">'+O.dom+' \u2022 rises '+ERAS[O.era].name+'</div><div class="row2">'+line+(t<3?'<span class="pay">'+money(O.buyin[nt])+'</span>':'')+'</div></div></div>'; }).join('');
+  return { html:'<h2 class="scrn">OEM DEALERS</h2><div class="sub">Sell their gear to build sales, certify techs, and climb. Premier dealers win Shop of the Year. Tap to buy or upgrade.</div>'+cards,
+    actions:[ {label:'BACK', on:function(){ go('shop'); }} ],
+    init:function(){ document.querySelectorAll('.card[data-oem]').forEach(function(el){ el.onclick=function(){ buyDealer(el.dataset.oem); }; }); } };
+};
+SCREENS.training=function(){
+  var nav=[['train','TECHNICIANS','The AEA credential ladder. Train skills and certify CAET, Advanced, Master.'],['courses','AEA COURSES','Shop-wide courses: compliance, wiring, human factors, cyber, business.'],['oemcert','OEM FACTORY TRAINING','Certify techs on the lines you sell. Cleaner work and higher dealer tiers.'],['apprentice','APPRENTICESHIP','Start a registered program. Grow your own bench and draw grant funding.']]
+    .map(function(n){ return '<div class="card" data-go="'+n[0]+'"><div class="body"><div class="nm">'+n[1]+'</div><div class="ds">'+n[2]+'</div></div></div>'; }).join('');
+  return { html:'<h2 class="scrn">TRAINING</h2><div class="sub">Your people are the product. This is where the shop is built.</div>'+nav,
+    actions:[ {label:'BACK', on:function(){ go('shop'); }} ],
+    init:function(){ document.querySelectorAll('.card[data-go]').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.go); }; }); } };
+};
+SCREENS.courses=function(){
+  var cards=COURSE_ORDER.map(function(k){ var co=COURSES[k], have=STATE.courses[k]; return '<div class="card'+(have?' flat':'')+'" data-course="'+k+'"><div class="body"><div class="nm">'+co.name+(have?' <span class="cred c2">DONE</span>':'')+'</div><div class="ds">'+co.ds+'</div>'+(have?'':'<div class="row2"><span class="pay">'+money(co.cost)+'</span></div>')+'</div></div>'; }).join('');
+  return { html:'<h2 class="scrn">AEA COURSES</h2><div class="sub">One-time investments that lift the whole shop and your AEA standing.</div>'+cards,
+    actions:[ {label:'BACK', on:function(){ go('training'); }} ],
+    init:function(){ document.querySelectorAll('.card[data-course]').forEach(function(el){ el.onclick=function(){ buyCourse(el.dataset.course); }; }); } };
+};
+SCREENS.oemcert=function(){
+  var held=OEM_ORDER.filter(function(o){ return dealerTier(o)>=1; });
+  if(!held.length){ return { html:'<h2 class="scrn">OEM FACTORY TRAINING</h2><div class="panel"><div class="note" style="text-align:left">You are not a dealer for any line yet. Become a Stocking Dealer on the OEM Dealers screen (that first tier needs no certified techs), then send a tech to that manufacturer\u2019s training here.</div></div>', actions:[ {label:'OEM DEALERS \u25BA', cls:'btn-amber', on:function(){ go('dealers'); }}, {label:'BACK', on:function(){ go('training'); }} ] }; }
+  var cost=3000+STATE.era*500;
+  var cards=STATE.crew.map(function(c,i){
+    if(c.bay!==null){ return '<div class="card flat" style="opacity:.55"><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds">On a bay. Free them up to send them to factory training.</div></div></div>'; }
+    var open=held.filter(function(o){ return !(c.oemCerts&&c.oemCerts[o]); });
+    var done=held.filter(function(o){ return c.oemCerts&&c.oemCerts[o]; });
+    var doneTags=done.map(function(o){ return '<span class="cred c2" style="margin:2px 4px 2px 0;display:inline-block">'+OEMS[o].name.split(' ')[0]+' \u2713</span>'; }).join('');
+    var btns=open.map(function(o){ return '<button class="opt" data-ct="'+i+'" data-co="'+o+'">'+OEMS[o].name+' cert <span class="ok" style="float:right">'+money(cost)+'</span></button>'; }).join('');
+    var body=doneTags + (open.length?btns:'<div class="ds" style="color:var(--scope)">Certified on all your current lines. Add a dealership to unlock more.</div>');
+    return '<div class="card flat"><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div>'+body+'</div></div>'; }).join('');
+  return { html:'<h2 class="scrn">OEM FACTORY TRAINING</h2><div class="sub">Certify a tech on a line you sell. Removes the penalty on that gear and counts toward the Authorized and Premier tiers. Tuition '+money(cost)+'.</div>'+cards,
+    actions:[ {label:'BACK', on:function(){ go('training'); }} ],
+    init:function(){ document.querySelectorAll('.opt[data-ct]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.ct, o=el.dataset.co, c=STATE.crew[i]; if(STATE.cash<cost){ toast('Need '+money(cost)+'.'); return; } STATE.cash-=cost; c.oemCerts=c.oemCerts||{}; c.oemCerts[o]=true; sLevel(); renderHUD(); toast(c.name+' certified on '+OEMS[o].name+'.'); go('oemcert'); }; }); } };
+};
+SCREENS.apprentice=function(){
+  if(!STATE.apprentice){ var hasMentor=STATE.crew.some(function(c){ return c.cred>=1; }); var startCost=8000;
+    return { html:'<h2 class="scrn">APPRENTICESHIP PROGRAM</h2><div class="panel"><div class="evtext">Stand up a registered apprenticeship. Recruit green talent cheap, grow your own certified techs, draw workforce grant funding, and build the AEA standing that wins Shop of the Year.</div><div class="infobox" style="margin-top:8px">Requires a CAET or higher tech to mentor. One-time setup '+money(startCost)+'. Unlocks grant funding and half-price CTE hires.</div></div>',
+      actions:[ {label:'BACK', on:function(){ go('training'); }}, {label:'START PROGRAM', cls:(hasMentor&&STATE.cash>=startCost)?'btn-go':'', disabled:!(hasMentor&&STATE.cash>=startCost), on:function(){ if(!hasMentor){ toast('Need a CAET+ tech to mentor.'); return; } if(STATE.cash<startCost){ toast('Need '+money(startCost)+'.'); return; } STATE.cash-=startCost; STATE.apprentice=true; STATE.grant=true; STATE.aeaRep+=8; sLevel(); renderHUD(); toast('Apprenticeship program registered.\nGrant funding active.'); go('apprentice'); }} ] }; }
+  var appr=STATE.crew.filter(function(c){ return c.cred===0; }).length;
+  return { html:'<h2 class="scrn">APPRENTICESHIP PROGRAM</h2><div class="panel"><div class="ledger"><span>Status</span><b style="color:var(--scope)">Registered and active</b></div><div class="ledger"><span>Grant funding</span><b style="color:var(--scope)">on, each quarter</b></div><div class="ledger"><span>Apprentices on staff</span><b>'+appr+'</b></div><div class="ledger"><span>Graduated to CAET</span><b style="color:var(--amber)">'+STATE.gradCount+'</b></div></div><div class="panel"><div class="note" style="text-align:left">Recruit apprentices cheap from High School CTE on the Recruit screen. Put them on jobs and through Technician training. Each one you graduate to CAET lifts your AEA standing.</div></div>',
+    actions:[ {label:'RECRUIT APPRENTICES', cls:'btn-amber', on:function(){ go('recruit'); }}, {label:'BACK', on:function(){ go('training'); }} ] };
+};
+SCREENS.recruit=function(){
+  var open=STATE.crew.length<crewSlots();
+  var srcCards=RECRUIT.map(function(s){ var cost=s.cost; if(s.key==='cte'&&STATE.apprentice) cost=Math.round(cost*0.5); return '<div class="card'+(open?'':' flat')+'" data-src="'+s.key+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,s.color,'rs'+s.key,0)+'</svg></div><div class="body"><div class="nm">'+s.name+' <span class="cred '+credCls(s.cred)+'">'+credName(s.cred).toUpperCase()+'</span></div><div class="ds">'+s.ds+'</div><div class="row2"><span class="cred c0">loyalty '+s.lo+'</span><span class="pay">'+money(cost)+(s.key==='cte'&&STATE.apprentice?' \u2193':'')+'</span></div></div></div>'; }).join('');
+  var pool=CREW_POOL.filter(function(c){ return c.lvl<=STATE.level && !STATE.hired[c.key]; });
+  var poolCards=pool.length?('<div class="sub" style="margin-top:10px">Job board</div>'+pool.map(function(c){ return '<div class="card'+(open?'':' flat')+'" data-h="'+c.key+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'jb'+c.key,0)+'</svg></div><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds">'+c.tag+'</div><div class="row2"><span class="pay">'+money(c.fee)+'</span></div></div></div>'; }).join('')):'';
+  return { html:'<h2 class="scrn">RECRUIT CREW</h2><div class="sub">Slots '+STATE.crew.length+'/'+crewSlots()+'. '+(open?'Cheap and slow, or fast and costly. Your call.':'Every bench is full. Upgrade the shop for more slots.')+'</div>'+srcCards+poolCards,
+    actions:[ {label:'BACK', on:function(){ go('shop'); }} ],
+    init: open?function(){
+      document.querySelectorAll('.card[data-src]').forEach(function(el){ el.onclick=function(){ var s=RECRUIT.filter(function(x){return x.key===el.dataset.src;})[0]; var fee=s.cost; if(s.key==='cte'&&STATE.apprentice) fee=Math.round(fee*0.5); var tmp={wiring:s.sk[0],integ:s.sk[1],trouble:s.sk[2],paper:s.sk[3],cred:s.cred}; STATE.pendingHire={name:null,tag:s.tag,sk:s.sk,cred:s.cred,color:s.color,loBase:s.lo,fee:fee,ask:marketWage(tmp),srcKey:s.key}; sTab(); go('negotiate'); }; });
+      document.querySelectorAll('.card[data-h]').forEach(function(el){ el.onclick=function(){ var c=CREW_POOL.filter(function(x){ return x.key===el.dataset.h; })[0]; var tmp={wiring:c.wiring,integ:c.integ,trouble:c.trouble,paper:c.paper,cred:c.cred}; STATE.pendingHire={name:c.name,tag:c.tag,sk:[c.wiring,c.integ,c.trouble,c.paper],cred:c.cred,color:c.color,loBase:65,fee:c.fee,ask:marketWage(tmp),boardKey:c.key}; sTab(); go('negotiate'); }; });
+    }:null };
+};
+SCREENS.negotiate=function(){
+  var h=STATE.pendingHire; if(!h){ go('recruit'); return {html:'',actions:[]}; }
+  var nm=h.name||'This candidate';
+  var lowW=Math.round(h.ask*0.85), fairW=h.ask, genW=Math.round(h.ask*1.15);
+  var opt=function(key,title,wage,loy,note,cls){ return '<button class="opt '+(cls||'')+'" data-off="'+key+'"><b>'+title+'</b> <span class="ok" style="float:right">'+money(wage)+'/qtr</span><br><span class="ds">'+note+' Loyalty starts '+clamp(loy,0,100)+'.</span></button>'; };
+  return { html:'<h2 class="scrn">MAKE AN OFFER</h2><div class="panel"><div class="row2" style="margin-top:0"><div class="nm">'+nm+' <span class="cred '+credCls(h.cred)+'">'+credName(h.cred).toUpperCase()+'</span></div></div><div class="ds" style="margin-top:6px">'+h.tag+'</div><div class="stats" style="margin-top:8px"><span class="stat">Wir <b>'+h.sk[0]+'</b></span><span class="stat">Int <b>'+h.sk[1]+'</b></span><span class="stat">T/S <b>'+h.sk[2]+'</b></span><span class="stat">Pap <b>'+h.sk[3]+'</b></span></div><div class="ledger" style="margin-top:8px"><span>Sign-on cost</span><b>'+money(h.fee)+'</b></div><div class="ledger"><span>They are asking</span><b style="color:var(--amber)">'+money(fairW)+'/qtr</b></div></div>'
+     +'<div class="sub">Wage is paid every quarter on the statement. Pay sets loyalty, and loyalty is what keeps them from walking later.</div>'
+     +opt('low','Lowball',lowW,h.loBase-15,'They might walk.','')
+     +opt('fair','Meet their ask',fairW,h.loBase,'A fair deal.','btn-amber')
+     +opt('gen','Pay above market',genW,h.loBase+15,'Locks them in.','btn-go'),
+    actions:[ {label:'WALK AWAY', on:function(){ STATE.pendingHire=null; go('recruit'); }} ],
+    init:function(){ document.querySelectorAll('.opt[data-off]').forEach(function(el){ el.onclick=function(){ finalizeHire(el.dataset.off); }; }); } };
+};
+function finalizeHire(kind){
+  var h=STATE.pendingHire; if(!h) return;
+  if(STATE.crew.length>=crewSlots()){ toast('No open slot.'); return; }
+  if(STATE.cash<h.fee){ toast('Need '+money(h.fee)+' sign-on.'); return; }
+  var wage, loy;
+  if(kind==='low'){ wage=Math.round(h.ask*0.85); loy=clamp(h.loBase-15,0,100); if(Math.random()<0.35){ STATE.pendingHire=null; toast((h.name||'The candidate')+' walked. The lowball did not land.'); go('recruit'); return; } }
+  else if(kind==='gen'){ wage=Math.round(h.ask*1.15); loy=clamp(h.loBase+15,0,100); }
+  else { wage=h.ask; loy=clamp(h.loBase,0,100); }
+  STATE.cash-=h.fee;
+  var nm=h.name; if(!nm){ var names=['Rook','Wrench','Patch','Volt','Lex','Mac','Indy','Sol','Rae','Bit','Cole','Nyx']; nm=names[Math.floor(Math.random()*names.length)]; }
+  var c=mkCrew(nm,h.tag,h.sk[0],h.sk[1],h.sk[2],h.sk[3],h.cred,h.color); c.wage=wage; c.loyalty=loy;
+  if(h.srcKey==='military') STATE.culture=clamp(STATE.culture+3,0,100);
+  if(h.srcKey==='cte'&&STATE.apprentice) STATE.aeaRep+=2;
+  if(h.boardKey) STATE.hired[h.boardKey]=true;
+  c.lastTrain=STATE.week; STATE.crew.push(c); STATE.pendingHire=null; sHit(); renderHUD(); toast(nm+' signed on at '+money(wage)+'/qtr.'); go('recruit');
+}
+SCREENS.personnel=function(){
+  var p=STATE.personnel; if(!p||!STATE.crew[p.idx]){ go('floor'); return {html:'',actions:[]}; }
+  var c=STATE.crew[p.idx], wage=c.wage||marketWage(c);
+  if(p.type==='poach'){ var bonus=Math.max(1500,p.offer-wage);
+    return { html:'<h2 class="scrn">A RIVAL IS CIRCLING</h2><div class="panel"><div class="evtext">A competing shop on the field made '+c.name+' an offer: '+money(p.offer)+' a quarter, up from '+money(wage)+'. '+((c.loyalty||0)<25?'Loyalty is thin and they are listening hard.':'They came to you first, but they want a reason to stay.')+'</div></div>'
+       +'<div class="sub">Keep them, or lose them and every certification they carry.</div>'
+       +'<button class="opt btn-go" data-p="match"><b>Match the offer</b> <span class="ok" style="float:right">'+money(p.offer)+'/qtr</span><br><span class="ds">Raise the wage. Loyalty jumps, payroll rises.</span></button>'
+       +'<button class="opt btn-amber" data-p="bonus"><b>One-time bonus</b> <span class="ok" style="float:right">'+money(bonus)+'</span><br><span class="ds">Buys time without raising payroll. Smaller, temporary lift.</span></button>'
+       +'<button class="opt" data-p="let"><b>Let them go</b><br><span class="ds">Free the wage, lose the tech and their training.</span></button>',
+      actions:[],
+      init:function(){ document.querySelectorAll('.opt[data-p]').forEach(function(el){ el.onclick=function(){ var k=el.dataset.p; sTab(); var msg;
+        if(k==='match'){ c.wage=p.offer; c.loyalty=clamp((c.loyalty||0)+28,0,100); msg=c.name+' is staying. The wage is now '+money(p.offer)+' a quarter and loyalty is way up.'; }
+        else if(k==='bonus'){ if(STATE.cash<bonus){ toast('Need '+money(bonus)+'.'); return; } STATE.cash-=bonus; c.loyalty=clamp((c.loyalty||0)+12,0,100); msg='You paid '+money(bonus)+'. '+c.name+' stays for now, but the wage gap is still there and they will be back.'; }
+        else { var nm=c.name; removeCrew(p.idx); msg=nm+' took the offer and left. Their certifications walked out the door with them. This is what underpaying costs.'; }
+        STATE.personnel=null; renderHUD(); result(msg); }; }); } };
+  }
+  return { html:'<h2 class="scrn">A RAISE REQUEST</h2><div class="panel"><div class="evtext">'+c.name+' is doing the work and knows it. They are at '+money(wage)+' a quarter, the going rate for their skills is '+money(p.offer)+', and they are asking you to close the gap.</div></div>'
+     +'<div class="sub">Pay keeps good people. So does being heard.</div>'
+     +'<button class="opt btn-go" data-r="full"><b>Grant the raise</b> <span class="ok" style="float:right">'+money(p.offer)+'/qtr</span><br><span class="ds">Loyalty climbs.</span></button>'
+     +'<button class="opt btn-amber" data-r="half"><b>Meet halfway</b> <span class="ok" style="float:right">'+money(Math.round((wage+p.offer)/2))+'/qtr</span><br><span class="ds">A modest bump and a fair signal.</span></button>'
+     +'<button class="opt" data-r="no"><b>Decline for now</b><br><span class="ds">Saves money. Loyalty drops, and they remember it.</span></button>',
+    actions:[],
+    init:function(){ document.querySelectorAll('.opt[data-r]').forEach(function(el){ el.onclick=function(){ var k=el.dataset.r; sTab(); var msg;
+      if(k==='full'){ c.wage=p.offer; c.loyalty=clamp((c.loyalty||0)+16,0,100); msg=c.name+' got the raise, and it shows. Loyalty up.'; }
+      else if(k==='half'){ c.wage=Math.round((wage+p.offer)/2); c.loyalty=clamp((c.loyalty||0)+7,0,100); msg=c.name+' took the partial raise. Better than nothing, and they noticed the effort.'; }
+      else { c.loyalty=clamp((c.loyalty||0)-14,0,100); msg='You held the line on pay. '+c.name+' went back to work, but loyalty took a hit.'; }
+      STATE.personnel=null; renderHUD(); result(msg); }; }); } };
+};
+SCREENS.finance=function(){
+  var d=STATE.lastStmtData; if(!d){ go('floor'); return {html:'',actions:[]}; } var c=d.c, r=d.r;
+  return { html:'<h2 class="scrn">QUARTERLY STATEMENT</h2><div class="sub">The overhead reckoning. Keep the work flowing to stay ahead of it.</div><div class="panel">'
+     +(r.grant>0?'<div class="ledger"><span>Apprenticeship grant</span><b style="color:var(--scope)">+'+money(r.grant)+'</b></div>':'')
+     +'<div class="ledger"><span>Hangar rent</span><b style="color:var(--beacon)">-'+money(c.rent)+'</b></div>'
+     +'<div class="ledger"><span>Payroll and benefits</span><b style="color:var(--beacon)">-'+money(c.payroll)+'</b></div>'
+     +'<div class="ledger"><span>Insurance</span><b style="color:var(--beacon)">-'+money(c.insurance)+'</b></div>'
+     +(c.fees>0?'<div class="ledger"><span>Dealer fees</span><b style="color:var(--beacon)">-'+money(c.fees)+'</b></div>':'')
+     +'<div class="payout"><div class="pl">NET THIS QUARTER</div><div class="pv" style="color:'+(d.net<0?'var(--beacon)':'var(--scope)')+'">'+money(d.net)+'</div></div></div>'
+     +(c.insurance>900?'<div class="infobox" style="margin-top:8px">Insurance is high because your safety culture is shaky. A cleaner shop pays less.</div>':''),
+    actions:[ {label:'CONTINUE \u25BA', cls:'btn-go', on:function(){ if(STATE.cash<-4000){ go('gameover'); return; } go('floor'); }} ] };
+};
+SCREENS.awardeval=function(){
+  var a=awardParts();
+  var row=function(lab,v,max){ return '<div class="qbar"><div class="qt"><span>'+lab+'</span><span class="qv">'+Math.round(v)+' / '+max+'</span></div><div class="track"><div class="fill f-fin" data-pct="'+clamp(v/max*100,0,100)+'"></div></div></div>'; };
+  var gate=(hasPremier()||STATE.level>=5)?'':'<div class="infobox" style="margin-top:6px">You also need at least one Premier dealer or a level-five shop to be eligible.</div>';
+  var cl=STATE.culture>=70?'':'<div class="infobox" style="margin-top:6px">A clean safety record is required. Raise your safety culture to 70.</div>';
+  return { html:'<h2 class="scrn">SHOP OF THE YEAR</h2><div class="sub">The AEA weighs the whole shop, not one number. Target '+AWARD_TARGET+'.</div><div class="panel">'
+     +row('Business scale and health',a.biz,30)+row('Reputation',a.rep,25)+row('Dealer portfolio',a.deal,20)+row('Workforce development',a.work,20)+row('Safety record',a.safe,15)+row('Industry involvement',a.inv,10)
+     +'<div class="total" style="margin-top:6px"><div class="tn">AWARD SCORE</div><div class="tv">'+Math.round(a.total)+' / '+AWARD_TARGET+'</div></div>'+gate+cl+'</div>',
+    actions:[ {label:'BACK', on:function(){ go('shop'); }} ], init:initFills };
+};
+
+EVENTS.push(
+ { key:'incident', title:'SHOP INCIDENT', weight:3, cond:function(){ return STATE.culture<45; }, text:"A rushed, run-down crew made a mistake. A panel powered up with a hand still in it, and an aircraft took damage on the bench. This is what a frayed safety culture costs.", choices:[ {label:'OWN IT AND FIX IT', run:function(){ var f=Math.round(2000+Math.random()*2500); STATE.cash-=f; STATE.rep=Math.max(0,STATE.rep-3); STATE.culture=clamp(STATE.culture+6,0,100); return "You ate the "+money(f)+" repair, took the rep hit, and called a stand-down to reset the floor. Culture ticks back up. Now keep it there."; }} ] },
+ { key:'faa', title:'FAA ENFORCEMENT', weight:2, cond:function(){ return STATE.culture<35; }, text:"The lapses caught up with you. An inspector opens an enforcement action on the shop.", choices:[ {label:'COOPERATE FULLY', run:function(){ var f=Math.round(3000+Math.random()*3000); STATE.cash-=f; STATE.rep=Math.max(0,STATE.rep-4); STATE.culture=clamp(STATE.culture+8,0,100); return "A "+money(f)+" penalty and a corrective action plan. Painful, but you used it to rebuild the culture. Do not be here again."; }} ] },
+ { key:'safetyaward', title:'INDUSTRY SAFETY AWARD', weight:2, cond:function(){ return STATE.culture>=85; }, text:"Your safety record stands out on the field. An industry group recognizes the shop for its culture.", choices:[ {label:'ACCEPT THE HONOR', run:function(){ STATE.rep+=4; STATE.aeaRep+=4; STATE.culture=clamp(STATE.culture+3,0,100); return "The award goes on the wall. Reputation and AEA standing climb, and your insurer takes notice. This is what running clean buys you."; }} ] }
+);
+
+/* ---- animation + router ---- */
+function countUp(el,target){ if(!el) return; var start=0,t0=performance.now(),dur=700; function step(t){ var p=clamp((t-t0)/dur,0,1); el.textContent=money(Math.round(start+(target-start)*p)); if(p<1) requestAnimationFrame(step); } requestAnimationFrame(step); }
+function go(name){ STATE.screen=name; render(); }
+function render(){ renderHUD(); var scr=SCREENS[STATE.screen](); $('#stage').innerHTML=scr.html; var bar=$('#bar'); bar.innerHTML='';
+  (scr.actions||[]).forEach(function(a){ var b=document.createElement('button'); b.className='btn '+(a.cls||''); b.innerHTML=a.label; if(a.disabled) b.disabled=true; b.onclick=function(){ sBlip(); a.on(); }; bar.appendChild(b); });
+  if(scr.init) scr.init(); window.scrollTo(0,0); }
+render();
+</script>
+</body>
+</html>
