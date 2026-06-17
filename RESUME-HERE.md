@@ -10,7 +10,7 @@
    `OneDrive - Aircraft Electronics Association\aea-shop-tycoon\aea-shop-tycoon`
 2. Open Claude Code in that folder and say:
    > Continue the AEA Member Shop Tycoon shop-first refocus. Read RESUME-HERE.md and docs/plans/2026-06-17-shop-tycoon-refocus.md, then build Phase 2 next, phase by phase, and let me review each phase before moving on.
-3. To just play the current game, double-click `AEA Member Shop Tycoon.html` to open it in a browser.
+3. To just play the current game, double-click `index.html` to open it in a browser.
 
 ---
 
@@ -19,7 +19,7 @@
 - **Design (the vision):** `docs/plans/2026-06-17-shop-tycoon-refocus-design.md`
 - **Build plan (18 tasks, 6 phases):** `docs/plans/2026-06-17-shop-tycoon-refocus.md`
 
-The game is one self-contained file: **`AEA Member Shop Tycoon.html`** (this is the shipping game; the `prototype/` folder is the original reference, do not edit it).
+The game is one self-contained file: **`index.html`** (this is the shipping game; the `prototype/` folder is the original reference, do not edit it).
 
 The big idea: the game now centers on running a great shop. One loop ties it together: train your people, do better work, earn better reviews, reviews build reputation and referrals, loyal customers fund more training and unlock dealers, repeat. AEA is the engine in the middle, Chief is the coach, reviews are the visible scoreboard.
 
@@ -51,7 +51,7 @@ The big idea: the game now centers on running a great shop. One loop ties it tog
 - ALWAYS verify visuals by rendering to PNG and looking, not by trusting code review. Fast render command (PowerShell):
   ```
   $edge = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"; if (-not (Test-Path $edge)) { $edge = "C:\Program Files\Microsoft\Edge\Application\msedge.exe" }
-  $base = "file:///c:/Users/nickb/OneDrive%20-%20Aircraft%20Electronics%20Association/aea-shop-tycoon/aea-shop-tycoon/AEA%20Member%20Shop%20Tycoon.html"
+  $base = "file:///c:/Users/nickb/OneDrive%20-%20Aircraft%20Electronics%20Association/aea-shop-tycoon/aea-shop-tycoon/index.html"
   & $edge --headless=new --disable-gpu --hide-scrollbars --force-device-scale-factor=1 --virtual-time-budget=2500 --window-size=375,900 --screenshot="$env:USERPROFILE/Downloads/check.png" "$base"
   ```
   (On the laptop the path will differ if the OneDrive folder is in a different location; adjust the `$base` path. Use `?screen=NAME` to jump to a screen and `?test=1` to run the self-tests.)

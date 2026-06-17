@@ -15,7 +15,7 @@
 ## Conventions (read once, apply to every task)
 
 **Files.**
-- BUILD TARGET (all edits go here): `aea-shop-tycoon/AEA Member Shop Tycoon.html` (the shipping game; created in Task 0).
+- BUILD TARGET (all edits go here): `aea-shop-tycoon/index.html` (the shipping game; created in Task 0, originally named "AEA Member Shop Tycoon.html", renamed to index.html for web deploy).
 - REFERENCE ONLY (never edit): `prototype/AEA Member Shop Tycoon.html`.
 - Paths are relative to the game folder root: `c:/Users/nickb/OneDrive - Aircraft Electronics Association/aea-shop-tycoon/aea-shop-tycoon/`.
 
@@ -26,7 +26,7 @@
 **Render verification command (PowerShell, primary shell).** Replace OUT and optional QUERY each time:
 ```powershell
 $edge = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"; if (-not (Test-Path $edge)) { $edge = "C:\Program Files\Microsoft\Edge\Application\msedge.exe" }
-$game = "c:/Users/nickb/OneDrive - Aircraft Electronics Association/aea-shop-tycoon/aea-shop-tycoon/AEA Member Shop Tycoon.html"
+$game = "c:/Users/nickb/OneDrive - Aircraft Electronics Association/aea-shop-tycoon/aea-shop-tycoon/index.html"
 & $edge --headless --disable-gpu --hide-scrollbars --window-size=412,915 --screenshot="c:/Users/nickb/Downloads/shoptycoon_OUT.png" ("file:///$game" + "QUERY")
 ```
 Then Read the PNG and actually look at it. Phone size is 412x915; for the desktop check use `--window-size=1366,768`. For a self-test screenshot, set QUERY to `?test=1`.
@@ -42,11 +42,11 @@ Then Read the PNG and actually look at it. Phone size is 412x915; for the deskto
 ### Task 0: Seed the shipping game file from the prototype
 
 **Files:**
-- Create: `aea-shop-tycoon/AEA Member Shop Tycoon.html` (copy of the prototype)
+- Create: `aea-shop-tycoon/index.html` (copy of the prototype)
 
 **Step 1:** Copy the prototype to the build target verbatim.
 ```powershell
-Copy-Item "c:/Users/nickb/OneDrive - Aircraft Electronics Association/aea-shop-tycoon/aea-shop-tycoon/prototype/AEA Member Shop Tycoon.html" "c:/Users/nickb/OneDrive - Aircraft Electronics Association/aea-shop-tycoon/aea-shop-tycoon/AEA Member Shop Tycoon.html"
+Copy-Item "c:/Users/nickb/OneDrive - Aircraft Electronics Association/aea-shop-tycoon/aea-shop-tycoon/prototype/AEA Member Shop Tycoon.html" "c:/Users/nickb/OneDrive - Aircraft Electronics Association/aea-shop-tycoon/aea-shop-tycoon/index.html"
 ```
 **Step 2:** Render the build target at phone size (no query). Expected: the title screen draws, no console-blocking errors, page scrolls.
 **Step 3:** Commit. `feat(game): seed shipping file from prototype`
