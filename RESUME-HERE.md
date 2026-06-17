@@ -2,6 +2,9 @@
 
 **Last worked:** 2026-06-17. **Where we are:** Phase 1 of 6 is built and verified. Phases 2 to 6 are planned and not yet built.
 
+**Live demo (shareable, plays on any device):** https://00ainick-cmd.github.io/aea-shop-tycoon/
+**Repo (public):** https://github.com/00ainick-cmd/aea-shop-tycoon . Pages serves `index.html` from the `main` branch root, so every push to `main` updates the live demo automatically.
+
 ---
 
 ## How to pick up on your laptop
