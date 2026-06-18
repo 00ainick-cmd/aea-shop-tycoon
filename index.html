@@ -548,7 +548,7 @@ function makeState(){
     pendingHire:null, personnel:null, lastPersonnel:0,
     customers:{}, reviewsFeed:[], starRating:0, custSeq:0,
     pendingOverhead:0, _lastReview:null, _respondIdx:null,
-    _seenTips:{}, demandWave:null, _activeTip:null, chiefSteps:null };
+    _seenTips:{}, demandWave:null, _activeTip:null, chiefSteps:null, showOne:null };
 }
 var STATE=makeState();
 
@@ -659,7 +659,7 @@ SCREENS.intro=function(){
 };
 function previewPay(a,j,fit){ var base=JOBS[j].pay*AIRCRAFT[a].tier*FITMULT[fit]; if(j==='adsb'&&STATE.adsbRush>0) base*=1.15; var oem=JOB_OEM[j]; if(oem&&STATE.dealers[oem]) base*=OEMS[oem].margin[STATE.dealers[oem]]; base*=rateMult(); return Math.round(base); }
 function newBoard(){ var ai=unlockedAircraft(), ji=unlockedJobs();
-  function gen(){ var a=pick(ai); var j; if(STATE.adsbRush>0 && Math.random()<0.4 && JOBS.adsb.era<=STATE.era) j='adsb'; else if(Math.random()<0.32) j=pick(['cert','xpdr']); else j=pick(ji); return {a:a,j:j,fit:fitFor(a,j),owner:pick(OWNERS)}; }
+  function gen(){ var a=pick(ai); var j; if(STATE.adsbRush>0 && Math.random()<0.4 && JOBS.adsb.era<=STATE.era) j='adsb'; else if(Math.random()<0.32) j=pick(['cert','xpdr']); else j=pickBiasedJob(ji); return {a:a,j:j,fit:fitFor(a,j),owner:pick(OWNERS)}; }
   var board=[gen(),gen(),gen()];
   if(!board.some(function(b){ return b.fit==='amazing'||b.fit==='solid'; })){ var a=pick(ai); var good=ji.filter(function(j){ return fitFor(a,j)!=='dead'; }); var jj=good[0]||ji[0]; board[0]={a:a,j:jj,fit:fitFor(a,jj),owner:pick(OWNERS)}; }
   if(STATE.hotBoard){ board=board.map(function(b){ var f=fitFor(b.a,b.j); if(f==='dead'||f==='risky'){ var good=ji.filter(function(jj){ var ff=fitFor(b.a,jj); return ff==='amazing'||ff==='solid'; }); if(good.length){ var nj=pick(good); return {a:b.a,j:nj,fit:fitFor(b.a,nj),owner:b.owner}; } } return b; }); STATE.hotBoard=false; }
@@ -964,7 +964,7 @@ function runShift(){
   var overworked=0; STATE.crew.forEach(function(c){ if(c.bay!==null && (c.power||100)<=40) overworked++; });
   if(overworked>0) STATE.culture=clamp(STATE.culture - overworked*0.7, cultureFloor(), 100);
   STATE.crew.forEach(function(c){ if(canCertify(c) && (c.elig||0) < c.cred+1){ c.elig=c.cred+1; if(!nudged) nudged=c.name; } });
-  STATE.week++; sRatchet(); sPing(1); renderHUD();
+  STATE.week++; tickDemandWave(STATE); sRatchet(); sPing(1); renderHUD();
   if(nudged) toast(nudged+" is ready to certify.\nSee Training.");
   if(STATE._otj && STATE._otj.length){ toast(STATE._otj.slice(0,2).join(' / ')); STATE._otj=[]; }
   endShift();
@@ -1153,37 +1153,29 @@ function productArt(kind){
    +'<rect x="40" y="66" width="40" height="6" rx="2" fill="#2a4256"/>'
    +'</svg>';
 }
-function startShow(){ var pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=STATE.era+1; }); if(pool.length<3) pool=SHOW_PRODUCTS.slice(); var sh=shuffle(pool.slice()).slice(0,3); STATE.showSeq={ items:sh, i:0 }; sEra(); go('aeaShow'); }
+function startShow(){ var ji=unlockedJobs(); var pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=STATE.era && ji.indexOf(SHOW_JOB[p.kind]||p.kind)>=0; }); if(!pool.length) pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=STATE.era; }); if(!pool.length) pool=SHOW_PRODUCTS.slice(); var p=pick(pool); STATE.showOne=p; STATE.rep+=3; STATE.aeaRep+=4; var dom=SHOW_JOB[p.kind]||p.kind; STATE.demandWave={brand:(OEMS[p.mk]?OEMS[p.mk].name:'a top house'), product:p.n, oem:p.mk, domain:dom, kind:p.kind, weeksLeft:6, premium:1.15}; sEra(); go('aeaShow'); }
+function closeShow(){ STATE.showOne=null; }
 SCREENS.aeaShow=function(){
-  var sq=STATE.showSeq, i=sq.i;
-  var stage=function(inner){ return '<div class="hangarwrap"><svg viewBox="0 0 480 270" preserveAspectRatio="xMidYMid meet" aria-label="convention stage">'
+  var p=STATE.showOne; if(!p){ go('floor'); return {html:'',actions:[]}; }
+  var O=OEMS[p.mk], mk=O?O.name:'a show exhibitor', isDealer=dealerTier(p.mk)>0;
+  var wantJob=(JOBS[STATE.demandWave.domain]?JOBS[STATE.demandWave.domain].name:p.n);
+  var stage='<div class="hangarwrap"><svg viewBox="0 0 480 270" preserveAspectRatio="xMidYMid meet" aria-label="convention stage">'
     +'<defs><radialGradient id="spot" cx="0.5" cy="0.15" r="0.85"><stop offset="0" stop-color="#fff2b8" stop-opacity="0.55"/><stop offset="1" stop-color="#fff2b8" stop-opacity="0"/></radialGradient></defs>'
-    +'<rect width="480" height="270" fill="#13386a"/>'
-    +'<rect x="0" y="0" width="480" height="40" fill="#0e2c55"/>'
+    +'<rect width="480" height="270" fill="#13386a"/><rect x="0" y="0" width="480" height="40" fill="#0e2c55"/>'
     +'<rect x="40" y="8" width="400" height="24" rx="4" fill="#0a2142" stroke="#ffd23f" stroke-width="3"/><text x="240" y="25" text-anchor="middle" font-family="Press Start 2P" font-size="9" fill="#ffd23f">AEA CONVENTION</text>'
     +'<polygon points="150,40 330,40 300,196 180,196" fill="url(#spot)"/>'
-    +'<rect x="0" y="196" width="480" height="74" fill="#0e2c55"/>'
-    +'<rect x="0" y="190" width="480" height="8" fill="#ffd23f"/>'
-    +'<rect x="0" y="40" width="46" height="156" fill="#a31f3a"/><rect x="40" y="40" width="6" height="156" fill="#7a1630"/>'
-    +'<rect x="434" y="40" width="46" height="156" fill="#a31f3a"/><rect x="434" y="40" width="6" height="156" fill="#7a1630"/>'
-    +(function(){var r='';for(var k=0;k<14;k++){r+='<circle cx="'+(30+k*32)+'" cy="250" r="11" fill="#0a1c38"/>';}return r;})()
-    + inner +'</svg></div>'; };
-  if(i===0){
-    var intro=stage('<rect x="120" y="86" width="240" height="74" fill="#0a2142" stroke="#7fd0ff" stroke-width="3"/><text x="240" y="116" text-anchor="middle" font-family="Press Start 2P" font-size="11" fill="#fff">NEW PRODUCT</text><text x="240" y="140" text-anchor="middle" font-family="Press Start 2P" font-size="11" fill="#ffd23f">SHOWCASE</text>');
-    return { html:'<h2 class="scrn">THE AEA SHOW</h2>'+intro+'<div class="note" style="text-align:center;margin-top:8px">'+gMonthName()+' \u2022 Year '+gYear()+'. The hall lights drop and the reveals begin.</div>',
-      actions:[ {label:'START THE SHOW \u25BA', cls:'btn-go', on:function(){ sq.i++; sBlip(); go('aeaShow'); }} ] };
-  }
-  if(i>=1 && i<=sq.items.length){
-    var p=sq.items[i-1], mk=OEMS[p.mk]?OEMS[p.mk].name:'a show exhibitor';
-    var pod='<g transform="translate(208,150)"><rect x="-36" y="8" width="72" height="14" fill="#0a2142"/><rect x="-30" y="0" width="60" height="10" fill="#2a4256"/></g>'
-      +'<g transform="translate(132,64)">'+productArt(p.kind)+'</g>';
-    return { html:'<h2 class="scrn">REVEAL '+i+' / '+sq.items.length+'</h2>'+stage(pod)
-        +'<div class="panel" style="margin-top:8px"><div class="nm pix" style="font-size:11px;color:var(--amber)">'+p.n+'</div><div class="ds" style="margin-top:4px">by '+mk+'</div><div class="reason" style="margin-top:8px">'+p.hype+'</div></div>',
-      actions:[ {label:(i<sq.items.length?'NEXT \u25BA':'SEE THE FLOOR \u25BA'), cls:'btn-go', on:function(){ sq.i++; sBlip(); go('aeaShow'); }} ] };
-  }
-  var outro=stage('<rect x="104" y="92" width="272" height="64" fill="#0a2142" stroke="#36e0a0" stroke-width="3"/><text x="240" y="118" text-anchor="middle" font-family="Press Start 2P" font-size="8" fill="#fff">THE FIELD IS</text><text x="240" y="140" text-anchor="middle" font-family="Press Start 2P" font-size="8" fill="#36e0a0">TALKING ABOUT YOU</text>');
-  return { html:'<h2 class="scrn">SHOW FLOOR</h2>'+outro+'<div class="note" style="text-align:center;margin-top:8px">You worked the booths and shook the right hands. The shop is on everyone\u2019s short list this season.</div>',
-    actions:[ {label:'BACK TO THE SHOP \u25BA', cls:'btn-go', on:function(){ STATE.rep+=3; STATE.aeaRep+=4; STATE.showSeq=null; sHit(); renderHUD(); toast('Convention buzz: +3 reputation, +4 AEA standing.'); go('floor'); }} ] };
+    +'<rect x="0" y="196" width="480" height="74" fill="#0e2c55"/><rect x="0" y="190" width="480" height="8" fill="#ffd23f"/>'
+    +'<rect x="0" y="40" width="46" height="156" fill="#a31f3a"/><rect x="40" y="40" width="6" height="156" fill="#7a1630"/><rect x="434" y="40" width="46" height="156" fill="#a31f3a"/><rect x="434" y="40" width="6" height="156" fill="#7a1630"/>'
+    +'<g transform="translate(208,150)"><rect x="-36" y="8" width="72" height="14" fill="#0a2142"/><rect x="-30" y="0" width="60" height="10" fill="#2a4256"/></g>'
+    +'<g transform="translate(132,64)">'+productArt(p.kind)+'</g></svg></div>';
+  var move, moveAct;
+  if(O && !isDealer){ move='Become a '+O.name+' dealer before the rush, so the premium upsell and the kickback are yours.'; moveAct={label:'GO TO DEALERS \u25BA', cls:'btn-go', on:function(){ closeShow(); go('dealers'); }}; }
+  else { move='Book training seats so your techs are current and certified for the work about to flood in.'; moveAct={label:'BOOK TRAINING \u25BA', cls:'btn-go', on:function(){ closeShow(); go('training'); }}; }
+  return { html:'<h2 class="scrn">THE AEA SHOW</h2>'+stage
+     +'<div class="panel" style="margin-top:8px;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">'+mk.toUpperCase()+' UNVEILS</div><div class="nm pix" style="font-size:12px;color:var(--amber);margin-top:6px">'+p.n+'</div><div class="reason" style="margin-top:8px">'+p.hype+'</div></div>'
+     +'<div class="panel"><div class="infobox" style="border-color:var(--scope);background:#0f2a20;color:#cfeede;box-shadow:inset 0 0 0 2px #1a4a38">DEMAND WAVE: owners across the field want '+wantJob+' now. Your job board fills with it for the next few weeks, at early-adopter prices.</div><div class="note" style="text-align:left;margin-top:8px">Your move: '+move+'</div></div>',
+    actions:[ moveAct, {label:'BACK TO THE FLOOR', on:function(){ closeShow(); go('floor'); }} ],
+    init:function(){ sHit(); } };
 };
 var TIER_NAME=['None','Stocking Dealer','Authorized Dealer','Premier Dealer'];
 OEM_ORDER.forEach(function(o){ OEMS[o].certReq[1]=0; });
@@ -1228,8 +1220,18 @@ function personnelEvent(){ if(!STATE.crew.length) return null; var idx=-1, lo=99
 function sumCreds(){ var s=0; STATE.crew.forEach(function(c){ s+=c.cred; }); return s; }
 function sumDealerTiers(){ var s=0; OEM_ORDER.forEach(function(o){ s+=dealerTier(o); }); return s; }
 function hasPremier(){ return OEM_ORDER.some(function(o){ return dealerTier(o)>=3; }); }
-function awardParts(){ var biz=Math.min(30, STATE.level*4 + clamp(STATE.cash/4000,0,8) + STATE.jobsDone*0.25); var rep=Math.min(25, STATE.rep*0.22 + STATE.aeaRep*0.35); var deal=Math.min(20, sumDealerTiers()*2.2); var work=Math.min(20, STATE.gradCount*3 + sumCreds()*0.7 + (STATE.apprentice?4:0)); var safe=Math.min(15, STATE.culture*0.15); var inv=Math.min(10, STATE.scholarships*2.5 + STATE.conventions*1.5 + STATE.branches.length*3); return {biz:biz,rep:rep,deal:deal,work:work,safe:safe,inv:inv,total:biz+rep+deal+work+safe+inv}; }
-function awardScore(){ return awardParts().total; }
+/* You cannot buy Shop of the Year. Customer reputation (star rating + loyal
+   accounts) and workforce development (apprentices graduated + advanced techs)
+   are the heaviest terms. Safety is high, dealers medium, cash capped low. */
+function awardVals(){ var loyal=0; for(var k in STATE.customers){ if((STATE.customers[k].rel||0)>=3) loyal++; } var adv=0; STATE.crew.forEach(function(c){ if((c.cred||0)>=2) adv++; }); return { starRating:STATE.starRating||0, loyalAccounts:loyal, gradCount:STATE.gradCount||0, advTechs:adv, sumCreds:sumCreds(), culture:STATE.culture||0, dealerScore:sumDealerTiers(), cash:STATE.cash||0, level:STATE.level||0 }; }
+function awardParts(s){ var v=s||awardVals();
+  var rep = Math.min(30, (v.starRating||0)/5*20 + (v.loyalAccounts||0)*2.2);
+  var work= Math.min(30, (v.gradCount||0)*3 + (v.advTechs||0)*3 + (v.sumCreds||0)*0.5);
+  var safe= Math.min(18, (v.culture||0)*0.18);
+  var deal= Math.min(14, (v.dealerScore||0)*1.8);
+  var biz = Math.min(8, clamp((v.cash||0)/8000,0,5) + (v.level||0)*0.6);
+  return { rep:rep, work:work, safe:safe, deal:deal, biz:biz, total:rep+work+safe+deal+biz }; }
+function awardScore(s){ return awardParts(s).total; }
 var AWARD_TARGET=100;
 function checkAward(){ if(STATE.awardWon) return false; if(awardScore()>=AWARD_TARGET && STATE.culture>=70 && (hasPremier()||STATE.level>=5)){ STATE.awardWon=true; return true; } return false; }
 function cultureBar(){ var c=Math.round(STATE.culture); var col=c>=70?'var(--scope)':(c>=45?'var(--caution)':'var(--beacon)'); var lab=c>=85?'exemplary':c>=70?'strong':c>=45?'shaky':'poor'; return '<div class="ledger"><span>Safety culture</span><b style="color:'+col+'">'+c+' \u2022 '+lab+'</b></div><div class="qmeter"><div style="width:'+c+'%;background:'+col+'"></div></div>'; }
@@ -1490,8 +1492,8 @@ SCREENS.awardeval=function(){
   var row=function(lab,v,max){ return '<div class="qbar"><div class="qt"><span>'+lab+'</span><span class="qv">'+Math.round(v)+' / '+max+'</span></div><div class="track"><div class="fill f-fin" data-pct="'+clamp(v/max*100,0,100)+'"></div></div></div>'; };
   var gate=(hasPremier()||STATE.level>=5)?'':'<div class="infobox" style="margin-top:6px">You also need at least one Premier dealer or a level-five shop to be eligible.</div>';
   var cl=STATE.culture>=70?'':'<div class="infobox" style="margin-top:6px">A clean safety record is required. Raise your safety culture to 70.</div>';
-  return { html:'<h2 class="scrn">SHOP OF THE YEAR</h2><div class="sub">The AEA weighs the whole shop, not one number. Target '+AWARD_TARGET+'.</div><div class="panel">'
-     +row('Business scale and health',a.biz,30)+row('Reputation',a.rep,25)+row('Dealer portfolio',a.deal,20)+row('Workforce development',a.work,20)+row('Safety record',a.safe,15)+row('Industry involvement',a.inv,10)
+  return { html:'<h2 class="scrn">SHOP OF THE YEAR</h2><div class="sub">The AEA weighs a shop people love and the people it grew, not your bank balance. Target '+AWARD_TARGET+'.</div><div class="panel">'
+     +row('Customer reputation',a.rep,30)+row('Workforce development',a.work,30)+row('Safety record',a.safe,18)+row('Dealer portfolio',a.deal,14)+row('Business scale and cash',a.biz,8)
      +'<div class="total" style="margin-top:6px"><div class="tn">AWARD SCORE</div><div class="tv">'+Math.round(a.total)+' / '+AWARD_TARGET+'</div></div>'+gate+cl+'</div>',
     actions:[ {label:'BACK', on:function(){ go('shop'); }} ], init:initFills };
 };
@@ -1609,6 +1611,13 @@ var AVI_FACTS=[
  "Bonding and grounding are the quiet backbone of every clean avionics install."
 ];
 
+/* ---- PHASE 5: demand waves. The AEA Show kicks off a wave that biases the job
+   board toward one kind of work for a few weeks, then it ticks down and clears. ---- */
+var SHOW_JOB={efis:'glass',autopilot:'ap',audio:'audio',adsb:'adsb',eis:'eis',xpdr:'xpdr',datalink:'datalink',radar:'radar'};
+function boardBiasWeight(domain, s){ return (s && s.demandWave && s.demandWave.domain===domain) ? 3 : 1; }
+function tickDemandWave(s){ if(s && s.demandWave){ s.demandWave.weeksLeft=(s.demandWave.weeksLeft||0)-1; if(s.demandWave.weeksLeft<=0) s.demandWave=null; } }
+function pickBiasedJob(ji){ var tot=0, ws=[]; for(var i=0;i<ji.length;i++){ var w=boardBiasWeight(ji[i], STATE); ws.push(w); tot+=w; } var r=Math.random()*tot; for(var k=0;k<ji.length;k++){ r-=ws[k]; if(r<=0) return ji[k]; } return ji[ji.length-1]; }
+
 /* ---- PHASE 3: Chief the mentor. A rules engine that reads real state and speaks
    only when there is something worth saying. Each tip is earned off a threshold. ---- */
 function waveDealerOwned(s){ var w=s.demandWave; if(!w) return false; var oem=w.oem; return !!(oem && s.dealers && s.dealers[oem]); }
@@ -1703,6 +1712,21 @@ check('chief: once-tips not repeated', function(){
 /* Phase 4 self-test checks: training currency */
 check('currency lapses after a year', function(){ return isLapsed({lastTrain:1}, 60)===true && isLapsed({lastTrain:50}, 60)===false; });
 check('lapsed tech blocked from dealer work', function(){ return canDoDealerWork({lastTrain:1}, 60)===false; });
+
+/* Phase 5 self-test checks: demand waves + award reweight */
+check('demand wave biases board toward the product domain', function(){
+  var withWave = boardBiasWeight('glass', {demandWave:{domain:'glass'}});
+  var noWave   = boardBiasWeight('glass', {demandWave:null});
+  return withWave > noWave;
+});
+check('demand wave decrements and clears', function(){
+  var s={demandWave:{domain:'glass',weeksLeft:1}}; tickDemandWave(s); return s.demandWave===null;
+});
+check('award: reputation + workforce dominate', function(){
+  var loved = awardScore({starRating:4.8, gradCount:6, culture:90, dealerScore:1, cash:20000});
+  var rich  = awardScore({starRating:3.0, gradCount:0, culture:50, dealerScore:1, cash:500000});
+  return loved > rich;
+});
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
 else if (location.search.indexOf('screen=') >= 0) { var _m=location.search.match(/screen=([^&]+)/); if(_m){ newBoard(); STATE.screen=decodeURIComponent(_m[1]); } render(); }
