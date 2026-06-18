@@ -981,20 +981,6 @@ function afterShiftEffects(){
 }
 
 /* ---- consequence calls ---- */
-function rollHF(){ var idxs=[]; for(var i=0;i<HF.length;i++) if(STATE.recentHF.indexOf(i)<0) idxs.push(i); if(!idxs.length){ STATE.recentHF=[]; for(i=0;i<HF.length;i++) idxs.push(i); } var p=idxs[Math.floor(Math.random()*idxs.length)]; STATE.recentHF.push(p); if(STATE.recentHF.length>5) STATE.recentHF.shift(); return HF[p]; }
-SCREENS.hf=function(){
-  var h=STATE.hf;
-  return { html:'<h2 class="scrn">ON THE FLOOR</h2><div class="hf-head"><div class="h2">'+h.s+'</div></div><div class="sub" style="margin-top:8px">Your call. It rides on the work.</div>'
-      +'<button class="opt" data-hf="safe">'+h.safe.label+'</button><button class="opt" data-hf="risk">'+h.risk.label+'</button>',
-    actions:[],
-    init:function(){ document.querySelectorAll('.opt[data-hf]').forEach(function(el){ el.onclick=function(){ var ch = el.dataset.hf==='safe'?h.safe:h.risk; sTab(); var r=ch.run(); STATE.culture=clamp(STATE.culture+(r.tone==='good'?3:(r.tone==='bad'?-7:0)),0,100); if(r.tone==='good') sGood(); else if(r.tone==='bad') sBad(); else sCash(); STATE.hfResult=r; renderHUD(); go('hfResult'); }; }); } };
-};
-SCREENS.hfResult=function(){
-  var r=STATE.hfResult;
-  var head = r.tone==='good'?'\u2713 Good call.':(r.tone==='bad'?'\u2717 That one costs you.':'\u2014 It worked out.');
-  return { html:'<h2 class="scrn">THE FLOOR</h2><div class="infobox"><b>'+head+'</b><br><br>'+r.t+'</div>',
-    actions:[ {label:'BACK TO WORK \u25BA', cls:'btn-go', on:afterShiftEffects} ] };
-};
 
 /* ---- delivery ---- */
 function launchSquawk(def, onResolve){ STATE.activeSquawk={ def:def, opts:shuffle(def.opts), result:null, onResolve:onResolve }; go('squawk'); }
@@ -1359,10 +1345,9 @@ SCREENS.gameover=function(){
     actions:[ {label:'OPEN A NEW SHOP', cls:'btn-go', on:function(){ STATE=makeState(); newBoard(); sHit(); go('floor'); }} ] };
 };
 SCREENS.victory=function(){
-  var sr=STATE.safe.good+STATE.safe.bad;
   return { html:'<div class="panel" style="text-align:center;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">THE AEA NAMES YOUR SHOP</div><div class="big pix" style="font-size:14px;color:var(--amber);line-height:1.7;margin:12px 0">SHOP OF<br>THE YEAR</div></div>'
       +'<div class="panel"><div class="chief">Chief: "You took one bay and built the shop the whole field trusts. A wall of dealer authorizations, people you trained from apprentice to Master, and a safety record that sets the standard. You stopped selling labor by the hour and started owning the work. That is the whole game. Proud of you, boss."</div>'
-      +'<div class="ledger" style="margin-top:10px"><span>Jobs completed</span><b>'+STATE.jobsDone+'</b></div><div class="ledger"><span>Final reputation</span><b style="color:var(--amber)">'+STATE.rep+'</b></div><div class="ledger"><span>Bank</span><b style="color:var(--scope)">'+money(STATE.cash)+'</b></div><div class="ledger"><span>Safety record</span><b style="color:var(--caution)">'+STATE.safe.good+' good of '+sr+'</b></div></div>',
+      +'<div class="ledger" style="margin-top:10px"><span>Jobs completed</span><b>'+STATE.jobsDone+'</b></div><div class="ledger"><span>Shop rating</span><b style="color:var(--amber)">'+(STATE.starRating||0).toFixed(1)+' / 5</b></div><div class="ledger"><span>Apprentices graduated</span><b style="color:var(--scope)">'+STATE.gradCount+'</b></div><div class="ledger"><span>Safety culture</span><b style="color:var(--caution)">'+Math.round(STATE.culture)+'</b></div><div class="ledger"><span>Bank</span><b style="color:var(--scope)">'+money(STATE.cash)+'</b></div></div>',
     actions:[ {label:'KEEP BUILDING', cls:'btn-go', on:function(){ go('floor'); }}, {label:'NEW SHOP', on:function(){ STATE=makeState(); newBoard(); go('floor'); }} ] };
 };
 
@@ -1484,9 +1469,7 @@ SCREENS.personnel=function(){
       STATE.personnel=null; renderHUD(); result(msg); }; }); } };
 };
 /* The quarterly statement popup was a rejected pattern and is gone. Overhead now
-   settles inside the Collect Payment invoice (see accrueOverhead + collect). This
-   stub only guards any stale navigation. */
-SCREENS.finance=function(){ go('floor'); return {html:'',actions:[]}; };
+   settles inside the Collect Payment invoice (see accrueOverhead + collect). */
 SCREENS.awardeval=function(){
   var a=awardParts();
   var row=function(lab,v,max){ return '<div class="qbar"><div class="qt"><span>'+lab+'</span><span class="qv">'+Math.round(v)+' / '+max+'</span></div><div class="track"><div class="fill f-fin" data-pct="'+clamp(v/max*100,0,100)+'"></div></div></div>'; };
