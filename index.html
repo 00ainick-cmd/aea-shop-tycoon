@@ -554,32 +554,20 @@ var STATE=makeState();
 
 /* ---- Task 3: seed sample customers and reviews for UI dev ---- */
 (function seedDev(){
+  /* A believable opening book: a couple of early customers from the soft open,
+     both dated to opening week so the player's own work moves the rating from
+     here, not a pile of future-dated history. */
   var c0=ensureCustomer('Frank Alderman','piston','budget');
-  c0.rel=0; c0.ltv=0; c0.lastWeek=1;
+  c0.rel=1; c0.ltv=3800; c0.lastWeek=1; c0.jobsDone=1;
 
   var c1=ensureCustomer('Rita Vasquez','twinpiston','safety');
-  c1.rel=2; c1.ltv=24600; c1.lastWeek=3; c1.jobsDone=2;
-
-  var c2=ensureCustomer('Doc Pruitt','tprop1','status');
-  c2.rel=3; c2.ltv=61800; c2.lastWeek=5; c2.jobsDone=4;
-
-  var c3=ensureCustomer('Big Tom Hargrove','ljet','status');
-  c3.rel=4; c3.ltv=148000; c3.lastWeek=7; c3.jobsDone=9;
-
-  var c4=ensureCustomer('Wendy Osei','experimental','safety');
-  c4.rel=1; c4.ltv=8500; c4.lastWeek=2; c4.jobsDone=1;
+  c1.rel=1; c1.ltv=6200; c1.lastWeek=1; c1.jobsDone=1;
 
   STATE.reviewsFeed=[
-    {custId:c3.id,cust:'Big Tom Hargrove',aircraft:'Light Jet',stars:5,week:7,answered:false,
-     text:"Panel came back cleaner than factory. This shop does not cut corners."},
-    {custId:c2.id,cust:'Doc Pruitt',aircraft:'Turboprop Single',stars:4,week:6,answered:false,
-     text:"Solid work, on schedule. The paperwork was airtight, which is all I really care about."},
-    {custId:c1.id,cust:'Rita Vasquez',aircraft:'Piston Twin',stars:5,week:4,answered:false,
-     text:"First shop that explained exactly what they were doing and why. My whole fleet is coming here."},
-    {custId:c4.id,cust:'Wendy Osei',aircraft:'Experimental',stars:3,week:2,answered:false,
-     text:"Good work overall. Ran a couple days long but they kept me in the loop."},
-    {custId:c0.id,cust:'Frank Alderman',aircraft:'Piston Single',stars:2,week:1,answered:false,
-     text:"Did the job, but the quote came in higher than the estimate. Not thrilled."}
+    {custId:c1.id,cust:'Rita Vasquez',aircraft:'Piston Twin',stars:5,week:1,answered:false,
+     text:"First shop that explained exactly what they were doing and why. I will be back."},
+    {custId:c0.id,cust:'Frank Alderman',aircraft:'Piston Single',stars:4,week:1,answered:false,
+     text:"Fair price and honest work. No complaints."}
   ];
   STATE.starRating = starAvg(STATE.reviewsFeed);
 })();
@@ -657,7 +645,7 @@ SCREENS.intro=function(){
     +'<div class="panel"><div class="chief">Chief leans on the bench and looks you over.<br><br>"So you finally did it. Your name is on the door, you are an AEA member shop now, and that means something on this field.<br><br>Here is the deal. The work is honest, the customers talk, and the inspector remembers everything. Win the right jobs, put the right people on them, and never let a squawk leave the building.<br><br>Your people are not certified by paying a fee. They earn it on the bench, one job at a time. Grow them. Take care of them. Doors open in five."</div></div>',
     actions:[ {label:'OPEN THE DOORS \u25BA', cls:'btn-go', on:function(){ newBoard(); go('floor'); }} ] };
 };
-function previewPay(a,j,fit){ var base=JOBS[j].pay*AIRCRAFT[a].tier*FITMULT[fit]; if(j==='adsb'&&STATE.adsbRush>0) base*=1.15; var oem=JOB_OEM[j]; if(oem&&STATE.dealers[oem]) base*=OEMS[oem].margin[STATE.dealers[oem]]; base*=rateMult(); return Math.round(base); }
+function previewPay(a,j,fit){ var base=JOBS[j].pay*AIRCRAFT[a].tier*FITMULT[fit]; if(j==='adsb'&&STATE.adsbRush>0) base*=1.15; var oem=JOB_OEM[j]; if(oem&&STATE.dealers[oem]) base*=OEMS[oem].margin[STATE.dealers[oem]]; base*=rateMult(); base*=waveMult(j); return Math.round(base); }
 function newBoard(){ var ai=unlockedAircraft(), ji=unlockedJobs();
   function gen(){ var a=pick(ai); var j; if(STATE.adsbRush>0 && Math.random()<0.4 && JOBS.adsb.era<=STATE.era) j='adsb'; else if(Math.random()<0.32) j=pick(['cert','xpdr']); else j=pickBiasedJob(ji); return {a:a,j:j,fit:fitFor(a,j),owner:pick(OWNERS)}; }
   var board=[gen(),gen(),gen()];
@@ -698,7 +686,7 @@ SCREENS.quote=function(){
   var pj=STATE.pendingJob, ct=ctype(pj.ctype), cha=STATE.charisma||3;
   if(!pj.qsel) pj.qsel={gear:'standard', cons:'standard'};
   var oem=JOB_OEM[pj.j], dt=oem?dealerTier(oem):0;
-  var base=Math.round(JOBS[pj.j].pay*AIRCRAFT[pj.a].tier*FITMULT[pj.fit]*rateMult()*((STATE.adsbRush>0&&pj.j==='adsb')?1.15:1));
+  var base=Math.round(JOBS[pj.j].pay*AIRCRAFT[pj.a].tier*FITMULT[pj.fit]*rateMult()*((STATE.adsbRush>0&&pj.j==='adsb')?1.15:1)*waveMult(pj.j));
   var gearStd=oem?Math.round(base*0.35):Math.round(base*0.12);
   var consStd=Math.round(base*0.12), feeAmt=oem?Math.round(base*0.03):0;
   var labor=base-gearStd-consStd-feeAmt;
@@ -1032,6 +1020,7 @@ function collect(){
   if(STATE.reviewsFeed.length>14) STATE.reviewsFeed=STATE.reviewsFeed.slice(0,14);
   STATE.starRating=starAvg(STATE.reviewsFeed);
   if(STATE.starRating>=4.0 && STATE._seenTips) delete STATE._seenTips.ratingSlip;
+  if(STATE._seenTips) delete STATE._seenTips.coldLoyals;
   cust.reviews.push({stars:rv.stars, week:STATE.week, text:rv.text});
   cust.ltv += Math.max(0,STATE.lastPayout); cust.jobsDone++; cust.lastWeek=STATE.week;
   var relBefore=cust.rel;
@@ -1139,7 +1128,7 @@ function productArt(kind){
    +'<rect x="40" y="66" width="40" height="6" rx="2" fill="#2a4256"/>'
    +'</svg>';
 }
-function startShow(){ var ji=unlockedJobs(); var pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=STATE.era && ji.indexOf(SHOW_JOB[p.kind]||p.kind)>=0; }); if(!pool.length) pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=STATE.era; }); if(!pool.length) pool=SHOW_PRODUCTS.slice(); var p=pick(pool); STATE.showOne=p; STATE.rep+=3; STATE.aeaRep+=4; var dom=SHOW_JOB[p.kind]||p.kind; STATE.demandWave={brand:(OEMS[p.mk]?OEMS[p.mk].name:'a top house'), product:p.n, oem:p.mk, domain:dom, kind:p.kind, weeksLeft:6, premium:1.15}; sEra(); go('aeaShow'); }
+function startShow(){ var ji=unlockedJobs(); var pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=STATE.era && ji.indexOf(SHOW_JOB[p.kind]||p.kind)>=0; }); if(!pool.length) pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=STATE.era; }); if(!pool.length) pool=SHOW_PRODUCTS.slice(); var p=pick(pool); STATE.showOne=p; STATE.rep+=3; STATE.aeaRep+=4; var dom=SHOW_JOB[p.kind]||p.kind; STATE.demandWave={brand:(OEMS[p.mk]?OEMS[p.mk].name:'a top house'), product:p.n, oem:p.mk, domain:dom, kind:p.kind, weeksLeft:6, premium:1.15}; if(STATE._seenTips) delete STATE._seenTips.dealerWave; sEra(); go('aeaShow'); }
 function closeShow(){ STATE.showOne=null; }
 SCREENS.aeaShow=function(){
   var p=STATE.showOne; if(!p){ go('floor'); return {html:'',actions:[]}; }
@@ -1201,7 +1190,7 @@ function accrueOverhead(){ var co=quarterCosts(), r=quarterRevenue(); var net=r.
 function marketWage(c){ return Math.round(500 + c.cred*350 + avgSkill(c)*60); }
 function lowestLoyalty(){ if(!STATE.crew.length) return 100; var lo=100; STATE.crew.forEach(function(c){ var L=(c.loyalty==null?70:c.loyalty); if(L<lo) lo=L; }); return lo; }
 function removeCrew(idx){ STATE.crew.splice(idx,1); STATE.bays.forEach(function(b){ if(b.crew&&b.crew.length){ b.crew=b.crew.filter(function(ci){ return ci!==idx; }).map(function(ci){ return ci>idx?ci-1:ci; }); } }); STATE.sel=[]; }
-function personnelEvent(){ if(!STATE.crew.length) return null; var idx=-1, lo=999; STATE.crew.forEach(function(c,i){ var L=(c.loyalty==null?70:c.loyalty); if(L<lo){ lo=L; idx=i; } }); if(idx<0) return null; var c=STATE.crew[idx], mkt=marketWage(c), wage=(c.wage||mkt), underpaid=wage<mkt*0.95; if(lo<38){ STATE.personnel={idx:idx,type:'poach',offer:Math.round(Math.max(mkt,wage)*1.18)}; return 'personnel'; } if(lo<60 && underpaid && Math.random()<0.6){ STATE.personnel={idx:idx,type:'raise',offer:mkt}; return 'personnel'; } return null; }
+function personnelEvent(){ if(!STATE.crew.length) return null; var idx=-1, lo=999; STATE.crew.forEach(function(c,i){ if(c.homegrown) return; var L=(c.loyalty==null?70:c.loyalty); if(L<lo){ lo=L; idx=i; } }); if(idx<0) return null; var c=STATE.crew[idx], mkt=marketWage(c), wage=(c.wage||mkt), underpaid=wage<mkt*0.95; if(lo<38){ STATE.personnel={idx:idx,type:'poach',offer:Math.round(Math.max(mkt,wage)*1.18)}; return 'personnel'; } if(lo<60 && underpaid && Math.random()<0.6){ STATE.personnel={idx:idx,type:'raise',offer:mkt}; return 'personnel'; } return null; }
 
 function sumCreds(){ var s=0; STATE.crew.forEach(function(c){ s+=c.cred; }); return s; }
 function sumDealerTiers(){ var s=0; OEM_ORDER.forEach(function(o){ s+=dealerTier(o); }); return s; }
@@ -1218,7 +1207,7 @@ function awardParts(s){ var v=s||awardVals();
   var biz = Math.min(8, clamp((v.cash||0)/8000,0,5) + (v.level||0)*0.6);
   return { rep:rep, work:work, safe:safe, deal:deal, biz:biz, total:rep+work+safe+deal+biz }; }
 function awardScore(s){ return awardParts(s).total; }
-var AWARD_TARGET=100;
+var AWARD_TARGET=85;
 function checkAward(){ if(STATE.awardWon) return false; if(awardScore()>=AWARD_TARGET && STATE.culture>=70 && (hasPremier()||STATE.level>=5)){ STATE.awardWon=true; return true; } return false; }
 function cultureBar(){ var c=Math.round(STATE.culture); var col=c>=70?'var(--scope)':(c>=45?'var(--caution)':'var(--beacon)'); var lab=c>=85?'exemplary':c>=70?'strong':c>=45?'shaky':'poor'; return '<div class="ledger"><span>Safety culture</span><b style="color:'+col+'">'+c+' \u2022 '+lab+'</b></div><div class="qmeter"><div style="width:'+c+'%;background:'+col+'"></div></div>'; }
 
@@ -1580,7 +1569,7 @@ function techCurrencyWeek(t){ return (t && t.trainedThrough!=null) ? t.trainedTh
 function isLapsed(tech, week){ return (week-techCurrencyWeek(tech)) > CURRENCY_WEEKS; }
 function canDoDealerWork(tech, week){ return !isLapsed(tech, week); }
 function currencyStatus(tech, week){ var age=week-techCurrencyWeek(tech); if(age>CURRENCY_WEEKS) return 'lapsed'; if(age>=CURRENCY_WEEKS-4) return 'soon'; return 'current'; }
-function refreshCurrency(tech){ tech.trainedThrough=STATE.week; tech.lastTrain=STATE.week; }
+function refreshCurrency(tech){ tech.trainedThrough=STATE.week; tech.lastTrain=STATE.week; if(STATE._seenTips) delete STATE._seenTips.trainingLapse; }
 function isDealerOrCertJob(pj){ if(!pj) return false; var j=JOBS[pj.j]; return (j && j.credReq>0) || !!JOB_OEM[pj.j]; }
 var AVI_FACTS=[
  "A 406 MHz ELT does nothing until its unique ID is coded and registered to the owner.",
@@ -1598,6 +1587,7 @@ var AVI_FACTS=[
    board toward one kind of work for a few weeks, then it ticks down and clears. ---- */
 var SHOW_JOB={efis:'glass',autopilot:'ap',audio:'audio',adsb:'adsb',eis:'eis',xpdr:'xpdr',datalink:'datalink',radar:'radar'};
 function boardBiasWeight(domain, s){ return (s && s.demandWave && s.demandWave.domain===domain) ? 3 : 1; }
+function waveMult(j){ return (STATE.demandWave && STATE.demandWave.domain===j) ? (STATE.demandWave.premium||1) : 1; }
 function tickDemandWave(s){ if(s && s.demandWave){ s.demandWave.weeksLeft=(s.demandWave.weeksLeft||0)-1; if(s.demandWave.weeksLeft<=0) s.demandWave=null; } }
 function pickBiasedJob(ji){ var tot=0, ws=[]; for(var i=0;i<ji.length;i++){ var w=boardBiasWeight(ji[i], STATE); ws.push(w); tot+=w; } var r=Math.random()*tot; for(var k=0;k<ji.length;k++){ r-=ws[k]; if(r<=0) return ji[k]; } return ji[ji.length-1]; }
 
@@ -1625,7 +1615,7 @@ var CHIEF_TIPS = [
     when:function(s){ return coldLoyal(s)!==null; },
     text:function(s){ var c=coldLoyal(s); return '"'+(c?c.name:'A loyal account')+' has not been in for a while. The loyal ones are exactly who a rival shop loves to poach. A ramp pass or a quick call keeps them yours. Do not let that relationship go cold."'; } },
   { id:'apprenticeReady', priority:50, short:'Time to grow your own',
-    when:function(s){ return !s.apprentice && hasMentorTech(s); },
+    when:function(s){ return !s.apprentice && hasMentorTech(s) && (s.jobsDone||0)>=2; },
     text:function(s){ return '"You have a tech senior enough to mentor now. That is the moment to start a registered apprenticeship. Grow your own and you get loyal CAET techs nobody can poach, and AEA helps fund it. Slow, but it is how you build a bench that lasts."'; } }
 ];
 function pickChiefTip(s){
