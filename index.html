@@ -547,7 +547,8 @@ function makeState(){
     branches:[], conventions:0, scholarships:0, lastShowYear:0, lastStmt:1, lastStmtData:null, awardWon:false,
     pendingHire:null, personnel:null, lastPersonnel:0,
     customers:{}, reviewsFeed:[], starRating:0, custSeq:0,
-    pendingOverhead:0, _lastReview:null, _respondIdx:null };
+    pendingOverhead:0, _lastReview:null, _respondIdx:null,
+    _seenTips:{}, demandWave:null, _activeTip:null, chiefSteps:null };
 }
 var STATE=makeState();
 
@@ -849,9 +850,12 @@ SCREENS.floor=function(){
     +(recentRevs||'<div class="note" style="text-align:left;margin-top:6px">No reviews yet. Great work builds your rating.</div>')
     +(STATE.reviewsFeed&&STATE.reviewsFeed.length>0?'<button class="opt" style="margin-top:8px;min-height:44px" data-go="reviews">SEE ALL REVIEWS</button>':'')
     +'</div>';
+  var tip=pickChiefTip(STATE);
+  var chiefChip = tip ? '<button class="chief-chip" style="width:100%;min-height:48px;display:flex;align-items:center;gap:10px;text-align:left;margin:8px 0;padding:8px 12px;background:#16202b;border:2px solid var(--amber);border-radius:8px;box-shadow:0 0 0 2px rgba(255,176,40,.18)">'+chiefSprite(34)+'<span style="display:flex;flex-direction:column"><span class="pix" style="font-size:8px;color:var(--amber)">CHIEF</span><span class="ds" style="margin-top:2px">'+tip.short+'</span></span><span class="pix" style="margin-left:auto;font-size:8px;color:var(--amber)">\u25ba</span></button>' : '';
 
   return { html:'<div class="titlebar"><span class="t pix">'+STATE.shopName+'</span><span class="t pix">Bays '+bayCount()+' \u2022 Crew '+STATE.crew.length+'/'+crewSlots()+'</span></div>'
       + hangarScene()
+      + chiefChip
       +'<div class="panel"><div class="row2" style="margin-top:0"><span class="eratag">ERA '+STATE.era+': '+ERAS[STATE.era].name+'</span>'+ (STATE.passive>0?'<span class="eratag" style="color:var(--scope)">+'+money(STATE.passive)+'/job</span>':'') + (hasPremier()?'<span class="eratag" style="color:var(--amber)">PREMIER</span>':'')+'</div><div class="note" style="text-align:left;margin-top:8px;color:'+season().sun+'">'+season().tag+'</div><div class="note" style="text-align:left;margin-top:6px">'+standing+'</div></div>'
       + bays + reviewsWall,
     actions:[ {label:'RUN A SHIFT', cls:'btn-go', disabled:!canRun, on:runShift}, {label:'THE SHOP', cls:'btn-amber', on:function(){ go('shop'); }} ],
@@ -859,7 +863,25 @@ SCREENS.floor=function(){
       document.querySelectorAll('.card[data-fill]').forEach(function(el){ el.onclick=function(){ sTab(); STATE.fillBay=+el.dataset.fill; newBoard(); go('board'); }; });
       document.querySelectorAll('.card[data-bay]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.bay, bay=STATE.bays[i]; sTab(); if(bay.shiftsDone>=bay.shiftsNeed){ STATE.deliverQueue=[i]; startDelivery(); } else { STATE.detailBay=i; go('baydetail'); } }; });
       var seeAll=document.querySelector('.opt[data-go="reviews"]'); if(seeAll) seeAll.onclick=function(){ sTab(); go('reviews'); };
+      var chip=document.querySelector('.chief-chip'); if(chip) chip.onclick=function(){ sTab(); go('chief'); };
     } };
+};
+
+SCREENS.chief=function(){
+  var tip=STATE._activeTip || pickChiefTip(STATE);
+  if(!tip){ go('floor'); return {html:'',actions:[]}; }
+  STATE._activeTip=tip;
+  var stepsHTML='';
+  if(STATE.chiefSteps && STATE.chiefSteps.length){
+    stepsHTML='<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--amber)">FLAGGED STEPS</div>'
+      +STATE.chiefSteps.map(function(st){ return '<div class="note" style="text-align:left;margin-top:6px">• '+st+'</div>'; }).join('')+'</div>';
+  }
+  var acts=[];
+  if(typeof tip.steps==='function'){ acts.push({label:'FLAG THE STEPS', cls:'btn-amber', on:function(){ STATE.chiefSteps=tip.steps(STATE); sGood(); go('chief'); }}); }
+  acts.push({label:'GOT IT ►', cls:'btn-go', on:function(){ if(STATE._seenTips) STATE._seenTips[tip.id]=true; STATE._activeTip=null; go('floor'); }});
+  return { html:'<h2 class="scrn">CHIEF</h2>'
+     +'<div class="panel"><div style="display:flex;gap:12px;align-items:flex-start">'+chiefSprite(56)+'<div class="chief" style="margin:0">'+tip.text(STATE)+'</div></div></div>'+stepsHTML,
+    actions:acts };
 };
 
 SCREENS.board=function(){
@@ -1021,6 +1043,7 @@ function collect(){
   STATE.reviewsFeed.unshift(review);
   if(STATE.reviewsFeed.length>14) STATE.reviewsFeed=STATE.reviewsFeed.slice(0,14);
   STATE.starRating=starAvg(STATE.reviewsFeed);
+  if(STATE.starRating>=4.0 && STATE._seenTips) delete STATE._seenTips.ratingSlip;
   cust.reviews.push({stars:rv.stars, week:STATE.week, text:rv.text});
   cust.ltv += Math.max(0,STATE.lastPayout); cust.jobsDone++; cust.lastWeek=STATE.week;
   var relBefore=cust.rel;
@@ -1517,6 +1540,53 @@ function jobOutcome(bay){
   return {quality:clamp((s.total||0)/30,0,1), onTime:!!s.squawkOk, priceFair:pf, persoMatch:!!bay.job.matched};
 }
 
+/* ---- PHASE 3: Chief the mentor. A rules engine that reads real state and speaks
+   only when there is something worth saying. Each tip is earned off a threshold. ---- */
+function waveDealerOwned(s){ var w=s.demandWave; if(!w) return false; var oem=w.oem; return !!(oem && s.dealers && s.dealers[oem]); }
+function lapsingTech(s){ var crew=s.crew||[]; var wk=s.week||0; for(var i=0;i<crew.length;i++){ var c=crew[i]; var age=wk-(c.lastTrain||0); if(age>=44 && age<48) return c; } return null; }
+function coldLoyal(s){ var cs=s.customers||{}; var wk=s.week||0; var keys=Object.keys(cs); for(var i=0;i<keys.length;i++){ var c=cs[keys[i]]; if((c.rel||0)>=3 && (wk-(c.lastWeek||0))>=8) return c; } return null; }
+function hasMentorTech(s){ var crew=s.crew||[]; for(var i=0;i<crew.length;i++){ if((crew[i].cred||0)>=2) return true; } return false; }
+var CHIEF_TIPS = [
+  { id:'dealerWave', priority:90, short:'A dealer wave is coming',
+    when:function(s){ return !!(s.demandWave && !waveDealerOwned(s)); },
+    text:function(s){ var w=s.demandWave||{}; return '"'+(w.brand||'A big house')+' is launching the '+(w.product||'a headline box')+' this season. Owners are going to come in waves wanting it, and we are not their dealer yet. Here is the road: get a tech the factory cert, hold a sales floor on the other lines, and keep the safety record clean. Then they invite you. Want me to flag the steps?"'; },
+    steps:function(s){ var w=s.demandWave||{}; return ['Send a tech to factory training for the '+(w.brand||'new')+' line','Keep two other dealer lines active and selling','Hold the star rating and safety culture up','Watch for the dealer invite once the wave lands']; } },
+  { id:'eraTurn', priority:85, short:'The panel is turning over',
+    when:function(s){ return !!s.pendingEra && s.pendingEra>(s.era||1); },
+    text:function(s){ return '"The panel is turning over. A new generation of avionics is landing on the field, and the owners who move first set the tone. Get ahead of it. Train for the new boxes and be ready before the rush, not after."'; } },
+  { id:'ratingSlip', priority:80, short:'Our rating slipped',
+    when:function(s){ return (s.starRating||0)>0 && (s.starRating||0)<3.9; },
+    text:function(s){ return '"Our rating slipped to '+(s.starRating||0).toFixed(1)+'. That is not just pride, it is walk-ins. People read the wall before they call. Tighten the work, answer the sore reviews, and do not chase a number you cannot back up. The rating follows clean jobs."'; } },
+  { id:'trainingLapse', priority:70, short:'A tech is going out of currency',
+    when:function(s){ return lapsingTech(s)!==null; },
+    text:function(s){ var c=lapsingTech(s); return '"'+(c?c.name:'One of your techs')+' is about to fall out of currency. Let it lapse and they cannot touch dealer or certified work until it is refreshed. The fall conference is the cheap fix. Book the seat before it bites."'; } },
+  { id:'coldLoyals', priority:60, short:'A loyal account is cooling',
+    when:function(s){ return coldLoyal(s)!==null; },
+    text:function(s){ var c=coldLoyal(s); return '"'+(c?c.name:'A loyal account')+' has not been in for a while. The loyal ones are exactly who a rival shop loves to poach. A ramp pass or a quick call keeps them yours. Do not let that relationship go cold."'; } },
+  { id:'apprenticeReady', priority:50, short:'Time to grow your own',
+    when:function(s){ return !s.apprentice && hasMentorTech(s); },
+    text:function(s){ return '"You have a tech senior enough to mentor now. That is the moment to start a registered apprenticeship. Grow your own and you get loyal CAET techs nobody can poach, and AEA helps fund it. Slow, but it is how you build a bench that lasts."'; } }
+];
+function pickChiefTip(s){
+  if(!s) return null; var best=null;
+  for(var i=0;i<CHIEF_TIPS.length;i++){ var t=CHIEF_TIPS[i];
+    if(s._seenTips && s._seenTips[t.id]) continue;
+    var ok=false; try{ ok=!!t.when(s); }catch(e){ ok=false; }
+    if(ok && (!best || t.priority>best.priority)) best=t;
+  }
+  return best;
+}
+function chiefSprite(px){ var w=px||52; return '<svg viewBox="0 0 48 48" width="'+w+'" height="'+w+'" aria-label="Chief">'
+   +'<rect x="10" y="6" width="28" height="10" rx="2" fill="#2a4256"/>'
+   +'<rect x="8" y="14" width="32" height="4" fill="#1a2d3c"/>'
+   +'<rect x="14" y="17" width="20" height="19" rx="3" fill="#d8a06a"/>'
+   +'<rect x="18" y="24" width="4" height="3" fill="#0a0f15"/><rect x="26" y="24" width="4" height="3" fill="#0a0f15"/>'
+   +'<rect x="20" y="31" width="8" height="2" fill="#7a4a2a"/>'
+   +'<rect x="12" y="22" width="3" height="9" rx="1.5" fill="#ffb028"/><rect x="33" y="22" width="3" height="9" rx="1.5" fill="#ffb028"/>'
+   +'<path d="M13 22 Q24 12 35 22" stroke="#ffb028" stroke-width="2" fill="none"/>'
+   +'<rect x="13" y="36" width="22" height="9" fill="#22384a"/>'
+   +'</svg>'; }
+
 /* Task 2 self-test checks */
 check('relStep clamps 0..4', function(){ return relStep(4)===4 && relStep(-1)===0 && relStep(2)===3; });
 check('starAvg recency-weighted', function(){
@@ -1541,6 +1611,24 @@ check('review: rushed sloppy -> low', function(){
 check('stars always 1..5 integer', function(){
   var r = computeReview({quality:0, onTime:false, priceFair:-1, persoMatch:false}, {personality:'tire'});
   return r.stars>=1 && r.stars<=5 && r.stars===Math.round(r.stars);
+});
+
+/* Phase 3 self-test checks: the Chief rules engine */
+check('chief: dealer-wave tip fires when wave up and not a dealer', function(){
+  var s = {demandWave:{brand:'Meridian',product:'SkyNav 750'}, dealers:{}, _seenTips:{}};
+  var t = pickChiefTip(s); return t && t.id==='dealerWave';
+});
+check('chief: rating-slip tip fires below 3.9', function(){
+  var s = {starRating:3.7, demandWave:null, dealers:{}, _seenTips:{}};
+  var t = pickChiefTip(s); return t && t.id==='ratingSlip';
+});
+check('chief: no tip when nothing applies', function(){
+  var s = {starRating:4.8, demandWave:null, dealers:{}, _seenTips:{}, crew:[], customers:{}};
+  return pickChiefTip(s)===null;
+});
+check('chief: once-tips not repeated', function(){
+  var s = {starRating:3.7, demandWave:null, dealers:{}, _seenTips:{ratingSlip:true}, crew:[], customers:{}};
+  var t = pickChiefTip(s); return !t || t.id!=='ratingSlip';
 });
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
