@@ -546,7 +546,8 @@ function makeState(){
     aeaRep:0, charisma:3, warm:0, hotBoard:false, lastHustle:0, culture:68, oemSales:{}, dealers:{}, courses:{}, apprentice:false, grant:false, gradCount:0,
     branches:[], conventions:0, scholarships:0, lastShowYear:0, lastStmt:1, lastStmtData:null, awardWon:false,
     pendingHire:null, personnel:null, lastPersonnel:0,
-    customers:{}, reviewsFeed:[], starRating:0, custSeq:0 };
+    customers:{}, reviewsFeed:[], starRating:0, custSeq:0,
+    pendingOverhead:0, _lastReview:null, _respondIdx:null };
 }
 var STATE=makeState();
 
@@ -725,7 +726,13 @@ SCREENS.quote=function(){
    +'<div class="sub" style="margin-top:8px;color:'+mood.c+'">'+mood.t+'</div>';
   return { html:html,
     actions:[ {label:'WALK AWAY', on:function(){ go('floor'); }}, {label:'SEND QUOTE \u25BA', cls:'btn-go', on:function(){
-        if(total<=ceiling){ pj.quote={total:total,parts:cons,kickback:kickback,gear:pj.qsel.gear,oem:oem}; sHit(); toast('Sold. The ticket is yours.'); go('assign'); }
+        if(total<=ceiling){ pj.quote={total:total,parts:cons,kickback:kickback,gear:pj.qsel.gear,oem:oem};
+          var pf=0; if(ratio<=0.85) pf+=0.5; else if(ratio>=0.99) pf-=0.2;
+          if(pj.ctype==='budget'){ if(pj.qsel.gear==='premium') pf-=1; else if(pj.qsel.gear==='budget') pf+=0.5; if(pj.qsel.cons==='padded') pf-=0.5; }
+          else if(pj.ctype==='status'){ if(pj.qsel.gear==='premium') pf+=0.3; else if(pj.qsel.gear==='budget') pf-=0.3; }
+          else if(pj.ctype==='safety'){ if(pj.qsel.cons==='lean') pf-=0.2; }
+          pj.priceFair=clamp(pf,-1,1);
+          sHit(); toast('Sold. The ticket is yours.'); go('assign'); }
         else { sBad(); toast('They balked at the price. Trim it or talk them up.'); } }} ],
     init:function(){ document.querySelectorAll('button[data-q]').forEach(function(el){ el.onclick=function(){ pj.qsel[el.dataset.q]=el.dataset.v; sTab(); go('quote'); }; }); } };
 };
@@ -778,9 +785,47 @@ SCREENS.reviews=function(){
   var header='<div class="panel"><div class="reviews-wall-header"><div class="rw-title">CUSTOMER REVIEWS</div><div class="star-row">'+renderStars(Math.round(avg))+'</div></div><div class="note" style="text-align:left;margin-top:4px;font-family:\'Press Start 2P\',monospace;font-size:8px;color:var(--scope)">'+avg.toFixed(1)+' stars &bull; '+feed.length+' review'+(feed.length!==1?'s':'')+'</div></div>';
   var cards='';
   if(!feed||!feed.length){ cards='<div class="panel"><div class="note" style="text-align:left">No reviews yet. Complete jobs and deliver great work to start building your reputation.</div></div>'; }
-  else { var sorted=feed.slice().sort(function(a,b){return b.week-a.week;}); cards=sorted.map(function(rv){ return '<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' &bull; '+rv.aircraft+'</div></div>'; }).join(''); }
+  else { var sorted=feed.slice().sort(function(a,b){return b.week-a.week;}); cards=sorted.map(function(rv){
+      var ri=STATE.reviewsFeed.indexOf(rv);
+      var tail = (rv.stars<=2 && !rv.answered) ? '<button class="opt" style="margin-top:6px;min-height:44px" data-resp="'+ri+'">RESPOND</button>'
+               : (rv.answered ? '<div class="note" style="text-align:left;margin-top:4px;color:var(--scope)">✓ Answered</div>' : '');
+      return '<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' &bull; '+rv.aircraft+'</div>'+tail+'</div>'; }).join(''); }
   return { html:'<h2 class="scrn">ALL REVIEWS</h2>'+header+cards,
-    actions:[ {label:'BACK', on:function(){ go('floor'); }} ] };
+    actions:[ {label:'BACK', on:function(){ go('floor'); }} ],
+    init:function(){ document.querySelectorAll('.opt[data-resp]').forEach(function(el){ el.onclick=function(){ sTab(); STATE._respondIdx=+el.dataset.resp; go('reviewRespond'); }; }); } };
+};
+
+SCREENS.custReview=function(){
+  var d=STATE._lastReview; if(!d){ go('floor'); return {html:'',actions:[]}; }
+  var rv=d.review, cust=STATE.customers[d.custId]||{rel:d.relBefore,name:rv.cust};
+  var relNow=REL_RANKS[clamp(cust.rel,0,4)];
+  var relLine='';
+  if(cust.rel>d.relBefore) relLine='<div class="hit" style="margin-top:6px">'+cust.name+' is now '+relNow.toUpperCase()+'</div>';
+  else if(cust.rel<d.relBefore) relLine='<div class="sub" style="margin-top:6px;color:var(--beacon)">'+cust.name+' cooled to '+relNow.toUpperCase()+'</div>';
+  var refLine = d.referral ? '<div class="infobox" style="margin-top:8px">'+d.referral+' is sending a friend your way. Your next customer walks in warm.</div>' : '';
+  return { html:'<h2 class="scrn">THE REVIEW</h2>'
+     +'<div class="review-card" style="margin-top:4px"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' • '+rv.aircraft+'</div></div>'
+     +'<div class="panel"><div class="ledger"><span>Shop rating</span><b style="color:var(--scope)">'+(STATE.starRating||0).toFixed(1)+' / 5</b></div>'+relLine+'</div>'+refLine,
+    actions:[ {label:'CONTINUE ►', cls:'btn-go', on:function(){ if(STATE.deliverQueue.length){ startDelivery(); return; } finishDeliveries(); }} ],
+    init:function(){ if(rv.stars>=4) sHit(); else if(rv.stars<=2) sBad(); } };
+};
+
+SCREENS.reviewRespond=function(){
+  var idx=STATE._respondIdx, rv=STATE.reviewsFeed[idx];
+  if(!rv){ go('reviews'); return {html:'',actions:[]}; }
+  var cost=800;
+  return { html:'<h2 class="scrn">RESPOND</h2>'
+     +'<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' • '+rv.aircraft+'</div></div>'
+     +'<div class="panel"><div class="note" style="text-align:left">A sore customer talks, and the field listens. You can own it and make it right on your dime, or let the review stand.</div></div>',
+    actions:[
+      {label:'OWN IT, FREE REWORK ('+money(cost)+')', cls:'btn-go', on:function(){
+          if(STATE.cash<cost){ toast('Not enough cash for the rework.'); return; }
+          STATE.cash-=cost; rv.answered=true; rv.recovered=true; rv.stars=Math.max(rv.stars,4);
+          rv.text='Update: they owned it and made it right at no charge. That is a shop with integrity.';
+          var c=STATE.customers[rv.custId]; if(c){ c.rel=clamp(c.rel+1,0,4); }
+          STATE.starRating=starAvg(STATE.reviewsFeed); sHit(); renderHUD(); toast('You made it right. The customer is back.'); go('reviews'); }},
+      {label:'LET IT RIDE', on:function(){ rv.answered=true; sBlip(); go('reviews'); }},
+      {label:'BACK', on:function(){ go('reviews'); }} ] };
 };
 
 SCREENS.floor=function(){
@@ -901,8 +946,9 @@ function runShift(){
   endShift();
 }
 function endShift(){
-  var anyInProgress=STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; });
-  if(anyInProgress && Math.random()<0.14){ var hf=rollHF(); if(hf){ STATE.hf=hf; STATE.hfResult=null; sHF(); go('hf'); return; } }
+  /* Random human-factors popups are a rejected pattern. Safety now lands as a
+     consequence of player choices (rushing, overtime, weak culture) and in the
+     reviews customers leave, not as a random interruption. */
   afterShiftEffects();
 }
 function afterShiftEffects(){
@@ -957,17 +1003,33 @@ SCREENS.review=function(){
   var cQ=s.cust>=8?'"Looks factory. I am bringing the whole fleet here." - '+bay.owner:s.cust>=5?'"Good work. Fair price." - '+bay.owner:'"It works, I guess." - '+bay.owner;
   var iQ=s.insp>=8?'"Paperwork is airtight. Signed."':s.insp>=5?'"A couple notes, but it conforms."':'"Logbook is a mess. Fix it."';
   var pQ=s.pilot>=8?'"Flies clean, panel is gorgeous."':s.pilot>=5?'"Solid. No complaints in the air."':'"There is still something off up there."';
-  var q=bay.job.quote; var partsCost = q ? q.parts : Math.round(STATE.lastPayout*0.15); var kb = (q&&q.kickback)?q.kickback:0; var net=STATE.lastPayout+STATE.passive-partsCost+kb; STATE.lastNet=net;
+  var q=bay.job.quote; var partsCost = q ? q.parts : Math.round(STATE.lastPayout*0.15); var kb = (q&&q.kickback)?q.kickback:0; var oh=STATE.pendingOverhead||0; var net=STATE.lastPayout+STATE.passive-partsCost+kb+oh; STATE.lastNet=net;
   return { html:'<h2 class="scrn">DELIVERY: '+j.name.toUpperCase()+'</h2>'+rv('THE CUSTOMER',cQ,s.cust)+rv('THE INSPECTOR',iQ,s.insp)+rv('THE PILOT',pQ,s.pilot)
       +'<div class="panel">'+barRowStatic(bay.bars,'work','WORKMANSHIP','f-work','l-work')+barRowStatic(bay.bars,'diag','DIAGNOSTICS','f-diag','l-diag')+barRowStatic(bay.bars,'comp','COMPLIANCE','f-comp','l-comp')+barRowStatic(bay.bars,'fin','FINISH','f-fin','l-fin')+'</div>'
       +'<div class="sub" style="margin-top:8px;color:'+(s.squawkOk?'var(--scope)':'var(--caution)')+'">Functional test: '+(s.squawkOk?'cleared on the bench':'a squawk slipped to the test flight')+'</div><div class="total"><div class="tn">FINAL SCORE</div><div class="tv">'+s.total+' / 30</div>'+(s.hit?'<div class="hit">\u2605 HIT! THE FIELD IS TALKING \u2605</div>':'')+'</div>'
-      +'<div class="panel" style="margin-top:8px"><div class="ledger"><span>Job payout</span><b style="color:var(--scope)">'+money(STATE.lastPayout)+'</b></div>'+ (STATE.passive>0?'<div class="ledger"><span>Standing contracts</span><b style="color:var(--scope)">+'+money(STATE.passive)+'</b></div>':'') +'<div class="ledger"><span>'+(q?'Consumables':'Parts and materials')+'</span><b style="color:var(--beacon)">-'+money(partsCost)+'</b></div>'+(kb>0?'<div class="ledger"><span>Dealer kickback</span><b style="color:var(--scope)">+'+money(kb)+'</b></div>':'')+'<div class="payout"><div class="pl">NET</div><div class="pv" id="payv">'+money(0)+'</div></div></div>',
+      +'<div class="panel" style="margin-top:8px"><div class="ledger"><span>Job payout</span><b style="color:var(--scope)">'+money(STATE.lastPayout)+'</b></div>'+ (STATE.passive>0?'<div class="ledger"><span>Standing contracts</span><b style="color:var(--scope)">+'+money(STATE.passive)+'</b></div>':'') +'<div class="ledger"><span>'+(q?'Consumables':'Parts and materials')+'</span><b style="color:var(--beacon)">-'+money(partsCost)+'</b></div>'+(kb>0?'<div class="ledger"><span>Dealer kickback</span><b style="color:var(--scope)">+'+money(kb)+'</b></div>':'')+(oh!==0?'<div class="ledger"><span>Shop overhead (rent, payroll)</span><b style="color:'+(oh<0?'var(--beacon)':'var(--scope)')+'">'+(oh<0?'-':'+')+money(Math.abs(oh))+'</b></div>':'')+'<div class="payout"><div class="pl">NET</div><div class="pv" id="payv">'+money(0)+'</div></div></div>',
     actions:[ {label:'COLLECT', cls:'btn-go', on:collect} ],
     init:function(){ initFills(); countUp($('#payv'),net); sCash(); if(s.hit) setTimeout(sHit,400); } };
 };
 function collect(){
   var idx=STATE.activeBay, bay=STATE.bays[idx];
-  STATE.cash+=STATE.lastNet; STATE.rep+=STATE._repGain; STATE.jobsDone++; STATE.floorPlane=bay.job.a;
+  /* --- the heartbeat: the customer leaves a review based on how the job actually ran --- */
+  var cust=ensureCustomer(bay.owner, bay.job.a, bay.job.ctype||'budget');
+  var rv=computeReview(jobOutcome(bay), cust);
+  var acName=AIRCRAFT[bay.job.a]?AIRCRAFT[bay.job.a].name:bay.job.a;
+  var review={custId:cust.id, cust:cust.name, aircraft:acName, stars:rv.stars, week:STATE.week, answered:false, text:rv.text};
+  STATE.reviewsFeed.unshift(review);
+  if(STATE.reviewsFeed.length>14) STATE.reviewsFeed=STATE.reviewsFeed.slice(0,14);
+  STATE.starRating=starAvg(STATE.reviewsFeed);
+  cust.reviews.push({stars:rv.stars, week:STATE.week, text:rv.text});
+  cust.ltv += Math.max(0,STATE.lastPayout); cust.jobsDone++; cust.lastWeek=STATE.week;
+  var relBefore=cust.rel;
+  if(rv.stars>=4) cust.rel=clamp(cust.rel+1,0,4); else if(rv.stars<=2) cust.rel=clamp(cust.rel-1,0,4);
+  var referral=null;
+  if(rv.stars>=4 && cust.rel>=3){ STATE.warm=Math.max(STATE.warm||0,18); STATE.hotBoard=true; referral=cust.name; }
+  STATE._lastReview={review:review, custId:cust.id, relBefore:relBefore, referral:referral};
+  /* --- the single finance moment: settle the invoice --- */
+  STATE.cash+=STATE.lastNet; STATE.pendingOverhead=0; STATE.rep+=STATE._repGain; STATE.jobsDone++; STATE.floorPlane=bay.job.a;
   var soldOem=JOB_OEM[bay.job.j]; if(soldOem){ STATE.oemSales[soldOem]=(STATE.oemSales[soldOem]||0)+1; }
   addSpecXP(JOB_SPEC[bay.job.j], STATE.scores&&STATE.scores.hit?12:8);
   if(STATE.culture<45 && Math.random() < (0.45-STATE.culture/100)){ var rw=Math.round(STATE.lastPayout*0.10)+300; STATE.cash-=rw; STATE.rep=Math.max(0,STATE.rep-1); toast('Callback. A squawk came back.\n-'+money(rw)+' \u2022 weak safety culture.'); }
@@ -977,7 +1039,7 @@ function collect(){
   STATE.bays[idx]=freshBay();
   sCash(); renderHUD();
   STATE.deliverQueue=STATE.deliverQueue.filter(function(b){ return b!==idx; });
-  if(STATE.deliverQueue.length){ startDelivery(); } else { finishDeliveries(); }
+  go('custReview');
 }
 function finishDeliveries(){
   STATE.scores=null;
@@ -986,7 +1048,7 @@ function finishDeliveries(){
   var eraGate={3:2,7:3,12:4};
   if(eraGate[STATE.jobsDone] && STATE.era<eraGate[STATE.jobsDone]){ STATE.pendingEra=eraGate[STATE.jobsDone]; go('eraEvent'); return; }
   if(seasonKey()==='spring' && (STATE.lastShowYear||0) < gYear()){ STATE.lastShowYear=gYear(); startShow(); return; }
-  if(STATE.week - STATE.lastStmt >= 4){ runStatement(); go('finance'); return; }
+  if(STATE.week - STATE.lastStmt >= 4){ accrueOverhead(); }
   if(STATE.week - (STATE.lastPersonnel||0) >= 3 && Math.random()<0.5){ var pr=personnelEvent(); if(pr){ STATE.lastPersonnel=STATE.week; go(pr); return; } }
   if(STATE.cash<1500) toast('Cash is tight.\nKeep the work flowing.');
   if(Math.random()<0.5){ var e=rollEvent(); if(e){ STATE.event=e; go('event'); return; } }
@@ -1126,7 +1188,10 @@ function recruitFrom(src){ if(STATE.crew.length>=crewSlots()){ toast('No open sl
 
 function quarterCosts(){ var rent=[0,600,1400,2800,5000,8000][STATE.level]||600; var payroll=0; STATE.crew.forEach(function(c){ payroll += (c.wage||marketWage(c)); }); if(STATE.courses.business){ rent=Math.round(rent*0.8); payroll=Math.round(payroll*0.8); } var insurance=clamp(Math.round(1200 - STATE.culture*10),300,1300); var fees=0; OEM_ORDER.forEach(function(o){ var t=dealerTier(o); if(t) fees+=OEMS[o].annual[t]; }); return {rent:rent,payroll:payroll,insurance:insurance,fees:fees}; }
 function quarterRevenue(){ var grant=0; if(STATE.apprentice&&STATE.grant){ var appr=0; STATE.crew.forEach(function(c){ if(c.cred===0) appr++; }); grant=2500+appr*1200; } return {grant:grant}; }
-function runStatement(){ var co=quarterCosts(), r=quarterRevenue(); var net=r.grant-(co.rent+co.payroll+co.insurance+co.fees); STATE.cash+=net; STATE.lastStmt=STATE.week; STATE.lastStmtData={c:co,r:r,net:net}; STATE.culture=clamp(STATE.culture+(STATE.courses.hf?3:1),cultureFloor(),100);
+/* Overhead is the P&L plumbing, kept. But there is no periodic statement popup.
+   It accrues silently and settles inside the next Collect Payment invoice, so
+   money settles once per job as a single invoice. */
+function accrueOverhead(){ var co=quarterCosts(), r=quarterRevenue(); var net=r.grant-(co.rent+co.payroll+co.insurance+co.fees); STATE.pendingOverhead=(STATE.pendingOverhead||0)+net; STATE.lastStmt=STATE.week; STATE.culture=clamp(STATE.culture+(STATE.courses.hf?3:1),cultureFloor(),100);
   STATE.crew.forEach(function(c){ var mkt=marketWage(c); var gap=mkt-(c.wage||mkt); var d=1; if(gap>0) d-=Math.min(9,Math.round(gap/110)); else d+=1; if(STATE.culture>=75) d+=2; else if(STATE.culture<45) d-=2; c.loyalty=clamp((c.loyalty==null?70:c.loyalty)+d,0,100); if(STATE.week-(c.lastTrain||0)>40){ ['wiring','integ','trouble','paper'].forEach(function(k){ c[k]=Math.max(2,Math.round((c[k]-0.1)*10)/10); }); } });
   renderHUD(); }
 function marketWage(c){ return Math.round(500 + c.cred*350 + avgSkill(c)*60); }
@@ -1153,7 +1218,7 @@ SCREENS.shop=function(){
   } else { upCard='<div class="card flat"><div class="body"><div class="nm" style="color:var(--scope)">MAX SHOP LEVEL</div><div class="ds">Five bays and your own STC line. Now chase the award.</div></div></div>'; }
   var ap=awardParts(); var dealerN=OEM_ORDER.filter(function(o){ return dealerTier(o); }).length; var ml=lowestLoyalty();
   var dash='<div class="panel"><div class="ledger"><span>Bank</span><b style="color:var(--scope)">'+money(STATE.cash)+'</b></div>'
-    +(STATE.lastStmtData?'<div class="ledger"><span>Last quarter net</span><b style="color:'+(STATE.lastStmtData.net<0?'var(--beacon)':'var(--scope)')+'">'+money(STATE.lastStmtData.net)+'</b></div>':'')
+    +((STATE.pendingOverhead||0)!==0?'<div class="ledger"><span>Overhead due next invoice</span><b style="color:'+(STATE.pendingOverhead<0?'var(--beacon)':'var(--scope)')+'">'+(STATE.pendingOverhead<0?'-':'+')+money(Math.abs(STATE.pendingOverhead))+'</b></div>':'')
     +'<div class="ledger"><span>Field rep \u2022 AEA standing</span><b style="color:var(--amber)">'+STATE.rep+' \u2022 '+STATE.aeaRep+'</b></div>'
     +'<div class="ledger"><span>Dealer authorizations</span><b style="color:var(--sky)">'+dealerN+'/8'+(hasPremier()?' \u2605':'')+'</b></div>'
     +(STATE.apprentice?'<div class="ledger"><span>Apprentices graduated</span><b style="color:var(--scope)">'+STATE.gradCount+'</b></div>':'')
@@ -1296,7 +1361,7 @@ SCREENS.negotiate=function(){
   var lowW=Math.round(h.ask*0.85), fairW=h.ask, genW=Math.round(h.ask*1.15);
   var opt=function(key,title,wage,loy,note,cls){ return '<button class="opt '+(cls||'')+'" data-off="'+key+'"><b>'+title+'</b> <span class="ok" style="float:right">'+money(wage)+'/qtr</span><br><span class="ds">'+note+' Loyalty starts '+clamp(loy,0,100)+'.</span></button>'; };
   return { html:'<h2 class="scrn">MAKE AN OFFER</h2><div class="panel"><div class="row2" style="margin-top:0"><div class="nm">'+nm+' <span class="cred '+credCls(h.cred)+'">'+credName(h.cred).toUpperCase()+'</span></div></div><div class="ds" style="margin-top:6px">'+h.tag+'</div><div class="stats" style="margin-top:8px"><span class="stat">Wir <b>'+h.sk[0]+'</b></span><span class="stat">Int <b>'+h.sk[1]+'</b></span><span class="stat">T/S <b>'+h.sk[2]+'</b></span><span class="stat">Pap <b>'+h.sk[3]+'</b></span></div><div class="ledger" style="margin-top:8px"><span>Sign-on cost</span><b>'+money(h.fee)+'</b></div><div class="ledger"><span>They are asking</span><b style="color:var(--amber)">'+money(fairW)+'/qtr</b></div></div>'
-     +'<div class="sub">Wage is paid every quarter on the statement. Pay sets loyalty, and loyalty is what keeps them from walking later.</div>'
+     +'<div class="sub">Wages run as overhead, settled on each job invoice. Pay sets loyalty, and loyalty is what keeps them from walking later.</div>'
      +opt('low','Lowball',lowW,h.loBase-15,'They might walk.','')
      +opt('fair','Meet their ask',fairW,h.loBase,'A fair deal.','btn-amber')
      +opt('gen','Pay above market',genW,h.loBase+15,'Locks them in.','btn-go'),
@@ -1347,18 +1412,10 @@ SCREENS.personnel=function(){
       else { c.loyalty=clamp((c.loyalty||0)-14,0,100); msg='You held the line on pay. '+c.name+' went back to work, but loyalty took a hit.'; }
       STATE.personnel=null; renderHUD(); result(msg); }; }); } };
 };
-SCREENS.finance=function(){
-  var d=STATE.lastStmtData; if(!d){ go('floor'); return {html:'',actions:[]}; } var c=d.c, r=d.r;
-  return { html:'<h2 class="scrn">QUARTERLY STATEMENT</h2><div class="sub">The overhead reckoning. Keep the work flowing to stay ahead of it.</div><div class="panel">'
-     +(r.grant>0?'<div class="ledger"><span>Apprenticeship grant</span><b style="color:var(--scope)">+'+money(r.grant)+'</b></div>':'')
-     +'<div class="ledger"><span>Hangar rent</span><b style="color:var(--beacon)">-'+money(c.rent)+'</b></div>'
-     +'<div class="ledger"><span>Payroll and benefits</span><b style="color:var(--beacon)">-'+money(c.payroll)+'</b></div>'
-     +'<div class="ledger"><span>Insurance</span><b style="color:var(--beacon)">-'+money(c.insurance)+'</b></div>'
-     +(c.fees>0?'<div class="ledger"><span>Dealer fees</span><b style="color:var(--beacon)">-'+money(c.fees)+'</b></div>':'')
-     +'<div class="payout"><div class="pl">NET THIS QUARTER</div><div class="pv" style="color:'+(d.net<0?'var(--beacon)':'var(--scope)')+'">'+money(d.net)+'</div></div></div>'
-     +(c.insurance>900?'<div class="infobox" style="margin-top:8px">Insurance is high because your safety culture is shaky. A cleaner shop pays less.</div>':''),
-    actions:[ {label:'CONTINUE \u25BA', cls:'btn-go', on:function(){ if(STATE.cash<-4000){ go('gameover'); return; } go('floor'); }} ] };
-};
+/* The quarterly statement popup was a rejected pattern and is gone. Overhead now
+   settles inside the Collect Payment invoice (see accrueOverhead + collect). This
+   stub only guards any stale navigation. */
+SCREENS.finance=function(){ go('floor'); return {html:'',actions:[]}; };
 SCREENS.awardeval=function(){
   var a=awardParts();
   var row=function(lab,v,max){ return '<div class="qbar"><div class="qt"><span>'+lab+'</span><span class="qv">'+Math.round(v)+' / '+max+'</span></div><div class="track"><div class="fill f-fin" data-pct="'+clamp(v/max*100,0,100)+'"></div></div></div>'; };
@@ -1417,6 +1474,49 @@ function ensureCustomer(name, aircraft, personality){
   return STATE.customers[id];
 }
 
+/* ---- PHASE 2: the review generator (reviews wired to real job outcomes) ---- */
+var REVIEW_BANK = {
+  budget:{
+    hi:["Honest shop. Fair number and the work is right. I will be back.","They respected my budget and the airplane flies great. Cannot ask for more than that."],
+    mid:["Decent work for the money. A couple things I would tweak, but no complaints worth making.","Got the job done at a fair price. Nothing fancy, nothing wrong."],
+    lo:["The quote came in way over what I expected. Felt like I got squeezed.","Paid too much and the work did not wow me. I shop around next time."]
+  },
+  status:{
+    hi:["Best panel on the ramp now. Flawless. The only shop I trust with my airplane.","Showpiece work. My partners are all asking who did the install."],
+    mid:["Good panel, solid work. I expected a little more polish for what I paid.","Looks sharp. Not quite the showpiece I wanted, but I am happy enough."],
+    lo:["For what I paid, this should look perfect. It does not. Disappointed.","Rushed and rough. Not the premium job I was promised."]
+  },
+  safety:{
+    hi:["Done right and done legal. Paperwork airtight. I fly my family behind this panel without a second thought.","Exactly the careful, by-the-book work I wanted. Signed off clean."],
+    mid:["It conforms and it is legal. A couple of notes, but nothing that grounds me.","Solid, compliant work. I would have liked a closer final inspection."],
+    lo:["A squawk made it to the test flight. That is not acceptable when lives ride on it.","Sloppy, and I do not trust the sign-off. I want this looked at again."]
+  },
+  tire:{
+    hi:["Did not think any shop would win me over. This one did. Good work.","Surprised me. Fair and clean. Maybe I stop shopping around."],
+    mid:["It is fine. Got what I paid for, I suppose.","Work is okay. Nothing that makes me a regular yet."],
+    lo:["Knew I should have gone elsewhere. Overpriced and underwhelming.","Glad I did not commit to more. Not impressed."]
+  }
+};
+function reviewBand(stars){ return stars>=5?'hi':(stars>=3?'mid':'lo'); }
+function computeReview(outcome, customer){
+  var p=(customer&&customer.personality)||'budget';
+  var q=clamp(outcome.quality||0,0,1);
+  var base=1 + q*2.8;
+  base += outcome.onTime?0.5:-1.0;
+  base += outcome.persoMatch?0.5:-0.6;
+  var priceW = p==='budget'?2.2:(p==='status'?0.5:1.0);
+  base += (outcome.priceFair||0)*priceW;
+  var stars=clamp(Math.round(base),1,5);
+  var bank=REVIEW_BANK[p]||REVIEW_BANK.budget;
+  var arr=bank[reviewBand(stars)];
+  return {stars:stars, text:arr[Math.floor(Math.random()*arr.length)]};
+}
+function jobOutcome(bay){
+  var s=STATE.scores||{};
+  var pf=bay.job.priceFair; if(pf==null) pf=0;
+  return {quality:clamp((s.total||0)/30,0,1), onTime:!!s.squawkOk, priceFair:pf, persoMatch:!!bay.job.matched};
+}
+
 /* Task 2 self-test checks */
 check('relStep clamps 0..4', function(){ return relStep(4)===4 && relStep(-1)===0 && relStep(2)===3; });
 check('starAvg recency-weighted', function(){
@@ -1424,6 +1524,24 @@ check('starAvg recency-weighted', function(){
       && starAvg([{stars:1,week:1},{stars:5,week:10}]) > 3;
 });
 check('REL_RANKS has five tiers', function(){ return REL_RANKS.length===5 && REL_RANKS[4]==='Champion'; });
+
+/* Phase 2 self-test checks: the review generator */
+check('review: clean job from happy fit -> high stars', function(){
+  var r = computeReview({quality:0.95, onTime:true, priceFair:1, persoMatch:true}, {personality:'safety'});
+  return r.stars>=4 && r.text.length>0;
+});
+check('review: gouged budget customer -> low even if quality high', function(){
+  var r = computeReview({quality:0.95, onTime:true, priceFair:-1, persoMatch:false}, {personality:'budget'});
+  return r.stars<=2;
+});
+check('review: rushed sloppy -> low', function(){
+  var r = computeReview({quality:0.4, onTime:false, priceFair:0, persoMatch:true}, {personality:'status'});
+  return r.stars<=2;
+});
+check('stars always 1..5 integer', function(){
+  var r = computeReview({quality:0, onTime:false, priceFair:-1, persoMatch:false}, {personality:'tire'});
+  return r.stars>=1 && r.stars<=5 && r.stars===Math.round(r.stars);
+});
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
 else if (location.search.indexOf('screen=') >= 0) { var _m=location.search.match(/screen=([^&]+)/); if(_m){ newBoard(); STATE.screen=decodeURIComponent(_m[1]); } render(); }
