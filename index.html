@@ -533,7 +533,7 @@ var EVENTS=[
   { key:'anxious', title:'THE CUSTOMER CALLS', weight:2, cond:function(){ return STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); }, text:"An owner whose airplane is torn down is nervous about the downtime and wants to hear from you.", choices:[ {label:'TALK THEM THROUGH IT', run:function(){ if((STATE.charisma||3)>=5 || Math.random()<0.6){ STATE.culture=clamp(STATE.culture+2,0,100); STATE.rep+=1; return "You walked them through the work and set expectations. They hung up reassured. +1 rep."; } return "You did your best to reassure them. Still a little anxious, but they appreciated the call."; }}, {label:'TELL THEM IT IS HANDLED', run:function(){ if(Math.random()<0.5){ STATE.rep=Math.max(0,STATE.rep-1); return "You brushed it off. They felt dismissed and grumbled to a hangar neighbor. -1 rep."; } return "Short and to the point. They let it go this time."; }} ] } ];
 
 /* ---- STATE ---- */
-function mkCrew(name,tag,wi,ig,tr,pa,cred,color){ return {name:name,tag:tag,wiring:wi,integ:ig,trouble:tr,paper:pa,cred:cred,color:color,bay:null,power:100,elig:cred,loyalty:70,oemCerts:{},wage:Math.round(500+cred*350+((wi+ig+tr+pa)/4)*60),lastTrain:1}; }
+function mkCrew(name,tag,wi,ig,tr,pa,cred,color){ return {name:name,tag:tag,wiring:wi,integ:ig,trouble:tr,paper:pa,cred:cred,color:color,bay:null,power:100,elig:cred,loyalty:70,oemCerts:{},wage:Math.round(500+cred*350+((wi+ig+tr+pa)/4)*60),lastTrain:1,trainedThrough:1,homegrown:false}; }
 function freshBay(){ return {job:null,owner:null,bars:{work:0,diag:0,comp:0,fin:0},shiftsDone:0,shiftsNeed:4,crew:[]}; }
 function makeState(){
   return { cash:6000, rep:0, week:1, fans:0, tokens:3, level:1, era:1, spec:{}, rate:1, screen:'title', shopName:'BEACON AVIONICS',
@@ -544,7 +544,7 @@ function makeState(){
     hired:{}, auths:{}, passive:0, hf:null, hfResult:null, recentHF:[], safe:{good:0,bad:0},
     event:null, _result:null, recentEvents:[], pendingEra:0, adsbRush:0,
     aeaRep:0, charisma:3, warm:0, hotBoard:false, lastHustle:0, culture:68, oemSales:{}, dealers:{}, courses:{}, apprentice:false, grant:false, gradCount:0,
-    branches:[], conventions:0, scholarships:0, lastShowYear:0, lastStmt:1, lastStmtData:null, awardWon:false,
+    branches:[], conventions:0, scholarships:0, lastShowYear:0, lastConfYear:0, lastStmt:1, lastStmtData:null, awardWon:false, _confSel:[], _lastCred:null, _certTech:null, _certNext:0,
     pendingHire:null, personnel:null, lastPersonnel:0,
     customers:{}, reviewsFeed:[], starRating:0, custSeq:0,
     pendingOverhead:0, _lastReview:null, _respondIdx:null,
@@ -896,12 +896,14 @@ SCREENS.board=function(){
 
 SCREENS.assign=function(){
   var fc=freeCrew();
-  var cards=fc.map(function(ci){ var c=STATE.crew[ci]; var on=STATE.sel.indexOf(ci)>=0;
-    return '<div class="card '+(on?'sel':'')+'" data-c="'+ci+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'as'+ci,0)+'</svg></div><div class="body"><div class="nm">'+c.name+(on?'  \u2713':'')+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds">'+c.tag+'</div>'
+  var certJob=isDealerOrCertJob(STATE.pendingJob);
+  var cards=fc.map(function(ci){ var c=STATE.crew[ci]; var on=STATE.sel.indexOf(ci)>=0; var cs=currencyStatus(c,STATE.week);
+    var curChip = cs==='lapsed'?' <span class="cred c0" style="color:var(--beacon)">LAPSED</span>':(cs==='soon'?' <span class="cred c0" style="color:var(--caution)">CURRENCY LOW</span>':'');
+    return '<div class="card '+(on?'sel':'')+(certJob&&cs==='lapsed'?' flat':'')+'" data-c="'+ci+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'as'+ci,0)+'</svg></div><div class="body"><div class="nm">'+c.name+(on?'  \u2713':'')+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span>'+curChip+'</div><div class="ds">'+c.tag+'</div>'
       +'<div class="stats"><span class="stat">Wiring <b>'+rnd(c.wiring)+'</b>'+pips(c.wiring)+'</span><span class="stat">Integ <b>'+rnd(c.integ)+'</b>'+pips(c.integ)+'</span><span class="stat">T-shoot <b>'+rnd(c.trouble)+'</b>'+pips(c.trouble)+'</span><span class="stat">Paper <b>'+rnd(c.paper)+'</b>'+pips(c.paper)+'</span></div></div></div>'; }).join('');
   var j=JOBS[STATE.pendingJob.j], a=AIRCRAFT[STATE.pendingJob.a];
   var wKey=Object.keys(j.w).sort(function(x,y){ return j.w[y]-j.w[x]; })[0]; var wname={work:'Workmanship',diag:'Diagnostics',comp:'Compliance',fin:'Finish'}[wKey];
-  var credLine = j.credReq>0 ? 'Recommended credential: <b style="color:var(--ink)">'+credName(j.credReq)+'</b>. Under that and the crew works above its training, slower and rougher.' : 'No special credential needed. Good work for any hand.';
+  var credLine = (j.credReq>0 ? 'Recommended credential: <b style="color:var(--ink)">'+credName(j.credReq)+'</b>. Under that and the crew works above its training, slower and rougher.' : 'No special credential needed. Good work for any hand.') + (certJob?' Dealer or certified work, so a tech out of training currency cannot be assigned.':'');
   var none = fc.length===0;
   return { html:'<h2 class="scrn">CREW CALL</h2><div class="panel"><div class="nm pix" style="font-size:9px;color:var(--amber)">'+j.name+'</div><div class="ds" style="margin-top:6px">'+a.name+' \u2022 for '+STATE.pendingJob.owner+'</div><div class="reason" style="margin-top:6px">Leans on <b style="color:var(--ink)">'+wname+'</b>. '+credLine+'</div></div>'
       + (none?'<div class="panel"><div class="note" style="text-align:left">Every tech is already on a bay. Deliver a job to free someone up, or hire more crew.</div></div>':'<div class="sub">Pick up to 3 techs. They learn on the job.</div>'+cards),
@@ -909,7 +911,7 @@ SCREENS.assign=function(){
         var bay=freshBay(); bay.job=STATE.pendingJob; bay.shiftsNeed=JOBS[STATE.pendingJob.j].shifts||4; bay.owner=STATE.pendingJob.owner; bay.crew=STATE.sel.slice();
         STATE.sel.forEach(function(ci){ STATE.crew[ci].bay=STATE.fillBay; STATE.crew[ci].power=100; });
         STATE.bays[STATE.fillBay]=bay; toast('Bay '+(STATE.fillBay+1)+' loaded.'); go('floor'); }} ],
-    init: none ? null : function(){ document.querySelectorAll('.card[data-c]').forEach(function(el){ el.onclick=function(){ var ci=+el.dataset.c, p=STATE.sel.indexOf(ci); if(p>=0){ STATE.sel.splice(p,1); sBlip(); } else { if(STATE.sel.length>=3){ toast('Three techs max on a bay.'); return; } STATE.sel.push(ci); sTab(); } go('assign'); }; }); } };
+    init: none ? null : function(){ document.querySelectorAll('.card[data-c]').forEach(function(el){ el.onclick=function(){ var ci=+el.dataset.c, p=STATE.sel.indexOf(ci); if(p>=0){ STATE.sel.splice(p,1); sBlip(); } else { if(certJob && isLapsed(STATE.crew[ci],STATE.week)){ toast(STATE.crew[ci].name+' is out of training currency. Refresh at the fall conference before dealer or certified work.'); return; } if(STATE.sel.length>=3){ toast('Three techs max on a bay.'); return; } STATE.sel.push(ci); sTab(); } go('assign'); }; }); } };
 };
 
 function barRowStatic(bars,key,label,cls,lcls){ var v=bars[key], pct=clamp(v/MAXBAR*100,0,100);
@@ -1000,7 +1002,7 @@ function startDelivery(){ if(!STATE.deliverQueue.length){ finishDeliveries(); re
 SCREENS.squawk=function(){
   var sq=STATE.activeSquawk, answered=sq.result!==null;
   var opts=sq.opts.map(function(o,i){ var cls=''; if(answered){ if(o.ok) cls='good'; else if(sq.result.idx===i && !o.ok) cls='bad'; } return '<button class="opt '+cls+'" data-sq="'+i+'" '+(answered?'disabled':'')+'>'+o.t+'</button>'; }).join('');
-  var bayName = (typeof STATE.activeBay==='number' && STATE.bays[STATE.activeBay] && STATE.bays[STATE.activeBay].job) ? ('BAY '+(STATE.activeBay+1)+' FUNCTIONAL TEST') : 'FUNCTIONAL TEST';
+  var bayName = (typeof STATE.activeBay==='number' && STATE.bays[STATE.activeBay] && STATE.bays[STATE.activeBay].job) ? ('BAY '+(STATE.activeBay+1)+' FUNCTIONAL TEST') : (STATE._examMode ? 'PRACTICAL EXAM' : 'FUNCTIONAL TEST');
   var html='<h2 class="scrn">'+bayName+'</h2><div class="squawk-head"><div class="s1">\u26A0 SQUAWK FOUND</div><div class="s2">'+sq.def.s+'</div></div><div class="sub" style="margin-top:8px">'+(answered?'':'Pick the right move. A wrong call costs you on the floor.')+'</div>'+opts;
   if(answered) html+='<div class="explain'+(sq.result.ok?'':' miss')+'">'+(sq.result.ok?'\u2713 Cleared. ':'\u2717 Wrong tree. ')+sq.def.ex+'</div>';
   return { html:html, actions: answered ? [ {label:'CONTINUE \u25BA', cls:'btn-go', on:function(){ var ok=sq.result.ok, cb=sq.onResolve; STATE.activeSquawk=null; cb(ok); }} ] : [],
@@ -1071,6 +1073,7 @@ function finishDeliveries(){
   var eraGate={3:2,7:3,12:4};
   if(eraGate[STATE.jobsDone] && STATE.era<eraGate[STATE.jobsDone]){ STATE.pendingEra=eraGate[STATE.jobsDone]; go('eraEvent'); return; }
   if(seasonKey()==='spring' && (STATE.lastShowYear||0) < gYear()){ STATE.lastShowYear=gYear(); startShow(); return; }
+  if(seasonKey()==='fall' && (STATE.lastConfYear||0) < gYear() && STATE.crew.length){ STATE.lastConfYear=gYear(); STATE._confSel=[]; go('fallconf'); return; }
   if(STATE.week - STATE.lastStmt >= 4){ accrueOverhead(); }
   if(STATE.week - (STATE.lastPersonnel||0) >= 3 && Math.random()<0.5){ var pr=personnelEvent(); if(pr){ STATE.lastPersonnel=STATE.week; go(pr); return; } }
   if(STATE.cash<1500) toast('Cash is tight.\nKeep the work flowing.');
@@ -1274,13 +1277,14 @@ SCREENS.hire=function(){
   else { body=avail.map(function(c){ return '<div class="card flat" data-h="'+c.key+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'h'+c.key,0)+'</svg></div><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds">'+c.tag+'</div><div class="stats"><span class="stat">Wir <b>'+c.wiring+'</b></span><span class="stat">Int <b>'+c.integ+'</b></span><span class="stat">T/S <b>'+c.trouble+'</b></span><span class="stat">Pap <b>'+c.paper+'</b></span></div><div class="row2"><span class="pay">'+money(c.fee)+'</span></div></div></div>'; }).join(''); }
   return { html:'<h2 class="scrn">HIRE CREW</h2><div class="sub">Slots '+STATE.crew.length+'/'+crewSlots()+'. Tap a candidate to sign.</div>'+body,
     actions:[ {label:'BACK', on:function(){ go('shop'); }} ],
-    init:(open&&avail.length)?function(){ document.querySelectorAll('.card[data-h]').forEach(function(el){ el.onclick=function(){ var c=CREW_POOL.filter(function(x){ return x.key===el.dataset.h; })[0]; if(STATE.crew.length>=crewSlots()){ toast('No open slot.'); return; } if(STATE.cash<c.fee){ toast('Not enough cash.'); return; } STATE.cash-=c.fee; STATE.hired[c.key]=true; STATE.crew.push(mkCrew(c.name,c.tag,c.wiring,c.integ,c.trouble,c.paper,c.cred,c.color)); sHit(); renderHUD(); toast(c.name+' joined the shop.'); go('shop'); }; }); }:null };
+    init:(open&&avail.length)?function(){ document.querySelectorAll('.card[data-h]').forEach(function(el){ el.onclick=function(){ var c=CREW_POOL.filter(function(x){ return x.key===el.dataset.h; })[0]; if(STATE.crew.length>=crewSlots()){ toast('No open slot.'); return; } if(STATE.cash<c.fee){ toast('Not enough cash.'); return; } STATE.cash-=c.fee; STATE.hired[c.key]=true; var nh=mkCrew(c.name,c.tag,c.wiring,c.integ,c.trouble,c.paper,c.cred,c.color); refreshCurrency(nh); STATE.crew.push(nh); sHit(); renderHUD(); toast(c.name+' joined the shop.'); go('shop'); }; }); }:null };
 };
 
 SCREENS.train=function(){
-  var cards=STATE.crew.map(function(c,i){ var av=avgSkill(c); var status; if(c.bay!==null) status='On a bay right now'; else if(canCertify(c)) status='Ready to certify: '+credName(c.cred+1); else if(c.cred<3) status='Train toward '+credName(c.cred+1)+' (avg '+av.toFixed(1)+' / '+CRED_SKILL[c.cred+1].toFixed(1)+')'; else status='Master. Fully certified';
+  var cards=STATE.crew.map(function(c,i){ var av=avgSkill(c), cur=currencyStatus(c,STATE.week); var status; if(c.bay!==null) status='On a bay right now'; else if(canCertify(c)) status='Ready to certify: '+credName(c.cred+1); else if(c.cred<3) status='Train toward '+credName(c.cred+1)+' (avg '+av.toFixed(1)+' / '+CRED_SKILL[c.cred+1].toFixed(1)+')'; else status='Master. Fully certified';
     var col = canCertify(c)&&c.bay===null?'color:var(--scope)':'';
-    return '<div class="card" data-tr="'+i+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'tr'+i,0)+'</svg></div><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds" style="'+col+'">'+status+'</div><div class="ds" style="font-size:9px;opacity:.8">'+money(c.wage||0)+'/qtr \u2022 loyalty '+(c.loyalty==null?70:c.loyalty)+' \u2022 '+((STATE.week-(c.lastTrain||0)>40)?'<span style="color:var(--caution)">skills rusty</span>':'<span style="color:var(--scope)">sharp</span>')+'</div></div></div>'; }).join('');
+    var curLbl = cur==='lapsed'?'<span style="color:var(--beacon)">currency lapsed</span>':cur==='soon'?'<span style="color:var(--caution)">currency due</span>':'<span style="color:var(--scope)">current</span>';
+    return '<div class="card" data-tr="'+i+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'tr'+i,0)+'</svg></div><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds" style="'+col+'">'+status+'</div><div class="ds" style="font-size:9px;opacity:.8">'+money(c.wage||0)+'/qtr \u2022 loyalty '+(c.loyalty==null?70:c.loyalty)+' \u2022 '+curLbl+'</div></div></div>'; }).join('');
   return { html:'<h2 class="scrn">AEA TRAINING PATHWAY</h2><div class="sub">Skills grow on the bench and on the job. When a tech is sharp enough, certify them up a level. Tap a tech to train.</div>'+cards,
     actions:[ {label:'BACK', on:function(){ go('training'); }} ],
     init:function(){ document.querySelectorAll('.card[data-tr]').forEach(function(el){ el.onclick=function(){ STATE._tr=+el.dataset.tr; sTab(); go('traintech'); }; }); } };
@@ -1300,11 +1304,53 @@ SCREENS.traintech=function(){
       +'<div class="sub" style="margin-top:10px">Credential</div>'+certBlock,
     actions:[ {label:'BACK', on:function(){ go('train'); }} ],
     init:function(){
-      document.querySelectorAll('.opt[data-sk]').forEach(function(el){ el.onclick=function(){ var k=el.dataset.sk, v=c[k], cost=skillCost(v); if(v>=10){ toast(c.name+' is maxed there.'); return; } if(STATE.cash<cost){ toast('Need '+money(cost)+'.'); return; } STATE.cash-=cost; c[k]=Math.min(10,c[k]+1); c.lastTrain=STATE.week; sDrill(); renderHUD(); if(canCertify(c)) toast(c.name+' is ready to certify.'); go('traintech'); }; });
-      var cb=document.querySelector('.opt[data-cert]'); if(cb) cb.onclick=function(){ var nn=c.cred+1, fee=CRED_FEE[nn]; if(!canCertify(c)){ toast('Skills not there yet.'); return; } if(STATE.cash<fee){ toast('Need '+money(fee)+'.'); return; } STATE.cash-=fee; c.cred=nn; c.elig=nn; if(nn===1&&STATE.apprentice){ STATE.gradCount++; STATE.aeaRep+=4; } sLevel(); renderHUD(); toast(c.name+' earned '+credName(nn)+'.'); go('train'); };
+      document.querySelectorAll('.opt[data-sk]').forEach(function(el){ el.onclick=function(){ var k=el.dataset.sk, v=c[k], cost=skillCost(v); if(v>=10){ toast(c.name+' is maxed there.'); return; } if(STATE.cash<cost){ toast('Need '+money(cost)+'.'); return; } STATE.cash-=cost; c[k]=Math.min(10,c[k]+1); refreshCurrency(c); sDrill(); renderHUD(); if(canCertify(c)) toast(c.name+' is ready to certify.'); go('traintech'); }; });
+      var cb=document.querySelector('.opt[data-cert]'); if(cb) cb.onclick=function(){ var nn=c.cred+1, fee=CRED_FEE[nn]; if(!canCertify(c)){ toast('Skills not there yet.'); return; } if(STATE.cash<fee){ toast('Need '+money(fee)+'.'); return; } STATE.cash-=fee; STATE._certTech=STATE._tr; STATE._certNext=nn; STATE.activeBay=null; STATE._examMode=true; var sk=pick(Object.keys(SQUAWKS)); toast('Practical exam. Read the squawk.'); launchSquawk(SQUAWKS[sk], grantCredential); };
     } };
 };
 
+function grantCredential(passed){
+  STATE._examMode=false;
+  var c=STATE.crew[STATE._certTech]; if(!c){ go('train'); return; }
+  var nn=STATE._certNext, wasAppr=(c.cred===0);
+  c.cred=nn; c.elig=nn; refreshCurrency(c);
+  var grad = wasAppr && nn===1 && STATE.apprentice;
+  if(grad){ STATE.gradCount++; STATE.aeaRep+=5; STATE.rep+=3; c.loyalty=clamp((c.loyalty==null?70:c.loyalty)+20,0,100); c.homegrown=true; }
+  else { STATE.aeaRep += (nn>=2?2:1); if(passed) STATE.aeaRep+=1; }
+  STATE._lastCred={name:c.name, cred:nn, grad:grad, passed:passed, fact:pick(AVI_FACTS)};
+  sLevel(); renderHUD(); go(grad?'graduation':'credEarned');
+}
+SCREENS.credEarned=function(){
+  var d=STATE._lastCred; if(!d){ go('train'); return {html:'',actions:[]}; }
+  return { html:'<h2 class="scrn">CREDENTIAL EARNED</h2>'
+     +'<div class="panel" style="text-align:center;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">'+d.name.toUpperCase()+' IS NOW</div><div class="big pix" style="font-size:13px;color:var(--amber);line-height:1.6;margin:10px 0">'+credName(d.cred).toUpperCase()+'</div>'+(d.passed?'<div class="hit">Cleared the practical clean.</div>':'<div class="sub" style="color:var(--caution)">Missed the practical, but the coursework carried it.</div>')+'</div>'
+     +'<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--scope)">FROM THE BENCH</div><div class="note" style="text-align:left;margin-top:6px">'+d.fact+'</div></div>',
+    actions:[ {label:'BACK TO TRAINING ►', cls:'btn-go', on:function(){ STATE._lastCred=null; go('train'); }} ] };
+};
+SCREENS.graduation=function(){
+  var d=STATE._lastCred; if(!d){ go('train'); return {html:'',actions:[]}; }
+  return { html:'<h2 class="scrn">APPRENTICE GRADUATION</h2>'
+     +'<div class="panel" style="text-align:center;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">AEA REGISTERED APPRENTICESHIP</div><div class="big pix" style="font-size:12px;color:var(--amber);line-height:1.6;margin:10px 0">'+d.name.toUpperCase()+'<br>MAKES CAET</div><div class="hit">You grew this one yourself.</div></div>'
+     +'<div class="panel"><div class="chief">Chief: "That is the one that counts, boss. You took a green kid and built a certified tech. Loyal, sharp, and nobody is poaching them out from under you. Do that enough times and the award takes care of itself."</div>'
+     +'<div class="ledger" style="margin-top:8px"><span>Apprentices graduated</span><b style="color:var(--amber)">'+STATE.gradCount+'</b></div><div class="ledger"><span>AEA standing</span><b style="color:var(--scope)">+5</b></div><div class="ledger"><span>Field reputation</span><b style="color:var(--scope)">+3</b></div></div>'
+     +'<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--scope)">FROM THE BENCH</div><div class="note" style="text-align:left;margin-top:6px">'+d.fact+'</div></div>',
+    actions:[ {label:'CELEBRATE ►', cls:'btn-go', on:function(){ STATE._lastCred=null; sHit(); go('train'); }} ] };
+};
+SCREENS.fallconf=function(){
+  if(!STATE._confSel) STATE._confSel=[];
+  var per=1200+STATE.era*200;
+  var elig=STATE.crew.map(function(c,i){ return {c:c,i:i}; }).filter(function(o){ return o.c.bay===null; });
+  var cards=elig.map(function(o){ var c=o.c, i=o.i, on=STATE._confSel.indexOf(i)>=0, cs=currencyStatus(c,STATE.week);
+    var tag=cs==='lapsed'?'<span class="cred c0" style="color:var(--beacon)">LAPSED</span>':(cs==='soon'?'<span class="cred c0" style="color:var(--caution)">DUE SOON</span>':'<span class="cred c0" style="color:var(--scope)">CURRENT</span>');
+    return '<div class="card '+(on?'sel':'')+'" data-conf="'+i+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'cf'+i,0)+'</svg></div><div class="body"><div class="nm">'+c.name+(on?'  ✓':'')+' '+tag+'</div><div class="ds">'+credName(c.cred)+' • currency '+cs+'</div></div></div>'; }).join('');
+  var onbay=STATE.crew.filter(function(c){ return c.bay!==null; }).length;
+  var n=STATE._confSel.length, total=n*per;
+  var summary='<div class="panel"><div class="ledger"><span>Seats selected</span><b>'+n+' × '+money(per)+'</b></div><div class="ledger"><span>Total tuition</span><b style="color:var(--beacon)">'+money(total)+'</b></div><div class="ledger"><span>Payoff</span><b style="color:var(--scope)">currency refreshed • skills up • AEA standing</b></div></div>';
+  return { html:'<h2 class="scrn">FALL AEA CONFERENCE</h2><div class="sub">Training season. Send techs to refresh their training currency for the year, sharpen their skills, and work the floor'+(onbay?' ('+onbay+' on a bay cannot go)':'')+'.</div>'
+     +(elig.length?cards:'<div class="panel"><div class="note" style="text-align:left">Every tech is on a bay. Free one up to send them.</div></div>')+summary,
+    actions:[ {label:'SKIP THIS YEAR', on:function(){ STATE._confSel=[]; go('floor'); }}, {label:'SEND '+n+' ►', cls:n?'btn-go':'', disabled:!n, on:function(){ if(!n) return; if(STATE.cash<total){ toast('Need '+money(total)+'.'); return; } STATE.cash-=total; STATE._confSel.forEach(function(i){ var c=STATE.crew[i]; refreshCurrency(c); ['wiring','integ','trouble','paper'].forEach(function(k){ c[k]=Math.min(10,c[k]+0.3); }); c.loyalty=clamp((c.loyalty==null?70:c.loyalty)+3,0,100); }); STATE.aeaRep+=n; STATE.culture=clamp(STATE.culture+Math.min(5,n),cultureFloor(),100); STATE._confSel=[]; sLevel(); renderHUD(); toast(n+' tech'+(n>1?'s':'')+' refreshed at the conference.'); go('floor'); }} ],
+    init:function(){ document.querySelectorAll('.card[data-conf]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.conf, p=STATE._confSel.indexOf(i); if(p>=0) STATE._confSel.splice(p,1); else STATE._confSel.push(i); sTab(); go('fallconf'); }; }); } };
+};
 SCREENS.gameover=function(){
   return { html:'<div class="panel" style="text-align:center;border-color:var(--beacon)"><div class="big pix" style="font-size:15px;color:var(--beacon);line-height:1.6;margin:8px 0">THE SHOP<br>FOLDED</div></div>'
       +'<div class="panel"><div class="chief">Chief: "It happens. You ran out of runway. The owners who make it learn to pass on the dead-fit jobs and keep the crew lean. Dust off and open the doors again."</div><div class="ledger" style="margin-top:10px"><span>Jobs completed</span><b>'+STATE.jobsDone+'</b></div><div class="ledger"><span>Peak reputation</span><b>'+STATE.rep+'</b></div></div>',
@@ -1356,14 +1402,14 @@ SCREENS.oemcert=function(){
     return '<div class="card flat"><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div>'+body+'</div></div>'; }).join('');
   return { html:'<h2 class="scrn">OEM FACTORY TRAINING</h2><div class="sub">Certify a tech on a line you sell. Removes the penalty on that gear and counts toward the Authorized and Premier tiers. Tuition '+money(cost)+'.</div>'+cards,
     actions:[ {label:'BACK', on:function(){ go('training'); }} ],
-    init:function(){ document.querySelectorAll('.opt[data-ct]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.ct, o=el.dataset.co, c=STATE.crew[i]; if(STATE.cash<cost){ toast('Need '+money(cost)+'.'); return; } STATE.cash-=cost; c.oemCerts=c.oemCerts||{}; c.oemCerts[o]=true; sLevel(); renderHUD(); toast(c.name+' certified on '+OEMS[o].name+'.'); go('oemcert'); }; }); } };
+    init:function(){ document.querySelectorAll('.opt[data-ct]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.ct, o=el.dataset.co, c=STATE.crew[i]; if(STATE.cash<cost){ toast('Need '+money(cost)+'.'); return; } STATE.cash-=cost; c.oemCerts=c.oemCerts||{}; c.oemCerts[o]=true; refreshCurrency(c); sLevel(); renderHUD(); toast(c.name+' certified on '+OEMS[o].name+'.'); go('oemcert'); }; }); } };
 };
 SCREENS.apprentice=function(){
   if(!STATE.apprentice){ var hasMentor=STATE.crew.some(function(c){ return c.cred>=1; }); var startCost=8000;
     return { html:'<h2 class="scrn">APPRENTICESHIP PROGRAM</h2><div class="panel"><div class="evtext">Stand up a registered apprenticeship. Recruit green talent cheap, grow your own certified techs, draw workforce grant funding, and build the AEA standing that wins Shop of the Year.</div><div class="infobox" style="margin-top:8px">Requires a CAET or higher tech to mentor. One-time setup '+money(startCost)+'. Unlocks grant funding and half-price CTE hires.</div></div>',
       actions:[ {label:'BACK', on:function(){ go('training'); }}, {label:'START PROGRAM', cls:(hasMentor&&STATE.cash>=startCost)?'btn-go':'', disabled:!(hasMentor&&STATE.cash>=startCost), on:function(){ if(!hasMentor){ toast('Need a CAET+ tech to mentor.'); return; } if(STATE.cash<startCost){ toast('Need '+money(startCost)+'.'); return; } STATE.cash-=startCost; STATE.apprentice=true; STATE.grant=true; STATE.aeaRep+=8; sLevel(); renderHUD(); toast('Apprenticeship program registered.\nGrant funding active.'); go('apprentice'); }} ] }; }
   var appr=STATE.crew.filter(function(c){ return c.cred===0; }).length;
-  return { html:'<h2 class="scrn">APPRENTICESHIP PROGRAM</h2><div class="panel"><div class="ledger"><span>Status</span><b style="color:var(--scope)">Registered and active</b></div><div class="ledger"><span>Grant funding</span><b style="color:var(--scope)">on, each quarter</b></div><div class="ledger"><span>Apprentices on staff</span><b>'+appr+'</b></div><div class="ledger"><span>Graduated to CAET</span><b style="color:var(--amber)">'+STATE.gradCount+'</b></div></div><div class="panel"><div class="note" style="text-align:left">Recruit apprentices cheap from High School CTE on the Recruit screen. Put them on jobs and through Technician training. Each one you graduate to CAET lifts your AEA standing.</div></div>',
+  return { html:'<h2 class="scrn">APPRENTICESHIP PROGRAM</h2><div class="panel"><div class="ledger"><span>Status</span><b style="color:var(--scope)">Registered and active</b></div><div class="ledger"><span>Grant funding</span><b style="color:var(--scope)">active, folded into each invoice</b></div><div class="ledger"><span>Apprentices on staff</span><b>'+appr+'</b></div><div class="ledger"><span>Graduated to CAET</span><b style="color:var(--amber)">'+STATE.gradCount+'</b></div></div><div class="panel"><div class="note" style="text-align:left">Recruit apprentices cheap from High School CTE on the Recruit screen. Put them on jobs and through Technician training. Each one you graduate to CAET lifts your AEA standing.</div></div>',
     actions:[ {label:'RECRUIT APPRENTICES', cls:'btn-amber', on:function(){ go('recruit'); }}, {label:'BACK', on:function(){ go('training'); }} ] };
 };
 SCREENS.recruit=function(){
@@ -1405,7 +1451,7 @@ function finalizeHire(kind){
   if(h.srcKey==='military') STATE.culture=clamp(STATE.culture+3,0,100);
   if(h.srcKey==='cte'&&STATE.apprentice) STATE.aeaRep+=2;
   if(h.boardKey) STATE.hired[h.boardKey]=true;
-  c.lastTrain=STATE.week; STATE.crew.push(c); STATE.pendingHire=null; sHit(); renderHUD(); toast(nm+' signed on at '+money(wage)+'/qtr.'); go('recruit');
+  refreshCurrency(c); STATE.crew.push(c); STATE.pendingHire=null; sHit(); renderHUD(); toast(nm+' signed on at '+money(wage)+'/qtr.'); go('recruit');
 }
 SCREENS.personnel=function(){
   var p=STATE.personnel; if(!p||!STATE.crew[p.idx]){ go('floor'); return {html:'',actions:[]}; }
@@ -1540,10 +1586,33 @@ function jobOutcome(bay){
   return {quality:clamp((s.total||0)/30,0,1), onTime:!!s.squawkOk, priceFair:pf, persoMatch:!!bay.job.matched};
 }
 
+/* ---- PHASE 4: annual training currency. Skill grows on the job, but currency is
+   a recurrent-training clock refreshed by formal training and the fall conference,
+   not by working jobs. Lapse it and the tech is off dealer and certified work until
+   it is refreshed. ---- */
+var CURRENCY_WEEKS=48;
+function techCurrencyWeek(t){ return (t && t.trainedThrough!=null) ? t.trainedThrough : ((t&&t.lastTrain)||0); }
+function isLapsed(tech, week){ return (week-techCurrencyWeek(tech)) > CURRENCY_WEEKS; }
+function canDoDealerWork(tech, week){ return !isLapsed(tech, week); }
+function currencyStatus(tech, week){ var age=week-techCurrencyWeek(tech); if(age>CURRENCY_WEEKS) return 'lapsed'; if(age>=CURRENCY_WEEKS-4) return 'soon'; return 'current'; }
+function refreshCurrency(tech){ tech.trainedThrough=STATE.week; tech.lastTrain=STATE.week; }
+function isDealerOrCertJob(pj){ if(!pj) return false; var j=JOBS[pj.j]; return (j && j.credReq>0) || !!JOB_OEM[pj.j]; }
+var AVI_FACTS=[
+ "A 406 MHz ELT does nothing until its unique ID is coded and registered to the owner.",
+ "Pitot-static certification under 91.411 is due every 24 calendar months for IFR flight.",
+ "Transponder and ADS-B checks under 91.413 are also a 24 calendar month requirement.",
+ "RPM-following noise in the audio panel is almost always alternator whine through a poor ground.",
+ "An AHRS needs a level, tight mount to align. A canted or loose tray is the classic no-align.",
+ "Weak receive with good transmit usually means signal loss in the antenna coax or a connector.",
+ "An instant breaker trip on power-up is a dead short, often a pinched or mis-pinned wire.",
+ "A lagging altimeter in a static test points straight at a leak in the static plumbing.",
+ "Bonding and grounding are the quiet backbone of every clean avionics install."
+];
+
 /* ---- PHASE 3: Chief the mentor. A rules engine that reads real state and speaks
    only when there is something worth saying. Each tip is earned off a threshold. ---- */
 function waveDealerOwned(s){ var w=s.demandWave; if(!w) return false; var oem=w.oem; return !!(oem && s.dealers && s.dealers[oem]); }
-function lapsingTech(s){ var crew=s.crew||[]; var wk=s.week||0; for(var i=0;i<crew.length;i++){ var c=crew[i]; var age=wk-(c.lastTrain||0); if(age>=44 && age<48) return c; } return null; }
+function lapsingTech(s){ var crew=s.crew||[]; var wk=s.week||0; for(var i=0;i<crew.length;i++){ if(currencyStatus(crew[i],wk)==='soon') return crew[i]; } return null; }
 function coldLoyal(s){ var cs=s.customers||{}; var wk=s.week||0; var keys=Object.keys(cs); for(var i=0;i<keys.length;i++){ var c=cs[keys[i]]; if((c.rel||0)>=3 && (wk-(c.lastWeek||0))>=8) return c; } return null; }
 function hasMentorTech(s){ var crew=s.crew||[]; for(var i=0;i<crew.length;i++){ if((crew[i].cred||0)>=2) return true; } return false; }
 var CHIEF_TIPS = [
@@ -1630,6 +1699,10 @@ check('chief: once-tips not repeated', function(){
   var s = {starRating:3.7, demandWave:null, dealers:{}, _seenTips:{ratingSlip:true}, crew:[], customers:{}};
   var t = pickChiefTip(s); return !t || t.id!=='ratingSlip';
 });
+
+/* Phase 4 self-test checks: training currency */
+check('currency lapses after a year', function(){ return isLapsed({lastTrain:1}, 60)===true && isLapsed({lastTrain:50}, 60)===false; });
+check('lapsed tech blocked from dealer work', function(){ return canDoDealerWork({lastTrain:1}, 60)===false; });
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
 else if (location.search.indexOf('screen=') >= 0) { var _m=location.search.match(/screen=([^&]+)/); if(_m){ newBoard(); STATE.screen=decodeURIComponent(_m[1]); } render(); }
