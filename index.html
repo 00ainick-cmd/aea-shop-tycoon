@@ -16,7 +16,7 @@
     min-height:100vh; min-height:100dvh; display:flex; justify-content:center; padding:10px; }
   body::after{ content:""; position:fixed; inset:0; pointer-events:none; z-index:9000; background:repeating-linear-gradient(0deg, rgba(0,0,0,.16) 0 1px, transparent 1px 3px); mix-blend-mode:multiply; opacity:.5; }
   .pix{ font-family:'Press Start 2P',monospace; }
-  .app{ width:100%; max-width:480px; display:flex; flex-direction:column; gap:8px; min-height:0; overflow-x:clip; }
+  .app{ width:100%; max-width:480px; display:flex; flex-direction:column; gap:8px; min-height:calc(100dvh - 20px); overflow-x:clip; }
   .panel{ background:var(--steel); border:3px solid var(--edge); border-radius:7px; box-shadow: inset 0 0 0 3px var(--rivet), inset 0 0 0 6px var(--steel), 0 6px 0 rgba(0,0,0,.45); padding:12px; overflow-wrap:break-word; min-width:0; }
   .titlebar{ background:linear-gradient(180deg,#2b62a6,#1b2632); border:3px solid var(--edge); border-radius:7px; box-shadow: inset 0 0 0 2px #4a7fc4, 0 4px 0 rgba(0,0,0,.45); padding:9px 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; }
   .titlebar .t{ font-size:11px; color:#dbe9ff; letter-spacing:.5px; min-width:0; overflow-wrap:break-word; word-break:break-all; }
@@ -124,7 +124,8 @@
   .total .tn{ font-size:10px; color:var(--muted); } .total .tv{ font-size:26px; color:var(--scope); margin-top:8px; } .total .hit{ color:var(--amber); font-size:12px; margin-top:10px; animation:pulse .6s infinite alternate; }
   .ledger{ display:flex; justify-content:space-between; font-size:18px; color:var(--muted); margin-top:4px; } .ledger b{ color:var(--ink); }
   .payout{ text-align:center; margin-top:8px; } .payout .pl{ font-family:'Press Start 2P',monospace; font-size:8px; color:var(--muted); } .payout .pv{ font-family:'Press Start 2P',monospace; font-size:20px; color:var(--scope); margin-top:7px; }
-  #bar{ display:flex; gap:8px; }
+  #bar{ display:flex; gap:8px; position:sticky; bottom:0; margin-top:auto; z-index:50; padding-top:12px; padding-bottom:calc(4px + env(safe-area-inset-bottom)); background:linear-gradient(180deg, rgba(13,19,27,0) 0%, var(--bay) 38%); }
+  #bar:empty{ display:none; }
   .btn{ flex:1; font-family:'Press Start 2P',monospace; font-size:10px; line-height:1.5; background:linear-gradient(180deg,#33455a,#1c2733); color:var(--ink); border:3px solid var(--edge); border-radius:7px; box-shadow: inset 0 0 0 2px var(--hi), 0 5px 0 var(--edge); padding:14px 8px; cursor:pointer; min-height:50px; }
   .btn:active{ transform:translateY(3px); box-shadow: inset 0 0 0 2px var(--hi), 0 2px 0 var(--edge); } .btn:disabled{ opacity:.4; cursor:default; transform:none; }
   .btn-go{ background:linear-gradient(180deg,#3fe6a8,#159e6e); color:#062018; box-shadow: inset 0 0 0 2px #9bf2d3, 0 5px 0 #0a4a34; } .btn-go:active{ box-shadow: inset 0 0 0 2px #9bf2d3, 0 2px 0 #0a4a34; }
@@ -830,14 +831,6 @@ SCREENS.floor=function(){
       + (ready?'<div class="row2"><span class="badge b-amazing">READY TO DELIVER</span></div>':'<div class="dots">'+dots+'</div><div class="qmeter"><div style="width:'+comp+'%"></div></div>')+'</div></div>';
   }).join('');
   var canRun=STATE.bays.some(function(b){ return b.job && b.crew.length && b.shiftsDone<b.shiftsNeed; });
-  /* reviews wall */
-  var avg=STATE.starRating||0;
-  var recentRevs=reviewsWallHTML(3);
-  var reviewsWall='<div class="panel" style="margin-top:0"><div class="reviews-wall-header"><div class="rw-title">SHOP RATING</div><div class="star-row">'+renderStars(Math.round(avg))+'</div></div>'
-    +'<div style="font-family:\'Press Start 2P\',monospace;font-size:10px;color:var(--scope);margin:4px 0">'+avg.toFixed(1)+'<span style="font-size:7px;color:var(--muted)"> / 5 stars</span></div>'
-    +(recentRevs||'<div class="note" style="text-align:left;margin-top:6px">No reviews yet. Great work builds your rating.</div>')
-    +(STATE.reviewsFeed&&STATE.reviewsFeed.length>0?'<button class="opt" style="margin-top:8px;min-height:44px" data-go="reviews">SEE ALL REVIEWS</button>':'')
-    +'</div>';
   var tip=pickChiefTip(STATE);
   var chiefChip = tip ? '<button class="chief-chip" style="width:100%;min-height:48px;display:flex;align-items:center;gap:10px;text-align:left;margin:8px 0;padding:8px 12px;background:#16202b;border:2px solid var(--amber);border-radius:8px;box-shadow:0 0 0 2px rgba(255,176,40,.18)">'+chiefSprite(34)+'<span style="display:flex;flex-direction:column"><span class="pix" style="font-size:8px;color:var(--amber)">CHIEF</span><span class="ds" style="margin-top:2px">'+tip.short+'</span></span><span class="pix" style="margin-left:auto;font-size:8px;color:var(--amber)">\u25ba</span></button>' : '';
 
@@ -845,12 +838,11 @@ SCREENS.floor=function(){
       + hangarScene()
       + chiefChip
       +'<div class="panel"><div class="row2" style="margin-top:0"><span class="eratag">ERA '+STATE.era+': '+ERAS[STATE.era].name+'</span>'+ (STATE.passive>0?'<span class="eratag" style="color:var(--scope)">+'+money(STATE.passive)+'/job</span>':'') + (hasPremier()?'<span class="eratag" style="color:var(--amber)">PREMIER</span>':'')+'</div><div class="note" style="text-align:left;margin-top:8px;color:'+season().sun+'">'+season().tag+'</div><div class="note" style="text-align:left;margin-top:6px">'+standing+'</div></div>'
-      + bays + reviewsWall,
+      + bays,
     actions:[ {label:'RUN A SHIFT', cls:'btn-go', disabled:!canRun, on:runShift}, {label:'THE SHOP', cls:'btn-amber', on:function(){ go('shop'); }} ],
     init:function(){
       document.querySelectorAll('.card[data-fill]').forEach(function(el){ el.onclick=function(){ sTab(); STATE.fillBay=+el.dataset.fill; newBoard(); go('board'); }; });
       document.querySelectorAll('.card[data-bay]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.bay, bay=STATE.bays[i]; sTab(); if(bay.shiftsDone>=bay.shiftsNeed){ STATE.deliverQueue=[i]; startDelivery(); } else { STATE.detailBay=i; go('baydetail'); } }; });
-      var seeAll=document.querySelector('.opt[data-go="reviews"]'); if(seeAll) seeAll.onclick=function(){ sTab(); go('reviews'); };
       var chip=document.querySelector('.chief-chip'); if(chip) chip.onclick=function(){ sTab(); go('chief'); };
     } };
 };
@@ -1223,6 +1215,7 @@ SCREENS.shop=function(){
   var dash='<div class="panel"><div class="ledger"><span>Bank</span><b style="color:var(--scope)">'+money(STATE.cash)+'</b></div>'
     +((STATE.pendingOverhead||0)!==0?'<div class="ledger"><span>Overhead due next invoice</span><b style="color:'+(STATE.pendingOverhead<0?'var(--beacon)':'var(--scope)')+'">'+(STATE.pendingOverhead<0?'-':'+')+money(Math.abs(STATE.pendingOverhead))+'</b></div>':'')
     +'<div class="ledger"><span>Field rep \u2022 AEA standing</span><b style="color:var(--amber)">'+STATE.rep+' \u2022 '+STATE.aeaRep+'</b></div>'
+    +'<div class="ledger"><span>Shop rating</span><b style="color:var(--scope)">'+(STATE.starRating||0).toFixed(1)+' / 5</b></div>'
     +'<div class="ledger"><span>Dealer authorizations</span><b style="color:var(--sky)">'+dealerN+'/8'+(hasPremier()?' \u2605':'')+'</b></div>'
     +(STATE.apprentice?'<div class="ledger"><span>Apprentices graduated</span><b style="color:var(--scope)">'+STATE.gradCount+'</b></div>':'')
     +'<div class="ledger"><span>Crew morale</span><b style="color:'+(ml<40?'var(--caution)':(ml<60?'var(--amber)':'var(--scope)'))+'">'+(ml>=75?'strong':ml>=60?'steady':ml>=40?'restless':'flight risk')+'</b></div>'
@@ -1232,6 +1225,7 @@ SCREENS.shop=function(){
   var award='<div class="card" data-go="awardeval"><div class="body"><div class="nm" style="color:var(--amber)">\u2605 SHOP OF THE YEAR</div><div class="ds">Progress '+Math.round(ap.total)+' / '+AWARD_TARGET+'. Tap for the scorecard.</div><div class="qmeter"><div style="width:'+clamp(ap.total/AWARD_TARGET*100,0,100)+'%"></div></div></div></div>';
   var custCount=Object.keys(STATE.customers).length;
   var nav='<div class="card" data-go="book"><div class="body"><div class="nm" style="color:var(--sky)">CUSTOMER BOOK</div><div class="ds">'+custCount+' customer'+(custCount!==1?'s':'')+' on the book. Relationships, lifetime value, review history.</div></div></div>'
+    +'<div class="card" data-go="reviews"><div class="body"><div class="nm" style="color:var(--sky)">REVIEWS & RATING</div><div class="ds">'+(STATE.starRating||0).toFixed(1)+' / 5 stars across '+STATE.reviewsFeed.length+' review'+(STATE.reviewsFeed.length!==1?'s':'')+'. Respond to the sore ones.</div></div></div>'
     +'<div class="card" data-go="recruit"><div class="body"><div class="nm">RECRUIT CREW</div><div class="ds">Slots '+STATE.crew.length+'/'+crewSlots()+'. College, CTE, military, or poach.</div></div></div>'
     +'<div class="card" data-go="training"><div class="body"><div class="nm">TRAINING</div><div class="ds">Credentials, AEA courses, OEM factory training, apprenticeship.</div></div></div>'
     +'<div class="card" data-go="dealers"><div class="body"><div class="nm">OEM DEALERS</div><div class="ds">Sell their gear, qualify, and climb the dealer ladder.</div></div></div>'
