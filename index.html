@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -10,7 +10,7 @@
 <style>
   :root{ --bay:#0d131b; --steel:#1b2632; --rivet:#2c3a49; --edge:#070b10; --hi:#44566a;
     --amber:#ffb028; --amber-dk:#a96e10; --scope:#36e0a0; --beacon:#ff5a5f; --sky:#5cc6ff; --violet:#c792ff; --paper:#f3ede0; --ink:#ecf3fb; --muted:#8ea3ba; --caution:#ffd23f; }
-  *{box-sizing:border-box} html{ -webkit-text-size-adjust:100%; }
+  *{box-sizing:border-box} html{ -webkit-text-size-adjust:100%; scrollbar-width:none; } html::-webkit-scrollbar{ display:none; }
   body{ margin:0; background:var(--bay); background-image:radial-gradient(120% 80% at 50% -10%, #1d3350 0%, #0d131b 55%);
     color:var(--ink); font-family:'VT323',ui-monospace,monospace; font-size:21px; line-height:1.25; -webkit-font-smoothing:none;
     min-height:100vh; min-height:100dvh; display:flex; justify-content:center; padding:10px; }
@@ -43,8 +43,8 @@
   .hangarwrap .wave{ animation:wave 1.8s linear infinite; }
   @keyframes wave{ 0%{ transform:translateX(0); } 100%{ transform:translateX(-8px); } }
   #soundbtn svg{ display:block; }
-  #stage{ display:flex; flex-direction:column; gap:10px; min-height:0; }
-  h2.scrn{ font-family:'Press Start 2P',monospace; font-size:12px; color:var(--amber); margin:2px 0; letter-spacing:.5px; line-height:1.5; }
+  #stage{ display:flex; flex-direction:column; gap:10px; min-height:0; min-width:0; width:100%; }
+  h2.scrn{ font-family:'Press Start 2P',monospace; font-size:12px; color:var(--amber); margin:2px 0; letter-spacing:.5px; line-height:1.5; overflow:hidden; max-width:100%; }
   .sub{ color:var(--muted); font-size:19px; }
   .eratag{ display:inline-block; font-family:'Press Start 2P',monospace; font-size:7px; padding:4px 6px; border-radius:4px; border:2px solid var(--edge); background:#16202b; color:var(--sky); }
   .hangarwrap{ border:3px solid var(--edge); border-radius:7px; overflow:hidden; box-shadow: inset 0 0 0 3px var(--rivet); background:#0a0f15; }
@@ -117,12 +117,12 @@
   .hf-head{ border:3px solid var(--caution); border-radius:7px; background:#2a2410; padding:12px; box-shadow: inset 0 0 0 2px #5a5020; }
   .hf-head .h2{ font-size:21px; color:#fff4d6; }
   .infobox{ background:#2a2410; border:3px solid var(--caution); border-radius:7px; padding:11px; font-size:19px; color:#fff4d6; box-shadow: inset 0 0 0 2px #5a5020; margin-top:4px; }
-  .reviewer{ display:flex; align-items:center; gap:10px; background:#16202b; border:3px solid var(--edge); border-radius:6px; box-shadow: inset 0 0 0 2px var(--rivet); padding:10px; margin-bottom:7px; }
-  .reviewer .who{ flex:1; } .reviewer .who .rn{ font-family:'Press Start 2P',monospace; font-size:9px; } .reviewer .who .rq{ color:var(--muted); font-size:17px; margin-top:3px; }
+  .reviewer{ display:flex; align-items:center; gap:10px; background:#16202b; border:3px solid var(--edge); border-radius:6px; box-shadow: inset 0 0 0 2px var(--rivet); padding:10px; margin-bottom:7px; min-width:0; overflow:hidden; }
+  .reviewer .who{ flex:1; min-width:0; } .reviewer .who .rn{ font-family:'Press Start 2P',monospace; font-size:9px; } .reviewer .who .rq{ color:var(--muted); font-size:17px; margin-top:3px; overflow-wrap:break-word; }
   .score{ font-family:'Press Start 2P',monospace; font-size:16px; color:var(--amber); }
   .total{ text-align:center; font-family:'Press Start 2P',monospace; padding:12px; border:3px solid var(--edge); border-radius:7px; box-shadow: inset 0 0 0 2px var(--rivet); background:#16202b; margin-top:4px; }
   .total .tn{ font-size:10px; color:var(--muted); } .total .tv{ font-size:26px; color:var(--scope); margin-top:8px; } .total .hit{ color:var(--amber); font-size:12px; margin-top:10px; animation:pulse .6s infinite alternate; }
-  .ledger{ display:flex; justify-content:space-between; font-size:18px; color:var(--muted); margin-top:4px; } .ledger b{ color:var(--ink); }
+  .ledger{ display:flex; justify-content:space-between; align-items:baseline; gap:4px; font-size:18px; color:var(--muted); margin-top:4px; } .ledger b{ color:var(--ink); }
   .payout{ text-align:center; margin-top:8px; } .payout .pl{ font-family:'Press Start 2P',monospace; font-size:8px; color:var(--muted); } .payout .pv{ font-family:'Press Start 2P',monospace; font-size:20px; color:var(--scope); margin-top:7px; }
   #bar{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:480px; display:flex; gap:8px; z-index:50; padding:14px 10px calc(10px + env(safe-area-inset-bottom)); background:linear-gradient(180deg, rgba(13,19,27,0) 0%, var(--bay) 34%); }
   #bar:empty{ display:none; }
@@ -549,7 +549,8 @@ function makeState(){
     pendingHire:null, personnel:null, lastPersonnel:0,
     customers:{}, reviewsFeed:[], starRating:0, custSeq:0,
     pendingOverhead:0, _lastReview:null, _respondIdx:null,
-    _seenTips:{}, demandWave:null, _activeTip:null, chiefSteps:null, showOne:null };
+    _seenTips:{}, demandWave:null, _activeTip:null, chiefSteps:null, showOne:null,
+    _jobHit:0, _jobHitLabel:null, _invoice:null };
 }
 var STATE=makeState();
 
@@ -628,7 +629,7 @@ function reviewsWallHTML(count){
   var feed=STATE.reviewsFeed; if(!feed||!feed.length) return '';
   var recent=feed.slice().sort(function(a,b){return b.week-a.week;}).slice(0,count||3);
   return recent.map(function(rv){
-    return '<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' • '+rv.aircraft+'</div></div>';
+    return '<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' â€¢ '+rv.aircraft+'</div></div>';
   }).join('');
 }
 function relRankCls(rel){ return 'c'+Math.min(3,rel); }
@@ -778,7 +779,7 @@ SCREENS.reviews=function(){
   else { var sorted=feed.slice().sort(function(a,b){return b.week-a.week;}); cards=sorted.map(function(rv){
       var ri=STATE.reviewsFeed.indexOf(rv);
       var tail = (rv.stars<=2 && !rv.answered) ? '<button class="opt" style="margin-top:6px;min-height:44px" data-resp="'+ri+'">RESPOND</button>'
-               : (rv.answered ? '<div class="note" style="text-align:left;margin-top:4px;color:var(--scope)">✓ Answered</div>' : '');
+               : (rv.answered ? '<div class="note" style="text-align:left;margin-top:4px;color:var(--scope)">âœ“ Answered</div>' : '');
       return '<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' &bull; '+rv.aircraft+'</div>'+tail+'</div>'; }).join(''); }
   return { html:'<h2 class="scrn">ALL REVIEWS</h2>'+header+cards,
     actions:[ {label:'BACK', on:function(){ go('floor'); }} ],
@@ -794,9 +795,9 @@ SCREENS.custReview=function(){
   else if(cust.rel<d.relBefore) relLine='<div class="sub" style="margin-top:6px;color:var(--beacon)">'+cust.name+' cooled to '+relNow.toUpperCase()+'</div>';
   var refLine = d.referral ? '<div class="infobox" style="margin-top:8px">'+d.referral+' is sending a friend your way. Your next customer walks in warm.</div>' : '';
   return { html:'<h2 class="scrn">THE REVIEW</h2>'
-     +'<div class="review-card" style="margin-top:4px"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' • '+rv.aircraft+'</div></div>'
+     +'<div class="review-card" style="margin-top:4px"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' â€¢ '+rv.aircraft+'</div></div>'
      +'<div class="panel"><div class="ledger"><span>Shop rating</span><b style="color:var(--scope)">'+(STATE.starRating||0).toFixed(1)+' / 5</b></div>'+relLine+'</div>'+refLine,
-    actions:[ {label:'CONTINUE ►', cls:'btn-go', on:function(){ if(STATE.deliverQueue.length){ startDelivery(); return; } finishDeliveries(); }} ],
+    actions:[ {label:'CONTINUE â–º', cls:'btn-go', on:function(){ if(STATE.deliverQueue.length){ startDelivery(); return; } finishDeliveries(); }} ],
     init:function(){ if(rv.stars>=4) sHit(); else if(rv.stars<=2) sBad(); } };
 };
 
@@ -805,7 +806,7 @@ SCREENS.reviewRespond=function(){
   if(!rv){ go('reviews'); return {html:'',actions:[]}; }
   var cost=800;
   return { html:'<h2 class="scrn">RESPOND</h2>'
-     +'<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' • '+rv.aircraft+'</div></div>'
+     +'<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' â€¢ '+rv.aircraft+'</div></div>'
      +'<div class="panel"><div class="note" style="text-align:left">A sore customer talks, and the field listens. You can own it and make it right on your dime, or let the review stand.</div></div>',
     actions:[
       {label:'OWN IT, FREE REWORK ('+money(cost)+')', cls:'btn-go', on:function(){
@@ -854,11 +855,11 @@ SCREENS.chief=function(){
   var stepsHTML='';
   if(STATE.chiefSteps && STATE.chiefSteps.length){
     stepsHTML='<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--amber)">FLAGGED STEPS</div>'
-      +STATE.chiefSteps.map(function(st){ return '<div class="note" style="text-align:left;margin-top:6px">• '+st+'</div>'; }).join('')+'</div>';
+      +STATE.chiefSteps.map(function(st){ return '<div class="note" style="text-align:left;margin-top:6px">â€¢ '+st+'</div>'; }).join('')+'</div>';
   }
   var acts=[];
   if(typeof tip.steps==='function'){ acts.push({label:'FLAG THE STEPS', cls:'btn-amber', on:function(){ STATE.chiefSteps=tip.steps(STATE); sGood(); go('chief'); }}); }
-  acts.push({label:'GOT IT ►', cls:'btn-go', on:function(){ if(STATE._seenTips) STATE._seenTips[tip.id]=true; STATE._activeTip=null; go('floor'); }});
+  acts.push({label:'GOT IT â–º', cls:'btn-go', on:function(){ if(STATE._seenTips) STATE._seenTips[tip.id]=true; STATE._activeTip=null; go('floor'); }});
   return { html:'<h2 class="scrn">CHIEF</h2>'
      +'<div class="panel"><div style="display:flex;gap:12px;align-items:flex-start">'+chiefSprite(56)+'<div class="chief" style="margin:0">'+tip.text(STATE)+'</div></div></div>'+stepsHTML,
     actions:acts };
@@ -987,19 +988,61 @@ function computeScores(bayIdx, squawkOk){
   STATE.scores={cust:cust,insp:insp,pilot:pilot,total:total,hit:total>=24,squawkOk:squawkOk};
   STATE.lastPayout=payout; STATE._repGain=Math.max(1,Math.round((total-12)*mult));
 }
+/* ---- Phase F1: line-item invoice builder ---- */
+/* All fields in parts are PRE-SIGNED: positive = income, negative = cost.
+   Callers must negate costs before passing (e.g. parts: -partsCost). */
+function buildInvoice(parts){
+  var lines=[];
+  /* Labor is always present */
+  lines.push({label:'Labor', amt: parts.labor||0});
+  /* Parts and consumables */
+  if((parts.parts||0)!==0) lines.push({label:'Parts', amt: parts.parts});
+  /* Dealer fee */
+  if((parts.dealerFee||0)>0) lines.push({label:'Dealer fee', amt: parts.dealerFee});
+  /* Premium kickback */
+  if((parts.kickback||0)>0) lines.push({label:'Premium kickback', amt: parts.kickback});
+  /* Unexpected job hit */
+  if((parts.hit||0)!==0) lines.push({label: parts.hitLabel||'Job hit', amt: parts.hit});
+  /* Shop overhead since last job */
+  if((parts.overhead||0)!==0) lines.push({label:'Shop overhead', amt: parts.overhead});
+  /* Net is the sum of all amounts */
+  var net=0; lines.forEach(function(l){ net+=l.amt; });
+  return {lines:lines, net:net};
+}
+
 SCREENS.review=function(){
   var s=STATE.scores, bay=STATE.bays[STATE.activeBay], j=JOBS[bay.job.j];
   var rv=function(n,q,sc){ return '<div class="reviewer"><div class="who"><div class="rn">'+n+'</div><div class="rq">'+q+'</div></div><div class="score">'+sc+'/10</div></div>'; };
   var cQ=s.cust>=8?'"Looks factory. I am bringing the whole fleet here." - '+bay.owner:s.cust>=5?'"Good work. Fair price." - '+bay.owner:'"It works, I guess." - '+bay.owner;
   var iQ=s.insp>=8?'"Paperwork is airtight. Signed."':s.insp>=5?'"A couple notes, but it conforms."':'"Logbook is a mess. Fix it."';
   var pQ=s.pilot>=8?'"Flies clean, panel is gorgeous."':s.pilot>=5?'"Solid. No complaints in the air."':'"There is still something off up there."';
-  var q=bay.job.quote; var partsCost = q ? q.parts : Math.round(STATE.lastPayout*0.15); var kb = (q&&q.kickback)?q.kickback:0; var oh=STATE.pendingOverhead||0; var net=STATE.lastPayout+STATE.passive-partsCost+kb+oh; STATE.lastNet=net;
+  var q=bay.job.quote;
+  /* Assemble invoice parts from the job */
+  var labor = STATE.lastPayout + (STATE.passive||0);
+  var partsCost = q ? q.parts : Math.round(STATE.lastPayout*0.15);
+  var kb = (q&&q.kickback) ? q.kickback : 0;
+  var dealerFee = 0; /* dealer fee margin already baked into payout; kickback is the upside line */
+  var hit = STATE._jobHit||0;
+  var hitLabel = STATE._jobHitLabel||'Job hit';
+  var overhead = STATE.pendingOverhead||0;
+  /* Build and store the invoice so collect() uses it as sole source of truth.
+     Parts is a cost so pass as negative. All other signed fields pass through unchanged. */
+  STATE._invoice = buildInvoice({labor:labor, parts:-partsCost, dealerFee:dealerFee, kickback:kb, hit:hit, hitLabel:hitLabel, overhead:overhead});
+  STATE.lastNet = STATE._invoice.net; /* keep lastNet in sync for compatibility */
+  var inv = STATE._invoice;
+  /* Render ledger rows from invoice lines. */
+  var ledgerRows = inv.lines.map(function(l){
+    var pos = l.amt >= 0;
+    var display = pos ? money(l.amt) : '-'+money(Math.abs(l.amt));
+    var col = pos ? 'var(--scope)' : 'var(--beacon)';
+    return '<div class="ledger"><span>'+l.label+'</span><b style="color:'+col+'">'+display+'</b></div>';
+  }).join('');
   return { html:'<h2 class="scrn">DELIVERY: '+j.name.toUpperCase()+'</h2>'+rv('THE CUSTOMER',cQ,s.cust)+rv('THE INSPECTOR',iQ,s.insp)+rv('THE PILOT',pQ,s.pilot)
       +'<div class="panel">'+barRowStatic(bay.bars,'work','WORKMANSHIP','f-work','l-work')+barRowStatic(bay.bars,'diag','DIAGNOSTICS','f-diag','l-diag')+barRowStatic(bay.bars,'comp','COMPLIANCE','f-comp','l-comp')+barRowStatic(bay.bars,'fin','FINISH','f-fin','l-fin')+'</div>'
-      +'<div class="sub" style="margin-top:8px;color:'+(s.squawkOk?'var(--scope)':'var(--caution)')+'">Functional test: '+(s.squawkOk?'cleared on the bench':'a squawk slipped to the test flight')+'</div><div class="total"><div class="tn">FINAL SCORE</div><div class="tv">'+s.total+' / 30</div>'+(s.hit?'<div class="hit">\u2605 HIT! THE FIELD IS TALKING \u2605</div>':'')+'</div>'
-      +'<div class="panel" style="margin-top:8px"><div class="ledger"><span>Job payout</span><b style="color:var(--scope)">'+money(STATE.lastPayout)+'</b></div>'+ (STATE.passive>0?'<div class="ledger"><span>Standing contracts</span><b style="color:var(--scope)">+'+money(STATE.passive)+'</b></div>':'') +'<div class="ledger"><span>'+(q?'Consumables':'Parts and materials')+'</span><b style="color:var(--beacon)">-'+money(partsCost)+'</b></div>'+(kb>0?'<div class="ledger"><span>Dealer kickback</span><b style="color:var(--scope)">+'+money(kb)+'</b></div>':'')+(oh!==0?'<div class="ledger"><span>Shop overhead (rent, payroll)</span><b style="color:'+(oh<0?'var(--beacon)':'var(--scope)')+'">'+(oh<0?'-':'+')+money(Math.abs(oh))+'</b></div>':'')+'<div class="payout"><div class="pl">NET</div><div class="pv" id="payv">'+money(0)+'</div></div></div>',
+      +'<div class="sub" style="margin-top:8px;color:'+(s.squawkOk?'var(--scope)':'var(--caution)')+'">Functional test: '+(s.squawkOk?'cleared on the bench':'a squawk slipped to the test flight')+'</div><div class="total"><div class="tn">FINAL SCORE</div><div class="tv">'+s.total+' / 30</div>'+(s.hit?'<div class="hit">â˜… HIT! THE FIELD IS TALKING â˜…</div>':'')+'</div>'
+      +'<div class="panel" style="margin-top:8px">'+ledgerRows+'<div class="payout"><div class="pl">NET TO SHOP</div><div class="pv" id="payv">'+money(0)+'</div></div></div>',
     actions:[ {label:'COLLECT', cls:'btn-go', on:collect} ],
-    init:function(){ initFills(); countUp($('#payv'),net); sCash(); if(s.hit) setTimeout(sHit,400); } };
+    init:function(){ initFills(); countUp($('#payv'),inv.net); sCash(); if(s.hit) setTimeout(sHit,400); } };
 };
 function collect(){
   var idx=STATE.activeBay, bay=STATE.bays[idx];
@@ -1021,7 +1064,12 @@ function collect(){
   if(rv.stars>=4 && cust.rel>=3){ STATE.warm=Math.max(STATE.warm||0,18); STATE.hotBoard=true; referral=cust.name; }
   STATE._lastReview={review:review, custId:cust.id, relBefore:relBefore, referral:referral};
   /* --- the single finance moment: settle the invoice --- */
-  STATE.cash+=STATE.lastNet; STATE.pendingOverhead=0; STATE.rep+=STATE._repGain; STATE.jobsDone++; STATE.floorPlane=bay.job.a;
+  /* STATE._invoice was built by SCREENS.review and is the sole source of truth for this job's net.
+     Cash changes exactly once here. pendingOverhead is inside the invoice so we zero it here too. */
+  var invoiceNet = (STATE._invoice && STATE._invoice.net != null) ? STATE._invoice.net : STATE.lastNet;
+  STATE.cash += invoiceNet; STATE.pendingOverhead=0; STATE._invoice=null; STATE._jobHit=0; STATE._jobHitLabel=null;
+  STATE.lastNet=invoiceNet; /* keep in sync for compatibility */
+  STATE.rep+=STATE._repGain; STATE.jobsDone++; STATE.floorPlane=bay.job.a;
   var soldOem=JOB_OEM[bay.job.j]; if(soldOem){ STATE.oemSales[soldOem]=(STATE.oemSales[soldOem]||0)+1; }
   addSpecXP(JOB_SPEC[bay.job.j], STATE.scores&&STATE.scores.hit?12:8);
   if(STATE.culture<45 && Math.random() < (0.45-STATE.culture/100)){ var rw=Math.round(STATE.lastPayout*0.10)+300; STATE.cash-=rw; STATE.rep=Math.max(0,STATE.rep-1); toast('Callback. A squawk came back.\n-'+money(rw)+' \u2022 weak safety culture.'); }
@@ -1296,7 +1344,7 @@ SCREENS.credEarned=function(){
   return { html:'<h2 class="scrn">CREDENTIAL EARNED</h2>'
      +'<div class="panel" style="text-align:center;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">'+d.name.toUpperCase()+' IS NOW</div><div class="big pix" style="font-size:13px;color:var(--amber);line-height:1.6;margin:10px 0">'+credName(d.cred).toUpperCase()+'</div>'+(d.passed?'<div class="hit">Cleared the practical clean.</div>':'<div class="sub" style="color:var(--caution)">Missed the practical, but the coursework carried it.</div>')+'</div>'
      +'<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--scope)">FROM THE BENCH</div><div class="note" style="text-align:left;margin-top:6px">'+d.fact+'</div></div>',
-    actions:[ {label:'BACK TO TRAINING ►', cls:'btn-go', on:function(){ STATE._lastCred=null; go('train'); }} ] };
+    actions:[ {label:'BACK TO TRAINING â–º', cls:'btn-go', on:function(){ STATE._lastCred=null; go('train'); }} ] };
 };
 SCREENS.graduation=function(){
   var d=STATE._lastCred; if(!d){ go('train'); return {html:'',actions:[]}; }
@@ -1305,7 +1353,7 @@ SCREENS.graduation=function(){
      +'<div class="panel"><div class="chief">Chief: "That is the one that counts, boss. You took a green kid and built a certified tech. Loyal, sharp, and nobody is poaching them out from under you. Do that enough times and the award takes care of itself."</div>'
      +'<div class="ledger" style="margin-top:8px"><span>Apprentices graduated</span><b style="color:var(--amber)">'+STATE.gradCount+'</b></div><div class="ledger"><span>AEA standing</span><b style="color:var(--scope)">+5</b></div><div class="ledger"><span>Field reputation</span><b style="color:var(--scope)">+3</b></div></div>'
      +'<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--scope)">FROM THE BENCH</div><div class="note" style="text-align:left;margin-top:6px">'+d.fact+'</div></div>',
-    actions:[ {label:'CELEBRATE ►', cls:'btn-go', on:function(){ STATE._lastCred=null; sHit(); go('train'); }} ] };
+    actions:[ {label:'CELEBRATE â–º', cls:'btn-go', on:function(){ STATE._lastCred=null; sHit(); go('train'); }} ] };
 };
 SCREENS.fallconf=function(){
   if(!STATE._confSel) STATE._confSel=[];
@@ -1313,13 +1361,13 @@ SCREENS.fallconf=function(){
   var elig=STATE.crew.map(function(c,i){ return {c:c,i:i}; }).filter(function(o){ return o.c.bay===null; });
   var cards=elig.map(function(o){ var c=o.c, i=o.i, on=STATE._confSel.indexOf(i)>=0, cs=currencyStatus(c,STATE.week);
     var tag=cs==='lapsed'?'<span class="cred c0" style="color:var(--beacon)">LAPSED</span>':(cs==='soon'?'<span class="cred c0" style="color:var(--caution)">DUE SOON</span>':'<span class="cred c0" style="color:var(--scope)">CURRENT</span>');
-    return '<div class="card '+(on?'sel':'')+'" data-conf="'+i+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'cf'+i,0)+'</svg></div><div class="body"><div class="nm">'+c.name+(on?'  ✓':'')+' '+tag+'</div><div class="ds">'+credName(c.cred)+' • currency '+cs+'</div></div></div>'; }).join('');
+    return '<div class="card '+(on?'sel':'')+'" data-conf="'+i+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'cf'+i,0)+'</svg></div><div class="body"><div class="nm">'+c.name+(on?'  âœ“':'')+' '+tag+'</div><div class="ds">'+credName(c.cred)+' â€¢ currency '+cs+'</div></div></div>'; }).join('');
   var onbay=STATE.crew.filter(function(c){ return c.bay!==null; }).length;
   var n=STATE._confSel.length, total=n*per;
-  var summary='<div class="panel"><div class="ledger"><span>Seats selected</span><b>'+n+' × '+money(per)+'</b></div><div class="ledger"><span>Total tuition</span><b style="color:var(--beacon)">'+money(total)+'</b></div><div class="ledger"><span>Payoff</span><b style="color:var(--scope)">currency refreshed • skills up • AEA standing</b></div></div>';
+  var summary='<div class="panel"><div class="ledger"><span>Seats selected</span><b>'+n+' Ã— '+money(per)+'</b></div><div class="ledger"><span>Total tuition</span><b style="color:var(--beacon)">'+money(total)+'</b></div><div class="ledger"><span>Payoff</span><b style="color:var(--scope)">currency refreshed â€¢ skills up â€¢ AEA standing</b></div></div>';
   return { html:'<h2 class="scrn">FALL AEA CONFERENCE</h2><div class="sub">Training season. Send techs to refresh their training currency for the year, sharpen their skills, and work the floor'+(onbay?' ('+onbay+' on a bay cannot go)':'')+'.</div>'
      +(elig.length?cards:'<div class="panel"><div class="note" style="text-align:left">Every tech is on a bay. Free one up to send them.</div></div>')+summary,
-    actions:[ {label:'SKIP THIS YEAR', on:function(){ STATE._confSel=[]; go('floor'); }}, {label:'SEND '+n+' ►', cls:n?'btn-go':'', disabled:!n, on:function(){ if(!n) return; if(STATE.cash<total){ toast('Need '+money(total)+'.'); return; } STATE.cash-=total; STATE._confSel.forEach(function(i){ var c=STATE.crew[i]; refreshCurrency(c); ['wiring','integ','trouble','paper'].forEach(function(k){ c[k]=Math.min(10,c[k]+0.3); }); c.loyalty=clamp((c.loyalty==null?70:c.loyalty)+3,0,100); }); STATE.aeaRep+=n; STATE.culture=clamp(STATE.culture+Math.min(5,n),cultureFloor(),100); STATE._confSel=[]; sLevel(); renderHUD(); toast(n+' tech'+(n>1?'s':'')+' refreshed at the conference.'); go('floor'); }} ],
+    actions:[ {label:'SKIP THIS YEAR', on:function(){ STATE._confSel=[]; go('floor'); }}, {label:'SEND '+n+' â–º', cls:n?'btn-go':'', disabled:!n, on:function(){ if(!n) return; if(STATE.cash<total){ toast('Need '+money(total)+'.'); return; } STATE.cash-=total; STATE._confSel.forEach(function(i){ var c=STATE.crew[i]; refreshCurrency(c); ['wiring','integ','trouble','paper'].forEach(function(k){ c[k]=Math.min(10,c[k]+0.3); }); c.loyalty=clamp((c.loyalty==null?70:c.loyalty)+3,0,100); }); STATE.aeaRep+=n; STATE.culture=clamp(STATE.culture+Math.min(5,n),cultureFloor(),100); STATE._confSel=[]; sLevel(); renderHUD(); toast(n+' tech'+(n>1?'s':'')+' refreshed at the conference.'); go('floor'); }} ],
     init:function(){ document.querySelectorAll('.card[data-conf]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.conf, p=STATE._confSel.indexOf(i); if(p>=0) STATE._confSel.splice(p,1); else STATE._confSel.push(i); sTab(); go('fallconf'); }; }); } };
 };
 SCREENS.gameover=function(){
@@ -1695,9 +1743,20 @@ check('award: reputation + workforce dominate', function(){
   return loved > rich;
 });
 
+/* Phase F1 self-test checks: line-item invoice */
+check('invoice lines sum to net', function(){
+  var inv = buildInvoice({labor:1200, parts:800, dealerFee:150, kickback:200, hit:-300, overhead:-500});
+  return inv.net === 1200+800+150+200-300-500 && inv.lines.length>=5;
+});
+check('invoice formats negative hit as a minus line', function(){
+  var inv = buildInvoice({labor:1000, parts:0, dealerFee:0, kickback:0, hit:-450, overhead:0});
+  return inv.lines.some(function(l){ return l.amt===-450 && /hit|callback|rush|box|backorder/i.test(l.label)===false ? false : l.amt===-450; });
+});
+
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
 else if (location.search.indexOf('screen=') >= 0) { var _m=location.search.match(/screen=([^&]+)/); if(_m){ newBoard(); STATE.screen=decodeURIComponent(_m[1]); } render(); }
 else { render(); }
 </script>
 </body>
 </html>
+
