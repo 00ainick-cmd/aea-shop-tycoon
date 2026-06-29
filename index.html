@@ -1844,6 +1844,12 @@ check('chief: once-tips not repeated', function(){
 /* Phase 4 self-test checks: training currency */
 check('currency lapses after a year', function(){ return isLapsed({lastTrain:1}, 60)===true && isLapsed({lastTrain:50}, 60)===false; });
 check('lapsed tech blocked from dealer work', function(){ return canDoDealerWork({lastTrain:1}, 60)===false; });
+check('currency gate flags dealer and certified jobs only', function(){
+  return isDealerOrCertJob({j:'glass'})===true   /* credReq>0 */
+      && isDealerOrCertJob({j:'audio'})===true   /* OEM dealer job */
+      && isDealerOrCertJob({j:'cert'})===false   /* routine inspection */
+      && isDealerOrCertJob(null)===false;
+});
 
 /* Phase 5 self-test checks: demand waves + award reweight */
 check('demand wave biases board toward the product domain', function(){
