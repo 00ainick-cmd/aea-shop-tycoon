@@ -743,7 +743,7 @@ SCREENS.quote=function(){
   function group(label,grp,opts,sel){ var b=opts.map(function(o){ var on=o.k===sel; return '<button class="seg'+(on?' on':'')+'" data-q="'+grp+'" data-v="'+o.k+'">'+o.label+'</button>'; }).join(''); return '<div class="segwrap"><div class="seglab">'+label+'</div><div class="segrow">'+b+'</div></div>'; }
   var html=tutorialBanner('quote')+'<h2 class="scrn">BUILD THE QUOTE</h2>'
    +'<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--amber)">'+pj.owner+' \u2022 '+JOBS[pj.j].name+'</div><div class="sub" style="margin-top:6px">Customer warmth '+pips(warmth)+'</div></div>';
-  if(oem) html+=group('Avionics line ('+OEMS[oem].name+(dt>0?', you are a '+TIER_NAME[dt]:', not your dealer yet')+')','gear',[{k:'budget',label:'BUDGET'},{k:'standard',label:'STANDARD'},{k:'premium',label:'PREMIUM'}],pj.qsel.gear);
+  if(oem) html+=group('Avionics line ('+OEMS[oem].name+(dt>0?', '+TIER_NAME[dt]:', not your dealer yet')+')','gear',[{k:'budget',label:'BUDGET'},{k:'standard',label:'STANDARD'},{k:'premium',label:'PREMIUM'}],pj.qsel.gear);
   html+=group('Consumables estimate','cons',[{k:'lean',label:'LEAN'},{k:'standard',label:'STANDARD'},{k:'padded',label:'PADDED'}],pj.qsel.cons);
   html+='<div class="panel" style="margin-top:10px">'
    +'<div class="ledger"><span>Labor ('+hrs+' hrs @ '+money(hrRate)+'/hr)</span><b>'+money(labor)+'</b></div>'
