@@ -812,7 +812,7 @@ SCREENS.book=function(){
     }).join('');
   }
   return { html:'<h2 class="scrn">CUSTOMER BOOK</h2><div class="panel" style="margin-bottom:0"><div class="note" style="text-align:left;font-family:\'Press Start 2P\',monospace;font-size:7px;color:var(--muted)">'+keys.length+' customer'+(keys.length!==1?'s':'')+' on the book</div></div>'+custList,
-    actions:[ {label:'BACK', on:function(){ go('shop'); }} ] };
+    actions:[ {label:'BACK', on:function(){ go('info'); }} ] };
 };
 
 SCREENS.reviews=function(){
@@ -827,7 +827,7 @@ SCREENS.reviews=function(){
                : (rv.answered ? '<div class="note" style="text-align:left;margin-top:4px;color:var(--scope)">✓ Answered</div>' : '');
       return '<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' &bull; '+rv.aircraft+'</div>'+tail+'</div>'; }).join(''); }
   return { html:'<h2 class="scrn">ALL REVIEWS</h2>'+header+cards,
-    actions:[ {label:'BACK', on:function(){ go('floor'); }} ],
+    actions:[ {label:'BACK', on:function(){ go('info'); }} ],
     init:function(){ document.querySelectorAll('.opt[data-resp]').forEach(function(el){ el.onclick=function(){ sTab(); STATE._respondIdx=+el.dataset.resp; go('reviewRespond'); }; }); } };
 };
 
@@ -1369,19 +1369,23 @@ SCREENS.shop=function(){
     +'<div class="ledger"><span>Owner charisma</span><b style="color:var(--sky)">'+rnd(STATE.charisma||3)+'/10</b></div>'
     +cultureBar()+'</div>';
   var award='<div class="card" data-go="awardeval"><div class="body"><div class="nm" style="color:var(--amber)">\u2605 SHOP OF THE YEAR</div><div class="ds">Progress '+Math.round(ap.total)+' / '+AWARD_TARGET+'. Tap for the scorecard.</div><div class="qmeter"><div style="width:'+clamp(ap.total/AWARD_TARGET*100,0,100)+'%"></div></div></div></div>';
-  var custCount=Object.keys(STATE.customers).length;
-  var nav='<div class="card" data-go="book"><div class="body"><div class="nm" style="color:var(--sky)">CUSTOMER BOOK</div><div class="ds">'+custCount+' customer'+(custCount!==1?'s':'')+' on the book. Relationships, lifetime value, review history.</div></div></div>'
-    +'<div class="card" data-go="reviews"><div class="body"><div class="nm" style="color:var(--sky)">REVIEWS & RATING</div><div class="ds">'+(STATE.starRating||0).toFixed(1)+' / 5 stars across '+STATE.reviewsFeed.length+' review'+(STATE.reviewsFeed.length!==1?'s':'')+'. Respond to the sore ones.</div></div></div>'
-    +'<div class="card" data-go="recruit"><div class="body"><div class="nm">RECRUIT CREW</div><div class="ds">Slots '+STATE.crew.length+'/'+crewSlots()+'. College, CTE, military, or poach.</div></div></div>'
-    +'<div class="card" data-go="training"><div class="body"><div class="nm">TRAINING</div><div class="ds">Credentials, AEA courses, OEM factory training, apprenticeship.</div></div></div>'
-    +'<div class="card" data-go="dealers"><div class="body"><div class="nm">OEM DEALERS</div><div class="ds">Sell their gear, qualify, and climb the dealer ladder.</div></div></div>'
-    +'<div class="card" data-act="rate"><div class="body"><div class="nm">LABOR RATE: '+RATES[(STATE.rate==null?1:STATE.rate)].n.toUpperCase()+'</div><div class="ds">'+RATES[(STATE.rate==null?1:STATE.rate)].ds+' Tap to change.</div></div></div>'
-    +'<div class="card" data-go="hustle"><div class="body"><div class="nm" style="color:var(--sky)">DRUM UP BUSINESS</div><div class="ds">Work the ramp, fly-ins, and ads. Warm up customers before they walk in.</div></div></div>'
-    +'<div class="card" data-go="manual"><div class="body"><div class="nm">SHOP MANUAL</div><div class="ds">How the game works. Customers, quotes, quality bars, money, and the path to Shop of the Year.</div></div></div>';
-  var actions=[]; if(upAction) actions.push(upAction); actions.push({label:'BACK', on:function(){ go('floor'); }});
-  return { html:'<h2 class="scrn">THE SHOP</h2>'+dash+'<div class="panel"><div class="sub" style="margin-top:0">Shop specialties</div><div class="note" style="text-align:left;margin:4px 0 8px">Every job builds a specialty. Climb from Unrated to Authority for the work that defines your shop.</div>'+specBoard()+'</div>'+award+nav+upCard, actions:actions,
+  var rateCard='<div class="card" data-act="rate"><div class="body"><div class="nm">LABOR RATE: '+RATES[(STATE.rate==null?1:STATE.rate)].n.toUpperCase()+'</div><div class="ds">'+RATES[(STATE.rate==null?1:STATE.rate)].ds+' Tap to change.</div></div></div>';
+  var drumCard='<div class="card" data-go="hustle"><div class="body"><div class="nm" style="color:var(--sky)">DRUM UP BUSINESS</div><div class="ds">Work the ramp, fly-ins, and ads. Warm up customers before they walk in.</div></div></div>';
+  var actions=[]; if(upAction) actions.push(upAction);
+  return { html:'<h2 class="scrn">THE SHOP</h2>'+dash+'<div class="panel"><div class="sub" style="margin-top:0">Shop specialties</div><div class="note" style="text-align:left;margin:4px 0 8px">Every job builds a specialty. Climb from Unrated to Authority for the work that defines your shop.</div>'+specBoard()+'</div>'+award+rateCard+drumCard+upCard, actions:actions,
     init:function(){ document.querySelectorAll('.card[data-go]').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.go); }; }); var rc=document.querySelector('.card[data-act="rate"]'); if(rc) rc.onclick=function(){ STATE.rate=(((STATE.rate==null?1:STATE.rate))+1)%3; sTab(); go('shop'); }; } };
 };
+SCREENS.info=function(){
+  var custCount=Object.keys(STATE.customers).length;
+  var avg=(STATE.starRating||0).toFixed(1);
+  var nav='<div class="card" data-go="book"><div class="body"><div class="nm" style="color:var(--sky)">CUSTOMER BOOK</div><div class="ds">'+custCount+' customer'+(custCount!==1?'s':'')+' on the book. Relationships, lifetime value, and history.</div></div></div>'
+    +'<div class="card" data-go="reviews"><div class="body"><div class="nm" style="color:var(--sky)">REVIEWS</div><div class="ds">'+avg+' / 5 stars. See what customers are saying and respond to the sore ones.</div></div></div>'
+    +'<div class="card" data-go="manual"><div class="body"><div class="nm">SHOP MANUAL</div><div class="ds">How to play, every system explained. Customers, quotes, quality, money, and the path to Shop of the Year.</div></div></div>';
+  return { html:'<h2 class="scrn">INFO</h2><div class="panel"><div class="note" style="text-align:left">Your customer book, reviews, and the shop manual all in one place.</div></div>'+nav,
+    actions:[],
+    init:function(){ document.querySelectorAll('.card[data-go]').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.go); }; }); } };
+};
+
 function buyUpgrade(u){ if(STATE.rep<u.req){ toast('Need rep '+u.req+'.'); return; } if(STATE.cash<u.cost){ toast('Not enough cash.'); return; }
   STATE.cash-=u.cost; STATE.level=u.lvl; while(STATE.bays.length<bayCount()) STATE.bays.push(freshBay());
   if(u.lvl===4){ STATE.passive+=1200; } if(u.lvl===5){ STATE.passive+=1500; }
@@ -1407,7 +1411,7 @@ SCREENS.manual=function(){
        'Money settles once per job, on one invoice at Collect Payment: labor, parts, the kickback, and your shop overhead, netted out. That is the only finance moment in the loop. Keep cash above water and keep the work flowing.')
     +s('HOW YOU WIN',
        'Shop of the Year is not for sale. It rewards your reputation above all: star rating and loyal repeat customers. It rewards your people: apprentices graduated and certified techs. Safety culture and dealer standing matter too. Early on you will hit a Regional Up-and-Comer milestone. To win the big one, invest in your crew and your customer relationships, not just cash.');
-  return { html:html, actions:[ {label:'BACK', on:function(){ go('shop'); }} ] };
+  return { html:html, actions:[ {label:'BACK', on:function(){ go('info'); }} ] };
 };
 
 SCREENS.hire=function(){
@@ -1664,12 +1668,12 @@ function countUp(el,target){ if(!el) return; var start=0,t0=performance.now(),du
 function go(name){ STATE.screen=name; render(); }
 
 /* ---- Tab bar navigation ---- */
-var TABS=[ {id:'floor',label:'FLOOR',root:'floor'},{id:'crew',label:'CREW',root:'crew'},{id:'dealers',label:'DEALERS',root:'dealers'},{id:'shop',label:'SHOP',root:'shop'},{id:'info',label:'INFO',root:'reviews'} ];
+var TABS=[ {id:'floor',label:'FLOOR',root:'floor'},{id:'crew',label:'CREW',root:'crew'},{id:'dealers',label:'DEALERS',root:'dealers'},{id:'shop',label:'SHOP',root:'shop'},{id:'info',label:'INFO',root:'info'} ];
 var TAB_OF={ floor:'floor',
   crew:'crew', train:'crew', traintech:'crew', courses:'crew', recruit:'crew', negotiate:'crew', apprentice:'crew',
   oemcert:'dealers', dealers:'dealers',
   shop:'shop', hustle:'shop', hustleResult:'shop',
-  reviews:'info', reviewRespond:'info', book:'info', manual:'info' };
+  info:'info', reviews:'info', reviewRespond:'info', book:'info', manual:'info' };
 function tabOf(screen){ return TAB_OF[screen]||null; }
 function screenHasTabs(screen){ return !!TAB_OF[screen]; }
 function renderTabBar(){ var active=tabOf(STATE.screen); if(!active) return ''; return TABS.map(function(t){ return '<button class="tab'+(t.id===active?' on':'')+'" data-tab="'+t.root+'">'+t.label+'</button>'; }).join(''); }
@@ -1989,6 +1993,8 @@ check('nav: job-loop screens are flow screens (no tabs)', function(){ return tab
 check('nav: five tabs each with label and root', function(){ return TABS.length===5 && TABS.every(function(t){ return t.label && t.root; }); });
 check('nav: crew hub owns techs/training/recruiting', function(){ return tabOf('crew')==='crew' && tabOf('train')==='crew' && tabOf('courses')==='crew' && tabOf('recruit')==='crew'; });
 check('nav: OEM factory training lives under dealers', function(){ return tabOf('oemcert')==='dealers'; });
+check('nav: info hub owns book/reviews/manual', function(){ return tabOf('info')==='info' && tabOf('book')==='info' && tabOf('reviews')==='info' && tabOf('manual')==='info'; });
+check('nav: shop tab still routes to itself', function(){ return tabOf('shop')==='shop' && tabOf('hustle')==='shop'; });
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
 else if (location.search.indexOf('screen=') >= 0) { var _m=location.search.match(/screen=([^&]+)/); if(_m){ newBoard(); STATE.screen=decodeURIComponent(_m[1]); } render(); }
