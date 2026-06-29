@@ -292,6 +292,56 @@ Because the demo is a play-anytime link, the arc has to actually pay off. To val
 - Confirm the award is winnable: culture >= 70 is gated by courses and fatigue management; Premier needs sales + rep + certs + culture. Walk one full path end to end.
 - Sanity-check that a careless player can lose (cash < -$4,000) without it being punishing on a first sitting.
 
+### Finishability trace (2026-06-29)
+
+Simulation tool: `tools/economy-trace.mjs`. Run with `node tools/economy-trace.mjs`. The model is self-contained with all constants transcribed literally from `index.html` as of this date.
+
+**Simplifying assumptions in the model (stated for auditability):**
+- Standard labor rate, standard consumables, no AEA courses purchased.
+- Job mix per era: audio on piston (era 1), glass on twinpiston (era 2), ADS-B on piston (era 3), radar on tprop1 (era 4). All amazing fit (the board guarantees at least one good fit).
+- Overhead accrues every 4 shifts (one tick per standard non-inspection job).
+- Starting crew: Dana (CAET Adv, wage ~$1,605/qtr) and Gary (CAET, wage ~$1,105/qtr).
+- Culture holds at 68 + 1 per job (no HF events, no fatigue loops).
+- Dealer buys use only Stocking tier (certReq forced to 0). No OEM cert purchases for higher tiers.
+- No random events, no AEA Show wave multiplier, no personnel events.
+- Star rating approximated as decaying average drifting toward (avgScore/30) x 5 at 15% weight per job.
+- Award workforce pillar uses starting crew creds only (sumCreds = 3, advTechs = 1, gradCount = 0).
+
+**Headline numbers:**
+
+| Milestone | Careful player (24/30 avg) | Sloppy player (16/30 avg) |
+|---|---|---|
+| Early milestone (Lv2 + first dealer) | job 4 (4 to 8 min at 1-2 min/job) | job 4 (4 to 8 min) |
+| Level 5 reached | job 22 (22 to 44 min) | job 23 (23 to 46 min) |
+| Shop of the Year award | NOT REACHED in 120 jobs | NOT REACHED in 120 jobs |
+
+Real play (with events, training, hiring decisions) runs 3 to 5 min per job, so those job counts translate to roughly 12 to 20 min for the early milestone and 66 to 110 min for Level 5 under realistic pacing.
+
+**Limiting factors at each gate:**
+
+- **Early milestone (Level 2 + first dealer):** Rep is the binding constraint. Level 2 requires rep 12 and $20,000. The rep threshold (not the cash gate) is what the player hits first. With amazing-fit era-1 jobs, rep builds to 12 in about 3 jobs. The first Larkfield dealer requires only 2 audio sales plus rep 8, both of which happen before the Level 2 rep gate. So the effective limiting factor is rep-to-Level-2.
+- **Level 5:** CASH. Rep races ahead of the cash gates at every level because the era-2 glass jobs ($24k x 1.15 aircraft x 1.4 fit = $38,640 base quote, ~$34k payout) generate large rep gains but also expensive upgrades. Level 5 costs $320,000. The player accumulates enough cash to buy it around job 22, but rep is already at 374 by then (well above the 110 requirement). Cash, not rep, gates Level 5.
+- **Shop of the Year award (NOT REACHED):** The award plateau is at roughly 67.7/85 for the careful player and 48.4/85 for the sloppy player, both stuck far below the 85 target regardless of how many more jobs are run. The simulation flatlines because:
+  1. **Workforce pillar (max 30) is nearly empty.** With no apprentices graduated, no advanced-cert purchases, and only starting crew (sumCreds = 3, advTechs = 1), the workforce pillar peaks at `0*3 + 1*3 + 3*0.5 = 4.5 out of 30`. This alone makes 85 mathematically impossible. The pillar needs at least 3 grad-to-CAET apprentices (9 pts), 2 or more advanced techs (6 pts), and more cred accumulation (say 12 creds = 6 pts) to get to 21+ points, which is the minimum needed for the score to touch 85.
+  2. **Dealer pillar (max 14) stalls at 7.2.** The model only buys Stocking tier (tier 1) for four makers (dealerScore = 4, pillar = 4 x 1.8 = 7.2). To reach 14 the player needs a dealerScore of ~8, which means either 8 Stocking deals or a mix including higher tiers. More importantly, the award win condition requires a Premier dealer OR Level 5. Level 5 is reachable in 22 jobs, but Premier requires culture >= 70 plus sales, rep, and certified techs that the simple trace does not model.
+  3. **Rep pillar (max 30) is capped by star rating.** The star rating drifts toward exactly 4.0 for the careful player and plateaus near 2.7 for the sloppy player. The rep pillar formula is `min(30, starRating/5*20 + loyalAccounts*2.2)`. A 4.0 star rating gives only 16 rep-pillar points. The pillar maxes out at 30 only at a 5-star rating (16 pts from rating) plus 6+ loyal accounts (13 pts). Neither happens without actively building customer relationships and repeating great jobs.
+
+**Concrete tuning recommendations:**
+
+The award is currently unreachable without active workforce development and dealer climbing. The gap is structural, not a payout calibration issue. Specific changes:
+
+1. **Lower the Level 5 cash gate from $320,000 to $180,000.** Cash races ahead after Level 4 anyway (the radar-on-tprop1 job nets roughly $46,000 per job at standard rate and amazing fit). The $320k gate serves no real purpose since rep (at 374 vs. required 110) is already trivially met. Lowering to $180k moves Level 5 from job 22 to approximately job 16, which puts it inside a 45-to-80-minute real-play session.
+
+2. **Give the workforce pillar minimum credit for starting crew.** Today a fresh shop with two certified techs (sumCreds = 3) scores only 4.5/30 on workforce. A starting floor of 6 to 8 points (or equivalently, reduce sumCreds weight from 0.5 to something where 3 creds = 3 pts and one advTech = 5 pts) makes the award feel earnable without an apprenticeship grind on a first sitting.
+
+3. **Add a Premier dealer shortcut or lower the Premier culture gate.** Premier currently requires culture >= 70, a certified tech, rep 60+, and 12 sales for Larkfield. Culture reaches 70 around job 2 in the trace, but tech certs and 12 sales are the real wall. A simpler path: allow one Premier deal to be purchased at Level 4 with rep 70 and 6 sales (half the current 12), so a focused player can satisfy the award win condition at Level 4 without needing Level 5.
+
+4. **Raise the payout floor from 0.85 to 0.90.** Current formula: `payout = quoteTotal x (0.85 + total/30 x 0.30)`. At a score of 16/30 the sloppy player earns only 0.85 + 0.16 = 1.01x of quote, meaning sloppy play barely covers the quote. Raising the floor to 0.90 gives a $0 to $3,000 cash buffer per job at low scores, reducing the risk of going negative before the player understands the loop. The careful player at 24/30 earns 0.85 + 0.24 = 1.09x (or 0.90 + 0.24 = 1.14x with the raised floor) -- a modest increase.
+
+5. **Cap the minimum jobs-to-award at roughly 35 to 50 by design.** The award needs workforce points that can only come from explicit player actions (training, apprenticeship, hiring). None of those are modeled in the baseline trace because they are not forced. This is a session-design observation: the award must be preceded by onboarding that makes workforce development obvious. Chief tips and the Shop Manual should call out the workforce pillar explicitly, or the player will grind era-4 jobs forever wondering why the score is stuck.
+
+**Sanity check on early game solvency:** The careful player starts with $6,000, earns roughly $10,300 net on job 1, and has $10,646 after buying the first Larkfield dealer at job 2. Cash never goes below $1,000 in the first 6 jobs (baseline scenario). The sloppy player runs similarly. Neither player comes close to the $-4,000 game-over threshold in the opening acts, which confirms the early game is not punishingly tight for a first-time player who picks any non-dead fit job.
+
 ---
 
 ## 13. Player-facing instructions plan (derived)
