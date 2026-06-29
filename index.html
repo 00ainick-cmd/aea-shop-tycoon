@@ -1282,7 +1282,7 @@ SCREENS.aeaShow=function(){
     +'<g transform="translate(132,64)">'+productArt(p.kind)+'</g></svg></div>';
   var move, moveAct;
   if(O && !isDealer){ move='Become a '+O.name+' dealer before the rush, so the premium upsell and the kickback are yours.'; moveAct={label:'GO TO DEALERS \u25BA', cls:'btn-go', on:function(){ closeShow(); go('dealers'); }}; }
-  else { move='Book training seats so your techs are current and certified for the work about to flood in.'; moveAct={label:'BOOK TRAINING \u25BA', cls:'btn-go', on:function(){ closeShow(); go('training'); }}; }
+  else { move='Book training seats so your techs are current and certified for the work about to flood in.'; moveAct={label:'BOOK TRAINING \u25BA', cls:'btn-go', on:function(){ closeShow(); go('crew'); }}; }
   return { html:'<h2 class="scrn">THE AEA SHOW</h2>'+stage
      +'<div class="panel" style="margin-top:8px;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">'+mk.toUpperCase()+' UNVEILS</div><div class="nm pix" style="font-size:12px;color:var(--amber);margin-top:6px">'+p.n+'</div><div class="reason" style="margin-top:8px">'+p.hype+'</div></div>'
      +'<div class="panel"><div class="infobox" style="border-color:var(--scope);background:#0f2a20;color:#cfeede;box-shadow:inset 0 0 0 2px #1a4a38">DEMAND WAVE: owners across the field want '+wantJob+' now. Your job board fills with it for the next few weeks, at early-adopter prices.</div><div class="note" style="text-align:left;margin-top:8px">Your move: '+move+'</div></div>',
@@ -1427,7 +1427,7 @@ SCREENS.train=function(){
     var curLbl = cur==='lapsed'?'<span style="color:var(--beacon)">currency lapsed</span>':cur==='soon'?'<span style="color:var(--caution)">currency due</span>':'<span style="color:var(--scope)">current</span>';
     return '<div class="card" data-tr="'+i+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'tr'+i,0)+'</svg></div><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds" style="'+col+'">'+status+'</div><div class="ds" style="font-size:9px;opacity:.8">'+money(c.wage||0)+'/qtr \u2022 loyalty '+(c.loyalty==null?70:c.loyalty)+' \u2022 '+curLbl+'</div></div></div>'; }).join('');
   return { html:'<h2 class="scrn">AEA TRAINING PATHWAY</h2><div class="sub">Skills grow on the bench and on the job. When a tech is sharp enough, certify them up a level. Tap a tech to train.</div>'+cards,
-    actions:[ {label:'BACK', on:function(){ go('training'); }} ],
+    actions:[ {label:'BACK', on:function(){ go('crew'); }} ],
     init:function(){ document.querySelectorAll('.card[data-tr]').forEach(function(el){ el.onclick=function(){ STATE._tr=+el.dataset.tr; sTab(); go('traintech'); }; }); } };
 };
 SCREENS.traintech=function(){
@@ -1511,9 +1511,28 @@ SCREENS.dealers=function(){
     if(t>=3){ line='<span class="badge b-amazing">PREMIER DEALER</span>'; }
     else { var met=dealerReqMet(o,nt); line='<span class="badge '+(met?'b-solid':'b-dead')+'">to '+TIER_NAME[nt]+'</span><span class="cred c0">sales '+sales+'/'+O.salesReq[nt]+'</span><span class="cred c0">rep '+STATE.rep+'/'+O.repReq[nt]+'</span>'+(O.certReq[nt]?'<span class="cred c0">certs '+oemCertCount(o)+'/'+O.certReq[nt]+'</span>':'')+(nt>=3?'<span class="cred c0">culture '+Math.round(STATE.culture)+'/70</span>':''); }
     return '<div class="card flat" data-oem="'+o+'"><div class="body"><div class="nm">'+O.name+(t?' <span class="cred c1">'+TIER_NAME[t]+'</span>':'')+'</div><div class="ds">'+O.dom+' \u2022 rises '+ERAS[O.era].name+'</div><div class="row2">'+line+(t<3?'<span class="pay">'+money(O.buyin[nt])+'</span>':'')+'</div></div></div>'; }).join('');
-  return { html:'<h2 class="scrn">OEM DEALERS</h2><div class="sub">Sell their gear to build sales, certify techs, and climb. Premier dealers win Shop of the Year. Tap to buy or upgrade.</div>'+cards,
-    actions:[ {label:'BACK', on:function(){ go('shop'); }} ],
-    init:function(){ document.querySelectorAll('.card[data-oem]').forEach(function(el){ el.onclick=function(){ buyDealer(el.dataset.oem); }; }); } };
+  var oemTrainCard='<div class="card" data-go="oemcert"><div class="body"><div class="nm">OEM FACTORY TRAINING</div><div class="ds">Certify techs on the lines you sell. Cleaner work and higher dealer tiers.</div></div></div>';
+  return { html:'<h2 class="scrn">OEM DEALERS</h2><div class="sub">Sell their gear to build sales, certify techs, and climb. Premier dealers win Shop of the Year. Tap to buy or upgrade.</div>'+cards+oemTrainCard,
+    actions:[],
+    init:function(){ document.querySelectorAll('.card[data-oem]').forEach(function(el){ el.onclick=function(){ buyDealer(el.dataset.oem); }; }); document.querySelectorAll('.card[data-go]').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.go); }; }); } };
+};
+SCREENS.crew=function(){
+  var slots=crewSlots();
+  var rosterCards=STATE.crew.map(function(c,i){
+    var cur=currencyStatus(c,STATE.week);
+    var curLbl=cur==='lapsed'?'<span style="color:var(--beacon)">currency lapsed</span>':cur==='soon'?'<span style="color:var(--caution)">currency due</span>':'<span style="color:var(--scope)">current</span>';
+    return '<div class="card flat"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'cr'+i,0)+'</svg></div><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds" style="font-size:9px;opacity:.8">avg skill '+avgSkill(c).toFixed(1)+' • '+curLbl+'</div></div></div>';
+  }).join('');
+  if(!STATE.crew.length) rosterCards='<div class="panel"><div class="note" style="text-align:left">No crew yet. Recruit your first tech to get started.</div></div>';
+  var nav=[
+    ['train','TRAIN TECHNICIANS','The AEA credential ladder. Train skills and certify CAET, Advanced, Master.'],
+    ['recruit','RECRUIT CREW','Bring in new people from the job board, CTE programs, or the military.'],
+    ['courses','AEA COURSES','Shop-wide courses: compliance, wiring, human factors, cyber, business.'],
+    ['apprentice','APPRENTICESHIP','Start a registered program. Grow your own bench and draw grant funding.']
+  ].map(function(n){ return '<div class="card" data-go="'+n[0]+'"><div class="body"><div class="nm">'+n[1]+'</div><div class="ds">'+n[2]+'</div></div></div>'; }).join('');
+  return { html:'<h2 class="scrn">CREW</h2><div class="sub">Your people are the product. Grow them here. Crew '+STATE.crew.length+'/'+slots+'.</div>'+rosterCards+'<div class="sub" style="margin-top:10px">Actions</div>'+nav,
+    actions:[],
+    init:function(){ document.querySelectorAll('.card[data-go]').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.go); }; }); } };
 };
 SCREENS.training=function(){
   var nav=[['train','TECHNICIANS','The AEA credential ladder. Train skills and certify CAET, Advanced, Master.'],['courses','AEA COURSES','Shop-wide courses: compliance, wiring, human factors, cyber, business.'],['oemcert','OEM FACTORY TRAINING','Certify techs on the lines you sell. Cleaner work and higher dealer tiers.'],['apprentice','APPRENTICESHIP','Start a registered program. Grow your own bench and draw grant funding.']]
@@ -1525,12 +1544,12 @@ SCREENS.training=function(){
 SCREENS.courses=function(){
   var cards=COURSE_ORDER.map(function(k){ var co=COURSES[k], have=STATE.courses[k]; return '<div class="card'+(have?' flat':'')+'" data-course="'+k+'"><div class="body"><div class="nm">'+co.name+(have?' <span class="cred c2">DONE</span>':'')+'</div><div class="ds">'+co.ds+'</div>'+(have?'':'<div class="row2"><span class="pay">'+money(co.cost)+'</span></div>')+'</div></div>'; }).join('');
   return { html:'<h2 class="scrn">AEA COURSES</h2><div class="sub">One-time investments that lift the whole shop and your AEA standing.</div>'+cards,
-    actions:[ {label:'BACK', on:function(){ go('training'); }} ],
+    actions:[ {label:'BACK', on:function(){ go('crew'); }} ],
     init:function(){ document.querySelectorAll('.card[data-course]').forEach(function(el){ el.onclick=function(){ buyCourse(el.dataset.course); }; }); } };
 };
 SCREENS.oemcert=function(){
   var held=OEM_ORDER.filter(function(o){ return dealerTier(o)>=1; });
-  if(!held.length){ return { html:'<h2 class="scrn">OEM FACTORY TRAINING</h2><div class="panel"><div class="note" style="text-align:left">You are not a dealer for any line yet. Become a Stocking Dealer on the OEM Dealers screen (that first tier needs no certified techs), then send a tech to that manufacturer\u2019s training here.</div></div>', actions:[ {label:'OEM DEALERS \u25BA', cls:'btn-amber', on:function(){ go('dealers'); }}, {label:'BACK', on:function(){ go('training'); }} ] }; }
+  if(!held.length){ return { html:'<h2 class="scrn">OEM FACTORY TRAINING</h2><div class="panel"><div class="note" style="text-align:left">You are not a dealer for any line yet. Become a Stocking Dealer on the OEM Dealers screen (that first tier needs no certified techs), then send a tech to that manufacturer\u2019s training here.</div></div>', actions:[ {label:'OEM DEALERS \u25BA', cls:'btn-amber', on:function(){ go('dealers'); }}, {label:'BACK', on:function(){ go('dealers'); }} ] }; }
   var cost=3000+STATE.era*500;
   var cards=STATE.crew.map(function(c,i){
     if(c.bay!==null){ return '<div class="card flat" style="opacity:.55"><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds">On a bay. Free them up to send them to factory training.</div></div></div>'; }
@@ -1541,16 +1560,16 @@ SCREENS.oemcert=function(){
     var body=doneTags + (open.length?btns:'<div class="ds" style="color:var(--scope)">Certified on all your current lines. Add a dealership to unlock more.</div>');
     return '<div class="card flat"><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div>'+body+'</div></div>'; }).join('');
   return { html:'<h2 class="scrn">OEM FACTORY TRAINING</h2><div class="sub">Certify a tech on a line you sell. Removes the penalty on that gear and counts toward the Authorized and Premier tiers. Tuition '+money(cost)+'.</div>'+cards,
-    actions:[ {label:'BACK', on:function(){ go('training'); }} ],
+    actions:[ {label:'BACK', on:function(){ go('dealers'); }} ],
     init:function(){ document.querySelectorAll('.opt[data-ct]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.ct, o=el.dataset.co, c=STATE.crew[i]; if(STATE.cash<cost){ toast('Need '+money(cost)+'.'); return; } STATE.cash-=cost; c.oemCerts=c.oemCerts||{}; c.oemCerts[o]=true; refreshCurrency(c); sLevel(); renderHUD(); toast(c.name+' certified on '+OEMS[o].name+'.'); go('oemcert'); }; }); } };
 };
 SCREENS.apprentice=function(){
   if(!STATE.apprentice){ var hasMentor=STATE.crew.some(function(c){ return c.cred>=1; }); var startCost=8000;
     return { html:'<h2 class="scrn">APPRENTICESHIP PROGRAM</h2><div class="panel"><div class="evtext">Stand up a registered apprenticeship. Recruit green talent cheap, grow your own certified techs, draw workforce grant funding, and build the AEA standing that wins Shop of the Year.</div><div class="infobox" style="margin-top:8px">Requires a CAET or higher tech to mentor. One-time setup '+money(startCost)+'. Unlocks grant funding and half-price CTE hires.</div></div>',
-      actions:[ {label:'BACK', on:function(){ go('training'); }}, {label:'START PROGRAM', cls:(hasMentor&&STATE.cash>=startCost)?'btn-go':'', disabled:!(hasMentor&&STATE.cash>=startCost), on:function(){ if(!hasMentor){ toast('Need a CAET+ tech to mentor.'); return; } if(STATE.cash<startCost){ toast('Need '+money(startCost)+'.'); return; } STATE.cash-=startCost; STATE.apprentice=true; STATE.grant=true; STATE.aeaRep+=8; sLevel(); renderHUD(); toast('Apprenticeship program registered.\nGrant funding active.'); go('apprentice'); }} ] }; }
+      actions:[ {label:'BACK', on:function(){ go('crew'); }}, {label:'START PROGRAM', cls:(hasMentor&&STATE.cash>=startCost)?'btn-go':'', disabled:!(hasMentor&&STATE.cash>=startCost), on:function(){ if(!hasMentor){ toast('Need a CAET+ tech to mentor.'); return; } if(STATE.cash<startCost){ toast('Need '+money(startCost)+'.'); return; } STATE.cash-=startCost; STATE.apprentice=true; STATE.grant=true; STATE.aeaRep+=8; sLevel(); renderHUD(); toast('Apprenticeship program registered.\nGrant funding active.'); go('apprentice'); }} ] }; }
   var appr=STATE.crew.filter(function(c){ return c.cred===0; }).length;
   return { html:'<h2 class="scrn">APPRENTICESHIP PROGRAM</h2><div class="panel"><div class="ledger"><span>Status</span><b style="color:var(--scope)">Registered and active</b></div><div class="ledger"><span>Grant funding</span><b style="color:var(--scope)">active, folded into each invoice</b></div><div class="ledger"><span>Apprentices on staff</span><b>'+appr+'</b></div><div class="ledger"><span>Graduated to CAET</span><b style="color:var(--amber)">'+STATE.gradCount+'</b></div></div><div class="panel"><div class="note" style="text-align:left">Recruit apprentices cheap from High School CTE on the Recruit screen. Put them on jobs and through Technician training. Each one you graduate to CAET lifts your AEA standing.</div></div>',
-    actions:[ {label:'RECRUIT APPRENTICES', cls:'btn-amber', on:function(){ go('recruit'); }}, {label:'BACK', on:function(){ go('training'); }} ] };
+    actions:[ {label:'RECRUIT APPRENTICES', cls:'btn-amber', on:function(){ go('recruit'); }}, {label:'BACK', on:function(){ go('crew'); }} ] };
 };
 SCREENS.recruit=function(){
   var open=STATE.crew.length<crewSlots();
@@ -1558,7 +1577,7 @@ SCREENS.recruit=function(){
   var pool=CREW_POOL.filter(function(c){ return c.lvl<=STATE.level && !STATE.hired[c.key]; });
   var poolCards=pool.length?('<div class="sub" style="margin-top:10px">Job board</div>'+pool.map(function(c){ return '<div class="card'+(open?'':' flat')+'" data-h="'+c.key+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'jb'+c.key,0)+'</svg></div><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds">'+c.tag+'</div><div class="row2"><span class="pay">'+money(c.fee)+'</span></div></div></div>'; }).join('')):'';
   return { html:'<h2 class="scrn">RECRUIT CREW</h2><div class="sub">Slots '+STATE.crew.length+'/'+crewSlots()+'. '+(open?'Cheap and slow, or fast and costly. Your call.':'Every bench is full. Upgrade the shop for more slots.')+'</div>'+srcCards+poolCards,
-    actions:[ {label:'BACK', on:function(){ go('shop'); }} ],
+    actions:[ {label:'BACK', on:function(){ go('crew'); }} ],
     init: open?function(){
       document.querySelectorAll('.card[data-src]').forEach(function(el){ el.onclick=function(){ var s=RECRUIT.filter(function(x){return x.key===el.dataset.src;})[0]; var fee=s.cost; if(s.key==='cte'&&STATE.apprentice) fee=Math.round(fee*0.5); var tmp={wiring:s.sk[0],integ:s.sk[1],trouble:s.sk[2],paper:s.sk[3],cred:s.cred}; STATE.pendingHire={name:null,tag:s.tag,sk:s.sk,cred:s.cred,color:s.color,loBase:s.lo,fee:fee,ask:marketWage(tmp),srcKey:s.key}; sTab(); go('negotiate'); }; });
       document.querySelectorAll('.card[data-h]').forEach(function(el){ el.onclick=function(){ var c=CREW_POOL.filter(function(x){ return x.key===el.dataset.h; })[0]; var tmp={wiring:c.wiring,integ:c.integ,trouble:c.trouble,paper:c.paper,cred:c.cred}; STATE.pendingHire={name:c.name,tag:c.tag,sk:[c.wiring,c.integ,c.trouble,c.paper],cred:c.cred,color:c.color,loBase:65,fee:c.fee,ask:marketWage(tmp),boardKey:c.key}; sTab(); go('negotiate'); }; });
@@ -1645,10 +1664,10 @@ function countUp(el,target){ if(!el) return; var start=0,t0=performance.now(),du
 function go(name){ STATE.screen=name; render(); }
 
 /* ---- Tab bar navigation ---- */
-var TABS=[ {id:'floor',label:'FLOOR',root:'floor'},{id:'crew',label:'CREW',root:'train'},{id:'dealers',label:'DEALERS',root:'dealers'},{id:'shop',label:'SHOP',root:'shop'},{id:'info',label:'INFO',root:'reviews'} ];
+var TABS=[ {id:'floor',label:'FLOOR',root:'floor'},{id:'crew',label:'CREW',root:'crew'},{id:'dealers',label:'DEALERS',root:'dealers'},{id:'shop',label:'SHOP',root:'shop'},{id:'info',label:'INFO',root:'reviews'} ];
 var TAB_OF={ floor:'floor',
-  train:'crew', traintech:'crew', courses:'crew', recruit:'crew', negotiate:'crew', apprentice:'crew', oemcert:'crew',
-  dealers:'dealers',
+  crew:'crew', train:'crew', traintech:'crew', courses:'crew', recruit:'crew', negotiate:'crew', apprentice:'crew',
+  oemcert:'dealers', dealers:'dealers',
   shop:'shop', hustle:'shop', hustleResult:'shop',
   reviews:'info', reviewRespond:'info', book:'info', manual:'info' };
 function tabOf(screen){ return TAB_OF[screen]||null; }
@@ -1968,6 +1987,8 @@ check('tutorial skip ends it', function(){
 check('nav: tab routing maps screens to tabs', function(){ return tabOf('dealers')==='dealers' && tabOf('reviews')==='info' && tabOf('train')==='crew' && tabOf('shop')==='shop'; });
 check('nav: job-loop screens are flow screens (no tabs)', function(){ return tabOf('quote')===null && tabOf('meet')===null && tabOf('squawk')===null && tabOf('title')===null; });
 check('nav: five tabs each with label and root', function(){ return TABS.length===5 && TABS.every(function(t){ return t.label && t.root; }); });
+check('nav: crew hub owns techs/training/recruiting', function(){ return tabOf('crew')==='crew' && tabOf('train')==='crew' && tabOf('courses')==='crew' && tabOf('recruit')==='crew'; });
+check('nav: OEM factory training lives under dealers', function(){ return tabOf('oemcert')==='dealers'; });
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
 else if (location.search.indexOf('screen=') >= 0) { var _m=location.search.match(/screen=([^&]+)/); if(_m){ newBoard(); STATE.screen=decodeURIComponent(_m[1]); } render(); }
