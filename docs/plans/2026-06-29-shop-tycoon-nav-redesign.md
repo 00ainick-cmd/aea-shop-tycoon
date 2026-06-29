@@ -52,8 +52,9 @@ Build the persistent tab bar and wire it into `render()`. Tab roots point at scr
    #tabbar .tab.on{ color:var(--ink); border-color:var(--amber); box-shadow: inset 0 0 0 2px var(--amber); }
    @media (max-width:390px){ #tabbar .tab{ font-size:6px; } }
    ```
-5. Integrate into `render()` and the shell: add a `<div id="tabbar"></div>` to the page (or inject from render). In `render()`, after building the screen: if `screenHasTabs(STATE.screen)`, set `#tabbar` HTML to `renderTabBar()` and clear/hide `#bar` (do NOT render contextual actions for tabbed screens); else clear `#tabbar` and render `#bar` actions exactly as today. Wire tab clicks: `document.querySelectorAll('#tabbar .tab').forEach(el=>el.onclick=()=>{ sTab(); go(el.dataset.tab); })`. Ensure `.app` bottom padding clears whichever bar is present.
-6. Update `SCREENS.floor`: remove the `THE SHOP` action; move `RUN A SHIFT` to a prominent in-content button (since tabbed screens do not use the `#bar`). Keep the bay taps and Chief tip.
+5. Integrate into `render()` and the shell. The shell is `<div class="app" id="app"><div id="hudwrap"></div><div id="stage"></div><div id="bar"></div></div>`; add a sibling `<div id="tabbar"></div>` after `#bar`. In `render()`: render `scr.actions` into `#bar` exactly as today (keep this). Then, if `screenHasTabs(STATE.screen)`, set `#tabbar` to `renderTabBar()`, add class `with-tabs` to `#bar` (CSS lifts `#bar` to sit ABOVE the tab bar), and wire tab clicks `document.querySelectorAll('#tabbar .tab').forEach(el=>el.onclick=function(){ sTab(); go(el.dataset.tab); })`; else clear `#tabbar` and remove `with-tabs`. Hide `#bar` when it has zero buttons (so tab-root screens with no actions show only the tab bar): e.g. `bar.style.display = bar.children.length ? '' : 'none'`. Adjust `.app` bottom padding so content clears whichever bar(s) are present (tabbar ~62px; tabbar+bar ~124px).
+6. Update `SCREENS.floor`: remove the `THE SHOP` action (the tab bar replaces it). Keep `RUN A SHIFT` (it renders in `#bar` above the tab bar). Keep the bay taps and Chief tip.
+   Result: tab-root screens whose actions are just BACK can drop BACK later; the floor shows RUN A SHIFT above the tabs; child screens (e.g. traintech) keep their BACK/primary above the tabs.
 7. Run `?test=1`, expect PASS. Render at 500px: `?screen=floor` (tabs show, RUN A SHIFT in content, active=FLOOR), `?screen=dealers` (active=DEALERS), `?screen=quote` (NO tabs, contextual buttons present). Confirm no double bottom bars and nothing clipped.
 8. Commit: `feat(nav): persistent bottom tab bar wired to existing screens`.
 
@@ -94,6 +95,7 @@ Build the persistent tab bar and wire it into `render()`. Tab roots point at scr
 5. Commit any polish, then `git push origin main` to update the live demo.
 
 ## Notes
-- Tabbed screens must put their primary actions INLINE (not in `#bar`), because `#bar` is suppressed when the tab bar shows. Only flow screens use `#bar`.
+- `#bar` is KEPT on tabbed screens, stacked above the tab bar, and hidden when it has no buttons. So tab-root screens with no actions show only the tab bar (single bar); child screens show their actions above the tabs (two compact bars). This avoids refactoring every screen's actions inline.
+- Tab-root screens (crew/dealers/shop/info) should drop their BACK action (the tabs handle navigation); child screens keep BACK.
 - Do not alter the job loop screens or their actions.
 - No em dashes in any new copy. Touch targets >= 44px.
