@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -641,7 +641,7 @@ function reviewsWallHTML(count){
   var feed=STATE.reviewsFeed; if(!feed||!feed.length) return '';
   var recent=feed.slice().sort(function(a,b){return b.week-a.week;}).slice(0,count||3);
   return recent.map(function(rv){
-    return '<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' â€¢ '+rv.aircraft+'</div></div>';
+    return '<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' • '+rv.aircraft+'</div></div>';
   }).join('');
 }
 function relRankCls(rel){ return 'c'+Math.min(3,rel); }
@@ -817,7 +817,7 @@ SCREENS.reviews=function(){
   else { var sorted=feed.slice().sort(function(a,b){return b.week-a.week;}); cards=sorted.map(function(rv){
       var ri=STATE.reviewsFeed.indexOf(rv);
       var tail = (rv.stars<=2 && !rv.answered) ? '<button class="opt" style="margin-top:6px;min-height:44px" data-resp="'+ri+'">RESPOND</button>'
-               : (rv.answered ? '<div class="note" style="text-align:left;margin-top:4px;color:var(--scope)">âœ“ Answered</div>' : '');
+               : (rv.answered ? '<div class="note" style="text-align:left;margin-top:4px;color:var(--scope)">✓ Answered</div>' : '');
       return '<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' &bull; '+rv.aircraft+'</div>'+tail+'</div>'; }).join(''); }
   return { html:'<h2 class="scrn">ALL REVIEWS</h2>'+header+cards,
     actions:[ {label:'BACK', on:function(){ go('floor'); }} ],
@@ -833,9 +833,9 @@ SCREENS.custReview=function(){
   else if(cust.rel<d.relBefore) relLine='<div class="sub" style="margin-top:6px;color:var(--beacon)">'+cust.name+' cooled to '+relNow.toUpperCase()+'</div>';
   var refLine = d.referral ? '<div class="infobox" style="margin-top:8px">'+d.referral+' is sending a friend your way. Your next customer walks in warm.</div>' : '';
   return { html:'<h2 class="scrn">THE REVIEW</h2>'
-     +'<div class="review-card" style="margin-top:4px"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' â€¢ '+rv.aircraft+'</div></div>'
+     +'<div class="review-card" style="margin-top:4px"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' • '+rv.aircraft+'</div></div>'
      +'<div class="panel"><div class="ledger"><span>Shop rating</span><b style="color:var(--scope)">'+(STATE.starRating||0).toFixed(1)+' / 5</b></div>'+relLine+'</div>'+refLine,
-    actions:[ {label:'CONTINUE â–º', cls:'btn-go', on:function(){ if(STATE.deliverQueue.length){ startDelivery(); return; } finishDeliveries(); }} ],
+    actions:[ {label:'CONTINUE ►', cls:'btn-go', on:function(){ if(STATE.deliverQueue.length){ startDelivery(); return; } finishDeliveries(); }} ],
     init:function(){ if(rv.stars>=4) sHit(); else if(rv.stars<=2) sBad(); } };
 };
 
@@ -844,7 +844,7 @@ SCREENS.reviewRespond=function(){
   if(!rv){ go('reviews'); return {html:'',actions:[]}; }
   var cost=800;
   return { html:'<h2 class="scrn">RESPOND</h2>'
-     +'<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' â€¢ '+rv.aircraft+'</div></div>'
+     +'<div class="review-card"><div class="rv-stars">'+renderStars(rv.stars)+'</div><div class="rv-text">'+rv.text+'</div><div class="rv-attr">'+rv.cust+' • '+rv.aircraft+'</div></div>'
      +'<div class="panel"><div class="note" style="text-align:left">A sore customer talks, and the field listens. You can own it and make it right on your dime, or let the review stand.</div></div>',
     actions:[
       {label:'OWN IT, FREE REWORK ('+money(cost)+')', cls:'btn-go', on:function(){
@@ -893,11 +893,11 @@ SCREENS.chief=function(){
   var stepsHTML='';
   if(STATE.chiefSteps && STATE.chiefSteps.length){
     stepsHTML='<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--amber)">FLAGGED STEPS</div>'
-      +STATE.chiefSteps.map(function(st){ return '<div class="note" style="text-align:left;margin-top:6px">â€¢ '+st+'</div>'; }).join('')+'</div>';
+      +STATE.chiefSteps.map(function(st){ return '<div class="note" style="text-align:left;margin-top:6px">• '+st+'</div>'; }).join('')+'</div>';
   }
   var acts=[];
   if(typeof tip.steps==='function'){ acts.push({label:'FLAG THE STEPS', cls:'btn-amber', on:function(){ STATE.chiefSteps=tip.steps(STATE); sGood(); go('chief'); }}); }
-  acts.push({label:'GOT IT â–º', cls:'btn-go', on:function(){ if(STATE._seenTips) STATE._seenTips[tip.id]=true; STATE._activeTip=null; go('floor'); }});
+  acts.push({label:'GOT IT ►', cls:'btn-go', on:function(){ if(STATE._seenTips) STATE._seenTips[tip.id]=true; STATE._activeTip=null; go('floor'); }});
   return { html:'<h2 class="scrn">CHIEF</h2>'
      +'<div class="panel"><div style="display:flex;gap:12px;align-items:flex-start">'+chiefSprite(56)+'<div class="chief" style="margin:0">'+tip.text(STATE)+'</div></div></div>'+stepsHTML,
     actions:acts };
@@ -1118,7 +1118,7 @@ SCREENS.review=function(){
   }).join('');
   return { html:tutorialBanner('review')+'<h2 class="scrn">DELIVERY: '+j.name.toUpperCase()+'</h2>'+rv('THE CUSTOMER',cQ,s.cust)+rv('THE INSPECTOR',iQ,s.insp)+rv('THE PILOT',pQ,s.pilot)
       +'<div class="panel">'+barRowStatic(bay.bars,'work','WORKMANSHIP','f-work','l-work')+barRowStatic(bay.bars,'diag','DIAGNOSTICS','f-diag','l-diag')+barRowStatic(bay.bars,'comp','COMPLIANCE','f-comp','l-comp')+barRowStatic(bay.bars,'fin','FINISH','f-fin','l-fin')+'</div>'
-      +'<div class="sub" style="margin-top:8px;color:'+(s.squawkOk?'var(--scope)':'var(--caution)')+'">Functional test: '+(s.squawkOk?'cleared on the bench':'a squawk slipped to the test flight')+'</div><div class="total"><div class="tn">FINAL SCORE</div><div class="tv">'+s.total+' / 30</div>'+(s.hit?'<div class="hit">â˜… HIT! THE FIELD IS TALKING â˜…</div>':'')+'</div>'
+      +'<div class="sub" style="margin-top:8px;color:'+(s.squawkOk?'var(--scope)':'var(--caution)')+'">Functional test: '+(s.squawkOk?'cleared on the bench':'a squawk slipped to the test flight')+'</div><div class="total"><div class="tn">FINAL SCORE</div><div class="tv">'+s.total+' / 30</div>'+(s.hit?'<div class="hit">★ HIT! THE FIELD IS TALKING ★</div>':'')+'</div>'
       +'<div class="panel" style="margin-top:8px">'+ledgerRows+'<div class="payout"><div class="pl">NET TO SHOP</div><div class="pv" id="payv">'+money(0)+'</div></div></div>',
     actions:[ {label:'COLLECT', cls:'btn-go', on:collect} ],
     init:function(){ initFills(); countUp($('#payv'),inv.net); sCash(); if(s.hit) setTimeout(sHit,400); } };
@@ -1459,7 +1459,7 @@ SCREENS.credEarned=function(){
   return { html:'<h2 class="scrn">CREDENTIAL EARNED</h2>'
      +'<div class="panel" style="text-align:center;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">'+d.name.toUpperCase()+' IS NOW</div><div class="big pix" style="font-size:13px;color:var(--amber);line-height:1.6;margin:10px 0">'+credName(d.cred).toUpperCase()+'</div>'+(d.passed?'<div class="hit">Cleared the practical clean.</div>':'<div class="sub" style="color:var(--caution)">Missed the practical, but the coursework carried it.</div>')+'</div>'
      +'<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--scope)">FROM THE BENCH</div><div class="note" style="text-align:left;margin-top:6px">'+d.fact+'</div></div>',
-    actions:[ {label:'BACK TO TRAINING â–º', cls:'btn-go', on:function(){ STATE._lastCred=null; go('train'); }} ] };
+    actions:[ {label:'BACK TO TRAINING ►', cls:'btn-go', on:function(){ STATE._lastCred=null; go('train'); }} ] };
 };
 SCREENS.graduation=function(){
   var d=STATE._lastCred; if(!d){ go('train'); return {html:'',actions:[]}; }
@@ -1468,7 +1468,7 @@ SCREENS.graduation=function(){
      +'<div class="panel"><div class="chief">Chief: "That is the one that counts, boss. You took a green kid and built a certified tech. Loyal, sharp, and nobody is poaching them out from under you. Do that enough times and the award takes care of itself."</div>'
      +'<div class="ledger" style="margin-top:8px"><span>Apprentices graduated</span><b style="color:var(--amber)">'+STATE.gradCount+'</b></div><div class="ledger"><span>AEA standing</span><b style="color:var(--scope)">+5</b></div><div class="ledger"><span>Field reputation</span><b style="color:var(--scope)">+3</b></div></div>'
      +'<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--scope)">FROM THE BENCH</div><div class="note" style="text-align:left;margin-top:6px">'+d.fact+'</div></div>',
-    actions:[ {label:'CELEBRATE â–º', cls:'btn-go', on:function(){ STATE._lastCred=null; sHit(); go('train'); }} ] };
+    actions:[ {label:'CELEBRATE ►', cls:'btn-go', on:function(){ STATE._lastCred=null; sHit(); go('train'); }} ] };
 };
 SCREENS.fallconf=function(){
   if(!STATE._confSel) STATE._confSel=[];
@@ -1476,13 +1476,13 @@ SCREENS.fallconf=function(){
   var elig=STATE.crew.map(function(c,i){ return {c:c,i:i}; }).filter(function(o){ return o.c.bay===null; });
   var cards=elig.map(function(o){ var c=o.c, i=o.i, on=STATE._confSel.indexOf(i)>=0, cs=currencyStatus(c,STATE.week);
     var tag=cs==='lapsed'?'<span class="cred c0" style="color:var(--beacon)">LAPSED</span>':(cs==='soon'?'<span class="cred c0" style="color:var(--caution)">DUE SOON</span>':'<span class="cred c0" style="color:var(--scope)">CURRENT</span>');
-    return '<div class="card '+(on?'sel':'')+'" data-conf="'+i+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'cf'+i,0)+'</svg></div><div class="body"><div class="nm">'+c.name+(on?'  âœ“':'')+' '+tag+'</div><div class="ds">'+credName(c.cred)+' â€¢ currency '+cs+'</div></div></div>'; }).join('');
+    return '<div class="card '+(on?'sel':'')+'" data-conf="'+i+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'cf'+i,0)+'</svg></div><div class="body"><div class="nm">'+c.name+(on?'  ✓':'')+' '+tag+'</div><div class="ds">'+credName(c.cred)+' • currency '+cs+'</div></div></div>'; }).join('');
   var onbay=STATE.crew.filter(function(c){ return c.bay!==null; }).length;
   var n=STATE._confSel.length, total=n*per;
-  var summary='<div class="panel"><div class="ledger"><span>Seats selected</span><b>'+n+' Ã— '+money(per)+'</b></div><div class="ledger"><span>Total tuition</span><b style="color:var(--beacon)">'+money(total)+'</b></div><div class="ledger"><span>Payoff</span><b style="color:var(--scope)">currency refreshed â€¢ skills up â€¢ AEA standing</b></div></div>';
+  var summary='<div class="panel"><div class="ledger"><span>Seats selected</span><b>'+n+' × '+money(per)+'</b></div><div class="ledger"><span>Total tuition</span><b style="color:var(--beacon)">'+money(total)+'</b></div><div class="ledger"><span>Payoff</span><b style="color:var(--scope)">currency refreshed • skills up • AEA standing</b></div></div>';
   return { html:'<h2 class="scrn">FALL AEA CONFERENCE</h2><div class="sub">Training season. Send techs to refresh their training currency for the year, sharpen their skills, and work the floor'+(onbay?' ('+onbay+' on a bay cannot go)':'')+'.</div>'
      +(elig.length?cards:'<div class="panel"><div class="note" style="text-align:left">Every tech is on a bay. Free one up to send them.</div></div>')+summary,
-    actions:[ {label:'SKIP THIS YEAR', on:function(){ STATE._confSel=[]; go('floor'); }}, {label:'SEND '+n+' â–º', cls:n?'btn-go':'', disabled:!n, on:function(){ if(!n) return; if(STATE.cash<total){ toast('Need '+money(total)+'.'); return; } STATE.cash-=total; STATE._confSel.forEach(function(i){ var c=STATE.crew[i]; refreshCurrency(c); ['wiring','integ','trouble','paper'].forEach(function(k){ c[k]=Math.min(10,c[k]+0.3); }); c.loyalty=clamp((c.loyalty==null?70:c.loyalty)+3,0,100); }); STATE.aeaRep+=n; STATE.culture=clamp(STATE.culture+Math.min(5,n),cultureFloor(),100); STATE._confSel=[]; sLevel(); renderHUD(); toast(n+' tech'+(n>1?'s':'')+' refreshed at the conference.'); go('floor'); }} ],
+    actions:[ {label:'SKIP THIS YEAR', on:function(){ STATE._confSel=[]; go('floor'); }}, {label:'SEND '+n+' ►', cls:n?'btn-go':'', disabled:!n, on:function(){ if(!n) return; if(STATE.cash<total){ toast('Need '+money(total)+'.'); return; } STATE.cash-=total; STATE._confSel.forEach(function(i){ var c=STATE.crew[i]; refreshCurrency(c); ['wiring','integ','trouble','paper'].forEach(function(k){ c[k]=Math.min(10,c[k]+0.3); }); c.loyalty=clamp((c.loyalty==null?70:c.loyalty)+3,0,100); }); STATE.aeaRep+=n; STATE.culture=clamp(STATE.culture+Math.min(5,n),cultureFloor(),100); STATE._confSel=[]; sLevel(); renderHUD(); toast(n+' tech'+(n>1?'s':'')+' refreshed at the conference.'); go('floor'); }} ],
     init:function(){ document.querySelectorAll('.card[data-conf]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.conf, p=STATE._confSel.indexOf(i); if(p>=0) STATE._confSel.splice(p,1); else STATE._confSel.push(i); sTab(); go('fallconf'); }; }); } };
 };
 SCREENS.gameover=function(){
