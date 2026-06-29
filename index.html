@@ -491,7 +491,7 @@ var UPGRADES=[
   {lvl:2, name:'Second Bay & a Crew', req:12, cost:20000, desc:"A second bay, two more crew slots, and turboprop work. Run two jobs at once."},
   {lvl:3, name:'Avionics Center', req:35, cost:60000, desc:"A third bay, another hand, jet work, and dealer authorizations."},
   {lvl:4, name:'Regional Powerhouse', req:70, cost:150000, desc:"A fourth bay, a fifth hand, and your own STC line (passive income)."},
-  {lvl:5, name:'The Second Hangar', req:110, cost:320000, desc:"A fifth bay, a sixth and seventh hand, a polished flagship floor, and the run at Shop of the Year."} ];
+  {lvl:5, name:'The Second Hangar', req:110, cost:180000, desc:"A fifth bay, a sixth and seventh hand, a polished flagship floor, and the run at Shop of the Year."} ];
 
 var EVENTS=[
   { key:'aog', title:'AOG EMERGENCY', weight:3, text:"A charter operator has a jet stranded on the ramp with a dead box. Crew and passengers are waiting. They will pay a premium for a same-day fix.",
@@ -1751,6 +1751,15 @@ check('invoice lines sum to net', function(){
 check('invoice formats negative hit as a minus line', function(){
   var inv = buildInvoice({labor:1000, parts:0, dealerFee:0, kickback:0, hit:-450, overhead:0});
   return inv.lines.some(function(l){ return l.amt===-450 && /hit|callback|rush|box|backorder/i.test(l.label)===false ? false : l.amt===-450; });
+});
+
+check('level 5 cash gate lowered to 180k', function(){
+  var l5 = UPGRADES.filter(function(u){ return u.lvl===5; })[0];
+  return l5 && l5.cost === 180000;
+});
+check('upgrade cash gates strictly increase by level', function(){
+  for(var i=1;i<UPGRADES.length;i++){ if(UPGRADES[i].cost <= UPGRADES[i-1].cost) return false; }
+  return true;
 });
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }

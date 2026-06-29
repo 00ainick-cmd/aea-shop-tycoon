@@ -230,7 +230,7 @@ Other income: a flying-club contract event adds passive income per job; an STC l
 ## 9. Progression, beats, and endgame
 
 ### 9.1 Shop levels
-Five levels. Upgrade requires rep and cash: L2 (rep 12, 20,000), L3 (rep 35, 60,000), L4 (rep 70, 150,000), L5 (rep 110, 320,000). Levels set bays (1/2/3/4/5) and crew slots (2/4/5/6/7) and unlock aircraft classes and dealer authorizations.
+Five levels. Upgrade requires rep and cash: L2 (rep 12, 20,000), L3 (rep 35, 60,000), L4 (rep 70, 150,000), L5 (rep 110, 180,000). Levels set bays (1/2/3/4/5) and crew slots (2/4/5/6/7) and unlock aircraft classes and dealer authorizations.
 
 ### 9.2 Eras
 Four eras: Steam & Retrofit, The Glass Wave, The ADS-B Mandate, The Connected Cockpit. Era advances are gated on jobs completed: era 2 at 3 jobs, era 3 at 7, era 4 at 12. Each era unlocks new jobs and raises the credential expectations. The ADS-B era starts a 4-job rush (adsb pays +15%).
