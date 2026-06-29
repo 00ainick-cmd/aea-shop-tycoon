@@ -869,13 +869,18 @@ SCREENS.chief=function(){
 };
 
 SCREENS.board=function(){
+  var pmap={'budget':'BUDGET','status':'STATUS','safety':'SAFETY','tire':'TIRE-KICKER'};
   var cards=STATE.board.map(function(b,i){ var a=AIRCRAFT[b.a], j=JOBS[b.j];
-    return '<div class="card" data-i="'+i+'"><div class="ico">'+planeSVG(b.a)+'</div><div class="body"><div class="nm">'+j.name+'</div><div class="ds">'+a.name+' \u2022 for '+b.owner+'</div><div class="ds" style="opacity:.7">'+specName(JOB_SPEC[b.j])+' work</div>'
+    var knownP=customerPersonality(b.owner);
+    var persChip=knownP?'<span class="spectag">'+( pmap[knownP]||knownP.toUpperCase() )+'</span> <span class="spectag" style="color:var(--scope)">RETURNING</span>':'';
+    return '<div class="card" data-i="'+i+'"><div class="ico">'+planeSVG(b.a)+'</div><div class="body"><div class="nm">'+j.name+'</div><div class="ds">'+a.name+' \u2022 for '+b.owner+'</div>'
+      +(persChip?'<div class="row2" style="margin-top:4px">'+persChip+'</div>':'')
+      +'<div class="ds" style="opacity:.7">'+specName(JOB_SPEC[b.j])+' work</div>'
       +'<div class="row2"><span class="badge b-'+b.fit+'">'+b.fit.toUpperCase()+' FIT</span>'+ (j.credReq>0?'<span class="cred '+credCls(j.credReq)+'">'+credName(j.credReq).toUpperCase()+'</span>':'') +'<span class="pay">~'+money(previewPay(b.a,b.j,b.fit))+'</span></div>'
       +'<div class="reason">'+FITWHY[b.fit]+'</div></div></div>'; }).join('');
   return { html:'<h2 class="scrn">JOB BOARD</h2><div class="sub">Loading Bay '+(STATE.fillBay+1)+'. Watch the fit.</div>'+cards,
     actions:[ {label:'BACK', on:function(){ go('floor'); }} ],
-    init:function(){ document.querySelectorAll('.card[data-i]').forEach(function(el){ el.onclick=function(){ sTab(); var b=STATE.board[+el.dataset.i]; STATE.pendingJob={a:b.a,j:b.j,fit:b.fit,owner:b.owner,ctype:pick(CUSTYPES).k}; STATE.sel=[]; STATE.floorPlane=b.a; go('meet'); }; }); } };
+    init:function(){ document.querySelectorAll('.card[data-i]').forEach(function(el){ el.onclick=function(){ sTab(); var b=STATE.board[+el.dataset.i]; var known=customerPersonality(b.owner); STATE.pendingJob={a:b.a,j:b.j,fit:b.fit,owner:b.owner,ctype:known||pick(CUSTYPES).k}; STATE.sel=[]; STATE.floorPlane=b.a; go('meet'); }; }); } };
 };
 
 SCREENS.assign=function(){
@@ -1563,6 +1568,8 @@ function ensureCustomer(name, aircraft, personality){
   if(id===null){ STATE.custSeq=(STATE.custSeq||0)+1; id=STATE.custSeq; STATE.customers[id]={id:id,name:name,aircraft:aircraft,personality:personality,rel:0,ltv:0,lastWeek:STATE.week,reviews:[],jobsDone:0}; }
   return STATE.customers[id];
 }
+function customerByName(name){ var ks=Object.keys(STATE.customers); for(var i=0;i<ks.length;i++){ if(STATE.customers[ks[i]].name===name) return STATE.customers[ks[i]]; } return null; }
+function customerPersonality(name){ var c=customerByName(name); return c?c.personality:null; }
 
 /* ---- PHASE 2: the review generator (reviews wired to real job outcomes) ---- */
 var REVIEW_BANK = {
@@ -1781,6 +1788,13 @@ check('specialty edge scales with rank and is capped at +12pct', function(){
   return lo===1 && Math.abs(hi-1.12)<1e-9 && hi>lo;
 });
 check('jobs with no specialty mapping get no edge', function(){ return specEdge('nope_not_a_job')===1; });
+check('known customer reuses stored personality, new walk-in is unknown', function(){
+  var save=STATE.customers; STATE.customers={};
+  ensureCustomer('Test Pilot','piston','status');
+  var r = customerPersonality('Test Pilot')==='status' && customerPersonality('Nobody New')===null;
+  STATE.customers=save;
+  return r;
+});
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
 else if (location.search.indexOf('screen=') >= 0) { var _m=location.search.match(/screen=([^&]+)/); if(_m){ newBoard(); STATE.screen=decodeURIComponent(_m[1]); } render(); }
