@@ -342,6 +342,12 @@ The award is currently unreachable without active workforce development and deal
 
 **Sanity check on early game solvency:** The careful player starts with $6,000, earns roughly $10,300 net on job 1, and has $10,646 after buying the first Larkfield dealer at job 2. Cash never goes below $1,000 in the first 6 jobs (baseline scenario). The sloppy player runs similarly. Neither player comes close to the $-4,000 game-over threshold in the opening acts, which confirms the early game is not punishingly tight for a first-time player who picks any non-dead fit job.
 
+**Review verdict and decision (2026-06-29).** The trace passed an independent spec review: every constant was verified against `index.html` and the model is faithful. The review separated model-backed findings from inferences, and we decided "minimal and honest":
+
+- **Act on (recommendation 1):** lower the Level 5 cash gate from $320,000 to $180,000. This is the one simulated, real bottleneck (rep is at 374 vs the required 110 when cash finally clears the gate).
+- **Handle via onboarding, not math (recommendations 2 and 5):** the "award stalls near 68/85" result is a modeling artifact. The model holds workforce at starting values (no courses, no grads, no certs) and builds no loyal accounts, so it never fills the award's two heaviest pillars. The award is reachable for an engaged player by ceiling math (Reputation 30 + Workforce 30 + Safety 18 + Dealers 14 + Business 8 = 110 vs an 85 target). The real gap is discoverability, so the Shop Manual and Chief tips will teach that the win needs workforce development and loyal customers. The award weights are intentional and stay as built.
+- **Hold for the Task 11 playthrough (recommendations 3 and 4):** lowering the Premier sales requirement and raising the payout floor were inferences, not simulated outputs (the model never chased Premier and no player went broke). Revisit only if the real end-to-end playthrough shows them as walls.
+
 ---
 
 ## 13. Player-facing instructions plan (derived)
