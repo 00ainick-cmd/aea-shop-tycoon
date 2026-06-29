@@ -280,7 +280,7 @@ function season(){ return SEASONS[seasonKey()]; }
 function seasonHint(){ var k=seasonKey(); return k==='spring'?'\u25C8 AEA SHOW':k==='summer'?'HIRING SEASON':k==='fall'?'CONFERENCE':'TAXES DUE'; }
 /* ---- shop specialties ---- */
 var SPECS=[ {k:'retrofit',n:'RETROFIT & PANEL',s:'RETROFIT'},{k:'autopilot',n:'AUTOPILOTS',s:'AUTOPILOT'},{k:'glass',n:'GLASS & DECKS',s:'GLASS'},{k:'surveillance',n:'SURVEILLANCE',s:'SURVEIL'},{k:'engine',n:'ENGINE MONITORING',s:'ENGINE'},{k:'cabin',n:'CABIN & CONNECT',s:'CABIN'},{k:'inspections',n:'INSPECTIONS & CERTS',s:'INSPECT'} ];
-var JOB_SPEC={ audio:'cabin', elt:'surveillance', cert:'inspections', xpdr:'inspections', harness:'retrofit', radio:'retrofit', glass:'glass', ap:'autopilot', eis:'engine', adsb:'surveillance', datalink:'cabin', radar:'cabin', traffic:'surveillance' };
+var JOB_SPEC={ audio:'cabin', elt:'surveillance', cert:'inspections', xpdr:'inspections', harness:'retrofit', radio:'retrofit', glass:'glass', ap:'autopilot', eis:'engine', adsb:'surveillance', datalink:'cabin', radar:'cabin', traffic:'surveillance', expglass:'glass' };
 var SPEC_RANK=['Unrated','Familiar','Proficient','Specialist','Authority'];
 var SPEC_THRESH=[0,15,40,80,140];
 /* ---- labor rate (the sales lever) ---- */
@@ -422,7 +422,8 @@ var JOBS={
   adsb:{name:'ADS-B Out Install', era:3, credReq:1, ds:'Mandate transponder + GPS source.', w:{work:1,diag:0.7,comp:1.5,fin:0.6}, pay:9000, fit:{piston:'amazing',lsa:'amazing',floatplane:'amazing',taildragger:'risky'}},
   datalink:{name:'Cockpit Connectivity', era:4, credReq:2, ds:'Cabin/cockpit datalink + antenna.', w:{work:1.3,diag:1.1,comp:1,fin:1.2}, pay:32000, fit:{ljet:'amazing',mjet:'amazing',taildragger:'dead',piston:'dead',lsa:'dead',experimental:'dead',warbird:'dead',heli:'risky',floatplane:'risky'}},
   radar:{name:'Weather Radar Install', era:4, credReq:2, ds:'Radome, waveguide, indicator.', w:{work:1.2,diag:1.3,comp:1,fin:0.9}, pay:21000, fit:{tprop1:'amazing',tprop2:'amazing',ljet:'amazing',mjet:'amazing',taildragger:'dead',lsa:'dead',warbird:'dead',experimental:'risky'}},
-  traffic:{name:'ADS-B In / Traffic', era:4, credReq:1, ds:'Traffic display and position feed.', w:{work:1,diag:1.2,comp:1.1,fin:0.8}, pay:11000, fit:{ljet:'amazing',mjet:'amazing',tprop1:'amazing',tprop2:'amazing',taildragger:'risky'}} };
+  traffic:{name:'ADS-B In / Traffic', era:4, credReq:1, ds:'Traffic display and position feed.', w:{work:1,diag:1.2,comp:1.1,fin:0.8}, pay:11000, fit:{ljet:'amazing',mjet:'amazing',tprop1:'amazing',tprop2:'amazing',taildragger:'risky'}},
+  expglass:{name:'Experimental Glass Panel', era:2, credReq:0, ds:'Non-cert glass for a homebuilt. All the features, none of the cert tax.', w:{work:1.3,diag:0.9,comp:0.6,fin:1.4}, pay:14000, fit:{experimental:'amazing',lsa:'amazing',taildragger:'solid',piston:'risky',twinpiston:'dead',tprop1:'dead',tprop2:'dead',ljet:'dead',mjet:'dead'}} };
 var FITMULT={amazing:1.4,solid:1.0,risky:0.7,dead:0.4};
 var FITWHY={ amazing:"Bread and butter for this shop.", solid:"Clean, profitable work.", risky:"Tight fit. Thin margin, real gotchas.", dead:"Wrong airplane. No STC, no business taking it." };
 function fitFor(a,j){ return (JOBS[j].fit && JOBS[j].fit[a]) || 'solid'; }
@@ -441,6 +442,7 @@ var SQUAWKS={
   datalink:{ s:"The system connects on the ground but drops the link the moment the aircraft taxis.", opts:[{t:"Check the antenna mount and coax for a vibration-sensitive connection.",ok:true},{t:"Update the moving map."},{t:"Replace the landing light."},{t:"Re-torque the yoke."}], ex:"Works static, drops with motion equals a mechanical connection in the antenna path opening under vibration." },
   radar:{ s:"The radar sweeps but paints nothing, even in known weather.", opts:[{t:"Check the waveguide run and the antenna drive.",ok:true},{t:"Clean the windscreen."},{t:"Charge the battery."},{t:"Rotate the tires."}], ex:"A sweeping display with no returns points at the transmit and receive path, the waveguide or antenna, not the indicator." },
   traffic:{ s:"Traffic shows on the display, but the targets lag several seconds behind reality.", opts:[{t:"Verify the position source and the ADS-B In wiring integrity.",ok:true},{t:"Replace the dome light."},{t:"Bleed the brakes."},{t:"Adjust the seat."}], ex:"Laggy or stale targets trace to the position source feed and the data wiring, not the screen." },
+  expglass:{ s:"The experimental glass display boots, but the magnetometer refuses to calibrate and spins without settling.", opts:[{t:"Relocate the magnetometer away from the speaker and any unshielded wiring runs.",ok:true},{t:"Replace the COM antenna."},{t:"Recharge the battery."},{t:"Re-torque the prop bolts."}], ex:"A magnetometer mounted near a speaker magnet or unshielded DC wiring picks up enough field bias to prevent calibration. Move it clear of the interference and re-run the calibration routine." },
   generic:{ s:"A nav flag drops in only during turbulence.", opts:[{t:"Find the chafed wire or loose connector behind the panel.",ok:true},{t:"Clean the static port."},{t:"Replace the weak battery."},{t:"Adjust tire pressure."}], ex:"Intermittent only when the airframe flexes means a mechanical connection: a chafe or a backed-out pin that opens under vibration." } };
 
 /* ---- consequence-and-reward floor calls (each run() returns {t, tone}) ---- */
@@ -1132,7 +1134,7 @@ var OEMS={
  tempest:{name:'Tempest Systems', dom:'Weather radar and hazard awareness', era:4, buyin:[0,10000,22000,42000], annual:[0,1200,2500,4400], salesReq:[0,2,6,12], repReq:[0,26,52,88], certReq:[0,1,2,3], margin:[1,1.11,1.22,1.36]}
 };
 var OEM_ORDER=['larkfield','kestrel','vireon','tindall','halcyon','quanta','stratoline','tempest'];
-var JOB_OEM={ audio:'larkfield', elt:null, cert:null, xpdr:null, harness:null, radio:'vireon', glass:'vireon', ap:'tindall', eis:'kestrel', adsb:'quanta', datalink:'stratoline', radar:'tempest', traffic:'quanta' };
+var JOB_OEM={ audio:'larkfield', elt:null, cert:null, xpdr:null, harness:null, radio:'vireon', glass:'vireon', ap:'tindall', eis:'kestrel', adsb:'quanta', datalink:'stratoline', radar:'tempest', traffic:'quanta', expglass:'halcyon' };
 /* ---- AEA Convention: new-product showcase (cinematic reveal) ---- */
 var SHOW_PRODUCTS=[
  {n:'SkyView Audio 6', mk:'larkfield', kind:'audio', era:1, hype:'Six-place intercom, Bluetooth audio, and the clearest sidetone on the field.'},
@@ -1752,6 +1754,11 @@ check('invoice formats negative hit as a minus line', function(){
   var inv = buildInvoice({labor:1000, parts:0, dealerFee:0, kickback:0, hit:-450, overhead:0});
   return inv.lines.some(function(l){ return l.amt===-450 && /hit|callback|rush|box|backorder/i.test(l.label)===false ? false : l.amt===-450; });
 });
+
+check('halcyon has a job and it maps back', function(){
+  return !!JOBS.expglass && JOB_OEM.expglass === 'halcyon' && JOB_SPEC.expglass === 'glass';
+});
+check('expglass fits experimental aircraft well', function(){ return fitFor('experimental','expglass') === 'amazing'; });
 
 check('level 5 cash gate lowered to 180k', function(){
   var l5 = UPGRADES.filter(function(u){ return u.lvl===5; })[0];
