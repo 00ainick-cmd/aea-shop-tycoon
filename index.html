@@ -126,6 +126,13 @@
   .payout{ text-align:center; margin-top:8px; } .payout .pl{ font-family:'Press Start 2P',monospace; font-size:8px; color:var(--muted); } .payout .pv{ font-family:'Press Start 2P',monospace; font-size:20px; color:var(--scope); margin-top:7px; }
   #bar{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:480px; display:flex; gap:8px; z-index:50; padding:14px 10px calc(10px + env(safe-area-inset-bottom)); background:linear-gradient(180deg, rgba(13,19,27,0) 0%, var(--bay) 34%); }
   #bar:empty{ display:none; }
+  #tabbar{ position:fixed; left:50%; transform:translateX(-50%); bottom:0; width:100%; max-width:480px; display:flex; gap:4px; z-index:51; padding:6px 8px calc(8px + env(safe-area-inset-bottom)); background:linear-gradient(180deg, rgba(13,19,27,0) 0%, var(--bay) 30%); }
+  #tabbar:empty{ display:none; }
+  #tabbar .tab{ flex:1; min-height:50px; font-family:'Press Start 2P',monospace; font-size:8px; letter-spacing:.3px; color:var(--muted); background:var(--steel); border:3px solid var(--edge); border-radius:6px; box-shadow: inset 0 0 0 2px var(--rivet); cursor:pointer; }
+  #tabbar .tab.on{ color:var(--ink); border-color:var(--amber); box-shadow: inset 0 0 0 2px var(--amber); }
+  #bar.with-tabs{ bottom:62px; }
+  .app.has-tabs{ padding-bottom:calc(150px + env(safe-area-inset-bottom)); }
+  @media (max-width:390px){ #tabbar .tab{ font-size:6px; } }
   .btn{ flex:1; font-family:'Press Start 2P',monospace; font-size:10px; line-height:1.5; background:linear-gradient(180deg,#33455a,#1c2733); color:var(--ink); border:3px solid var(--edge); border-radius:7px; box-shadow: inset 0 0 0 2px var(--hi), 0 5px 0 var(--edge); padding:14px 8px; cursor:pointer; min-height:50px; }
   .btn:active{ transform:translateY(3px); box-shadow: inset 0 0 0 2px var(--hi), 0 2px 0 var(--edge); } .btn:disabled{ opacity:.4; cursor:default; transform:none; }
   .btn-go{ background:linear-gradient(180deg,#3fe6a8,#159e6e); color:#062018; box-shadow: inset 0 0 0 2px #9bf2d3, 0 5px 0 #0a4a34; } .btn-go:active{ box-shadow: inset 0 0 0 2px #9bf2d3, 0 2px 0 #0a4a34; }
@@ -224,7 +231,7 @@
 </style>
 </head>
 <body>
-<div class="app" id="app"><div id="hudwrap"></div><div id="stage"></div><div id="bar"></div></div>
+<div class="app" id="app"><div id="hudwrap"></div><div id="stage"></div><div id="bar"></div><div id="tabbar"></div></div>
 <div id="toast"></div>
 <script>
 "use strict";
@@ -878,7 +885,7 @@ SCREENS.floor=function(){
       + chiefChip
       +'<div class="panel"><div class="row2" style="margin-top:0"><span class="eratag">ERA '+STATE.era+': '+ERAS[STATE.era].name+'</span>'+ (STATE.passive>0?'<span class="eratag" style="color:var(--scope)">+'+money(STATE.passive)+'/job</span>':'') + (hasPremier()?'<span class="eratag" style="color:var(--amber)">PREMIER</span>':'')+'</div><div class="note" style="text-align:left;margin-top:8px;color:'+season().sun+'">'+season().tag+'</div><div class="note" style="text-align:left;margin-top:6px">'+standing+'</div></div>'
       + bays,
-    actions:[ {label:'RUN A SHIFT', cls:'btn-go', disabled:!canRun, on:runShift}, {label:'THE SHOP', cls:'btn-amber', on:function(){ go('shop'); }} ],
+    actions:[ {label:'RUN A SHIFT', cls:'btn-go', disabled:!canRun, on:runShift} ],
     init:function(){
       document.querySelectorAll('.card[data-fill]').forEach(function(el){ el.onclick=function(){ sTab(); STATE.fillBay=+el.dataset.fill; newBoard(); go('board'); }; });
       document.querySelectorAll('.card[data-bay]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.bay, bay=STATE.bays[i]; sTab(); if(bay.shiftsDone>=bay.shiftsNeed){ STATE.deliverQueue=[i]; startDelivery(); } else { STATE.detailBay=i; go('baydetail'); } }; });
@@ -1636,8 +1643,25 @@ EVENTS.push(
 /* ---- animation + router ---- */
 function countUp(el,target){ if(!el) return; var start=0,t0=performance.now(),dur=700; function step(t){ var p=clamp((t-t0)/dur,0,1); el.textContent=money(Math.round(start+(target-start)*p)); if(p<1) requestAnimationFrame(step); } requestAnimationFrame(step); }
 function go(name){ STATE.screen=name; render(); }
+
+/* ---- Tab bar navigation ---- */
+var TABS=[ {id:'floor',label:'FLOOR',root:'floor'},{id:'crew',label:'CREW',root:'train'},{id:'dealers',label:'DEALERS',root:'dealers'},{id:'shop',label:'SHOP',root:'shop'},{id:'info',label:'INFO',root:'reviews'} ];
+var TAB_OF={ floor:'floor',
+  train:'crew', traintech:'crew', courses:'crew', recruit:'crew', negotiate:'crew', apprentice:'crew', oemcert:'crew',
+  dealers:'dealers',
+  shop:'shop', hustle:'shop', hustleResult:'shop',
+  reviews:'info', reviewRespond:'info', book:'info', manual:'info' };
+function tabOf(screen){ return TAB_OF[screen]||null; }
+function screenHasTabs(screen){ return !!TAB_OF[screen]; }
+function renderTabBar(){ var active=tabOf(STATE.screen); if(!active) return ''; return TABS.map(function(t){ return '<button class="tab'+(t.id===active?' on':'')+'" data-tab="'+t.root+'">'+t.label+'</button>'; }).join(''); }
+
 function render(){ renderHUD(); var scr=SCREENS[STATE.screen](); $('#stage').innerHTML=scr.html; var bar=$('#bar'); bar.innerHTML='';
   (scr.actions||[]).forEach(function(a){ var b=document.createElement('button'); b.className='btn '+(a.cls||''); b.innerHTML=a.label; if(a.disabled) b.disabled=true; b.onclick=function(){ sBlip(); a.on(); }; bar.appendChild(b); });
+  var tb=$('#tabbar'), app=$('#app'), tabbed=screenHasTabs(STATE.screen);
+  if(tabbed){ tb.innerHTML=renderTabBar(); bar.classList.add('with-tabs'); app.classList.add('has-tabs');
+    document.querySelectorAll('#tabbar .tab').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.tab); }; });
+  } else { tb.innerHTML=''; bar.classList.remove('with-tabs'); app.classList.remove('has-tabs'); }
+  bar.style.display = bar.children.length ? '' : 'none';
   if(scr.init) scr.init(); window.scrollTo(0,0); }
 
 /* ---- SELF-TEST HARNESS (inert in normal play; ?test=1 activates it) ---- */
@@ -1940,6 +1964,10 @@ check('tutorial skip ends it', function(){
   var save=STATE.tutorial; STATE.tutorial={step:1,done:false};
   STATE.tutorial.done=true; var r=tutorialBanner('board')===''; STATE.tutorial=save; return r;
 });
+
+check('nav: tab routing maps screens to tabs', function(){ return tabOf('dealers')==='dealers' && tabOf('reviews')==='info' && tabOf('train')==='crew' && tabOf('shop')==='shop'; });
+check('nav: job-loop screens are flow screens (no tabs)', function(){ return tabOf('quote')===null && tabOf('meet')===null && tabOf('squawk')===null && tabOf('title')===null; });
+check('nav: five tabs each with label and root', function(){ return TABS.length===5 && TABS.every(function(t){ return t.label && t.root; }); });
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
 else if (location.search.indexOf('screen=') >= 0) { var _m=location.search.match(/screen=([^&]+)/); if(_m){ newBoard(); STATE.screen=decodeURIComponent(_m[1]); } render(); }
