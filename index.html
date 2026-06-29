@@ -561,7 +561,8 @@ function makeState(){
     customers:{}, reviewsFeed:[], starRating:0, custSeq:0,
     pendingOverhead:0, _lastReview:null, _respondIdx:null,
     _seenTips:{}, demandWave:null, _activeTip:null, chiefSteps:null, showOne:null,
-    _jobHit:0, _jobHitLabel:null, _invoice:null };
+    _jobHit:0, _jobHitLabel:null, _invoice:null,
+    tutorial:{step:0, done:false} };
 }
 var STATE=makeState();
 
@@ -645,6 +646,32 @@ function reviewsWallHTML(count){
 }
 function relRankCls(rel){ return 'c'+Math.min(3,rel); }
 
+/* ---- TUTORIAL ---- */
+var TUTORIAL_STEPS=[
+  {screen:'floor', text:"Welcome to your shop. Tap the empty bay to go find work."},
+  {screen:'board', text:"Pick a job that fits the airplane. Green fits are your bread and butter."},
+  {screen:'meet',  text:"Read the customer, then match your approach to warm them up."},
+  {screen:'quote', text:"Price the job. Warmer customers pay more. Send it when the number works."},
+  {screen:'assign',text:"Put a tech on the bay. Their skills fill the four quality bars."},
+  {screen:'floor', text:"Now tap RUN A SHIFT to build the job. Watch the bars fill."},
+  {screen:'review',text:"Delivery. You get paid on one invoice, and the customer leaves a review. That is the loop."}
+];
+function tutorialActive(){ return STATE.tutorial && !STATE.tutorial.done; }
+function tutorialSkip(){ if(STATE.tutorial){ STATE.tutorial.done=true; } render(); }
+function tutorialBanner(screenKey){
+  if(!tutorialActive()) return '';
+  var idx=-1;
+  for(var i=STATE.tutorial.step;i<TUTORIAL_STEPS.length;i++){ if(TUTORIAL_STEPS[i].screen===screenKey){ idx=i; break; } }
+  if(idx<0) return '';
+  STATE.tutorial.step=idx;
+  var t=TUTORIAL_STEPS[idx];
+  return '<div class="tut-banner" style="width:100%;min-height:48px;display:flex;align-items:center;gap:10px;text-align:left;margin:8px 0;padding:8px 12px;background:#16202b;border:2px solid var(--amber);border-radius:8px;box-shadow:0 0 0 2px rgba(255,176,40,.18)">'
+    +chiefSprite(34)
+    +'<span style="display:flex;flex-direction:column;flex:1;min-width:0"><span class="pix" style="font-size:8px;color:var(--amber)">CHIEF</span><span class="ds" style="margin-top:2px">'+t.text+'</span></span>'
+    +'<button onclick="tutorialSkip()" class="pix" style="margin-left:auto;font-size:7px;color:var(--muted);background:none;border:none;padding:6px">SKIP</button>'
+    +'</div>';
+}
+
 /* ---- SCREENS ---- */
 var SCREENS={};
 SCREENS.title=function(){
@@ -687,7 +714,7 @@ SCREENS.meet=function(){
     +'<div class="ds" style="margin-top:8px;opacity:.85">They want: <b style="color:var(--ink)">'+j.name+'</b></div>'
     +'<div class="note" style="text-align:left;margin-top:8px">Your read: '+ct.hint+'</div></div>';
   var btns=APPROACHES.map(function(ap){ return '<button class="opt" data-ap="'+ap.k+'"><span class="t">'+ap.label+'</span><span class="sml">'+ap.ds+'</span></button>'; }).join('');
-  return { html:'<h2 class="scrn">MEET THE CUSTOMER</h2>'+card+'<div class="sub">Your charisma '+pips(cha)+' &nbsp; Pick your approach.</div>'+btns,
+  return { html:tutorialBanner('meet')+'<h2 class="scrn">MEET THE CUSTOMER</h2>'+card+'<div class="sub">Your charisma '+pips(cha)+' &nbsp; Pick your approach.</div>'+btns,
     actions:[ {label:'WALK AWAY', on:function(){ go('floor'); }} ],
     init:function(){ document.querySelectorAll('.opt[data-ap]').forEach(function(el){ el.onclick=function(){ var ap=el.dataset.ap, match=(ap===ct.val);
         var interest=clamp(26+(match?34:8)+Math.round(cha*4)+Math.round(Math.random()*8)+(STATE.warm||0),0,100); STATE.warm=0;
@@ -714,7 +741,7 @@ SCREENS.quote=function(){
   var gearLbl={budget:'their budget pick',standard:'standard line',premium:'premium upsell'}[pj.qsel.gear];
   var consLbl={lean:'lean estimate',standard:'standard',padded:'padded'}[pj.qsel.cons];
   function group(label,grp,opts,sel){ var b=opts.map(function(o){ var on=o.k===sel; return '<button class="seg'+(on?' on':'')+'" data-q="'+grp+'" data-v="'+o.k+'">'+o.label+'</button>'; }).join(''); return '<div class="segwrap"><div class="seglab">'+label+'</div><div class="segrow">'+b+'</div></div>'; }
-  var html='<h2 class="scrn">BUILD THE QUOTE</h2>'
+  var html=tutorialBanner('quote')+'<h2 class="scrn">BUILD THE QUOTE</h2>'
    +'<div class="panel"><div class="nm pix" style="font-size:8px;color:var(--amber)">'+pj.owner+' \u2022 '+JOBS[pj.j].name+'</div><div class="sub" style="margin-top:6px">Customer warmth '+pips(warmth)+'</div></div>';
   if(oem) html+=group('Avionics line ('+OEMS[oem].name+(dt>0?', you are a '+TIER_NAME[dt]:', not your dealer yet')+')','gear',[{k:'budget',label:'BUDGET'},{k:'standard',label:'STANDARD'},{k:'premium',label:'PREMIUM'}],pj.qsel.gear);
   html+=group('Consumables estimate','cons',[{k:'lean',label:'LEAN'},{k:'standard',label:'STANDARD'},{k:'padded',label:'PADDED'}],pj.qsel.cons);
@@ -846,7 +873,7 @@ SCREENS.floor=function(){
   var tip=pickChiefTip(STATE);
   var chiefChip = tip ? '<button class="chief-chip" style="width:100%;min-height:48px;display:flex;align-items:center;gap:10px;text-align:left;margin:8px 0;padding:8px 12px;background:#16202b;border:2px solid var(--amber);border-radius:8px;box-shadow:0 0 0 2px rgba(255,176,40,.18)">'+chiefSprite(34)+'<span style="display:flex;flex-direction:column"><span class="pix" style="font-size:8px;color:var(--amber)">CHIEF</span><span class="ds" style="margin-top:2px">'+tip.short+'</span></span><span class="pix" style="margin-left:auto;font-size:8px;color:var(--amber)">\u25ba</span></button>' : '';
 
-  return { html:'<div class="titlebar"><span class="t pix">'+STATE.shopName+'</span><span class="t pix">Bays '+bayCount()+' \u2022 Crew '+STATE.crew.length+'/'+crewSlots()+'</span></div>'
+  return { html:tutorialBanner('floor')+'<div class="titlebar"><span class="t pix">'+STATE.shopName+'</span><span class="t pix">Bays '+bayCount()+' \u2022 Crew '+STATE.crew.length+'/'+crewSlots()+'</span></div>'
       + hangarScene()
       + chiefChip
       +'<div class="panel"><div class="row2" style="margin-top:0"><span class="eratag">ERA '+STATE.era+': '+ERAS[STATE.era].name+'</span>'+ (STATE.passive>0?'<span class="eratag" style="color:var(--scope)">+'+money(STATE.passive)+'/job</span>':'') + (hasPremier()?'<span class="eratag" style="color:var(--amber)">PREMIER</span>':'')+'</div><div class="note" style="text-align:left;margin-top:8px;color:'+season().sun+'">'+season().tag+'</div><div class="note" style="text-align:left;margin-top:6px">'+standing+'</div></div>'
@@ -886,7 +913,7 @@ SCREENS.board=function(){
       +'<div class="ds" style="opacity:.7">'+specName(JOB_SPEC[b.j])+' work</div>'
       +'<div class="row2"><span class="badge b-'+b.fit+'">'+b.fit.toUpperCase()+' FIT</span>'+ (j.credReq>0?'<span class="cred '+credCls(j.credReq)+'">'+credName(j.credReq).toUpperCase()+'</span>':'') +'<span class="pay">~'+money(previewPay(b.a,b.j,b.fit))+'</span></div>'
       +'<div class="reason">'+FITWHY[b.fit]+'</div></div></div>'; }).join('');
-  return { html:'<h2 class="scrn">JOB BOARD</h2><div class="sub">Loading Bay '+(STATE.fillBay+1)+'. Watch the fit.</div>'+cards,
+  return { html:tutorialBanner('board')+'<h2 class="scrn">JOB BOARD</h2><div class="sub">Loading Bay '+(STATE.fillBay+1)+'. Watch the fit.</div>'+cards,
     actions:[ {label:'BACK', on:function(){ go('floor'); }} ],
     init:function(){ document.querySelectorAll('.card[data-i]').forEach(function(el){ el.onclick=function(){ sTab(); var b=STATE.board[+el.dataset.i]; var known=customerPersonality(b.owner); STATE.pendingJob={a:b.a,j:b.j,fit:b.fit,owner:b.owner,ctype:known||pick(CUSTYPES).k}; STATE.sel=[]; STATE.floorPlane=b.a; go('meet'); }; }); } };
 };
@@ -902,7 +929,7 @@ SCREENS.assign=function(){
   var wKey=Object.keys(j.w).sort(function(x,y){ return j.w[y]-j.w[x]; })[0]; var wname={work:'Workmanship',diag:'Diagnostics',comp:'Compliance',fin:'Finish'}[wKey];
   var credLine = (j.credReq>0 ? 'Recommended credential: <b style="color:var(--ink)">'+credName(j.credReq)+'</b>. Under that and the crew works above its training, slower and rougher.' : 'No special credential needed. Good work for any hand.') + (certJob?' Dealer or certified work, so a tech out of training currency cannot be assigned.':'');
   var none = fc.length===0;
-  return { html:'<h2 class="scrn">CREW CALL</h2><div class="panel"><div class="nm pix" style="font-size:9px;color:var(--amber)">'+j.name+'</div><div class="ds" style="margin-top:6px">'+a.name+' \u2022 for '+STATE.pendingJob.owner+'</div><div class="reason" style="margin-top:6px">Leans on <b style="color:var(--ink)">'+wname+'</b>. '+credLine+'</div></div>'
+  return { html:tutorialBanner('assign')+'<h2 class="scrn">CREW CALL</h2><div class="panel"><div class="nm pix" style="font-size:9px;color:var(--amber)">'+j.name+'</div><div class="ds" style="margin-top:6px">'+a.name+' \u2022 for '+STATE.pendingJob.owner+'</div><div class="reason" style="margin-top:6px">Leans on <b style="color:var(--ink)">'+wname+'</b>. '+credLine+'</div></div>'
       + (none?'<div class="panel"><div class="note" style="text-align:left">Every tech is already on a bay. Deliver a job to free someone up, or hire more crew.</div></div>':'<div class="sub">Pick up to 3 techs. They learn on the job.</div>'+cards),
     actions:[ {label:'BACK', on:function(){ go('board'); }}, {label:'START THE JOB', cls:'btn-go', disabled:STATE.sel.length===0, on:function(){ if(STATE.sel.length===0){ toast('Assign at least one tech.'); return; }
         var bay=freshBay(); bay.job=STATE.pendingJob; bay.shiftsNeed=JOBS[STATE.pendingJob.j].shifts||4; bay.owner=STATE.pendingJob.owner; bay.crew=STATE.sel.slice();
@@ -1089,7 +1116,7 @@ SCREENS.review=function(){
     var col = pos ? 'var(--scope)' : 'var(--beacon)';
     return '<div class="ledger"><span>'+l.label+'</span><b style="color:'+col+'">'+display+'</b></div>';
   }).join('');
-  return { html:'<h2 class="scrn">DELIVERY: '+j.name.toUpperCase()+'</h2>'+rv('THE CUSTOMER',cQ,s.cust)+rv('THE INSPECTOR',iQ,s.insp)+rv('THE PILOT',pQ,s.pilot)
+  return { html:tutorialBanner('review')+'<h2 class="scrn">DELIVERY: '+j.name.toUpperCase()+'</h2>'+rv('THE CUSTOMER',cQ,s.cust)+rv('THE INSPECTOR',iQ,s.insp)+rv('THE PILOT',pQ,s.pilot)
       +'<div class="panel">'+barRowStatic(bay.bars,'work','WORKMANSHIP','f-work','l-work')+barRowStatic(bay.bars,'diag','DIAGNOSTICS','f-diag','l-diag')+barRowStatic(bay.bars,'comp','COMPLIANCE','f-comp','l-comp')+barRowStatic(bay.bars,'fin','FINISH','f-fin','l-fin')+'</div>'
       +'<div class="sub" style="margin-top:8px;color:'+(s.squawkOk?'var(--scope)':'var(--caution)')+'">Functional test: '+(s.squawkOk?'cleared on the bench':'a squawk slipped to the test flight')+'</div><div class="total"><div class="tn">FINAL SCORE</div><div class="tv">'+s.total+' / 30</div>'+(s.hit?'<div class="hit">â˜… HIT! THE FIELD IS TALKING â˜…</div>':'')+'</div>'
       +'<div class="panel" style="margin-top:8px">'+ledgerRows+'<div class="payout"><div class="pl">NET TO SHOP</div><div class="pv" id="payv">'+money(0)+'</div></div></div>',
@@ -1098,6 +1125,7 @@ SCREENS.review=function(){
 };
 function collect(){
   var idx=STATE.activeBay, bay=STATE.bays[idx];
+  if(STATE.tutorial) STATE.tutorial.done=true;
   /* --- the heartbeat: the customer leaves a review based on how the job actually ran --- */
   var cust=ensureCustomer(bay.owner, bay.job.a, bay.job.ctype||'budget');
   var rv=computeReview(jobOutcome(bay), cust);
@@ -1892,6 +1920,19 @@ check('early milestone triggers once at first dealership + level 2', function(){
   var s3={milestoneShown:false, level:3, dealers:{}};
   var s4={milestoneShown:true,  level:3, dealers:{larkfield:2}};
   return earlyMilestoneDue(s1)===true && earlyMilestoneDue(s2)===false && earlyMilestoneDue(s3)===false && earlyMilestoneDue(s4)===false;
+});
+
+check('tutorial banner empty when done', function(){
+  var save=STATE.tutorial; STATE.tutorial={step:0,done:true};
+  var r=tutorialBanner('floor')===''; STATE.tutorial=save; return r;
+});
+check('tutorial syncs step forward to the screen', function(){
+  var save=STATE.tutorial; STATE.tutorial={step:0,done:false};
+  tutorialBanner('quote'); var r=STATE.tutorial.step===3; STATE.tutorial=save; return r;
+});
+check('tutorial skip ends it', function(){
+  var save=STATE.tutorial; STATE.tutorial={step:1,done:false};
+  STATE.tutorial.done=true; var r=tutorialBanner('board')===''; STATE.tutorial=save; return r;
 });
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
