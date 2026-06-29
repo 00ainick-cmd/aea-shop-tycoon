@@ -1341,7 +1341,8 @@ SCREENS.shop=function(){
     +'<div class="card" data-go="training"><div class="body"><div class="nm">TRAINING</div><div class="ds">Credentials, AEA courses, OEM factory training, apprenticeship.</div></div></div>'
     +'<div class="card" data-go="dealers"><div class="body"><div class="nm">OEM DEALERS</div><div class="ds">Sell their gear, qualify, and climb the dealer ladder.</div></div></div>'
     +'<div class="card" data-act="rate"><div class="body"><div class="nm">LABOR RATE: '+RATES[(STATE.rate==null?1:STATE.rate)].n.toUpperCase()+'</div><div class="ds">'+RATES[(STATE.rate==null?1:STATE.rate)].ds+' Tap to change.</div></div></div>'
-    +'<div class="card" data-go="hustle"><div class="body"><div class="nm" style="color:var(--sky)">DRUM UP BUSINESS</div><div class="ds">Work the ramp, fly-ins, and ads. Warm up customers before they walk in.</div></div></div>';
+    +'<div class="card" data-go="hustle"><div class="body"><div class="nm" style="color:var(--sky)">DRUM UP BUSINESS</div><div class="ds">Work the ramp, fly-ins, and ads. Warm up customers before they walk in.</div></div></div>'
+    +'<div class="card" data-go="manual"><div class="body"><div class="nm">SHOP MANUAL</div><div class="ds">How the game works. Customers, quotes, quality bars, money, and the path to Shop of the Year.</div></div></div>';
   var actions=[]; if(upAction) actions.push(upAction); actions.push({label:'BACK', on:function(){ go('floor'); }});
   return { html:'<h2 class="scrn">THE SHOP</h2>'+dash+'<div class="panel"><div class="sub" style="margin-top:0">Shop specialties</div><div class="note" style="text-align:left;margin:4px 0 8px">Every job builds a specialty. Climb from Unrated to Authority for the work that defines your shop.</div>'+specBoard()+'</div>'+award+nav+upCard, actions:actions,
     init:function(){ document.querySelectorAll('.card[data-go]').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.go); }; }); var rc=document.querySelector('.card[data-act="rate"]'); if(rc) rc.onclick=function(){ STATE.rate=(((STATE.rate==null?1:STATE.rate))+1)%3; sTab(); go('shop'); }; } };
@@ -1350,6 +1351,29 @@ function buyUpgrade(u){ if(STATE.rep<u.req){ toast('Need rep '+u.req+'.'); retur
   STATE.cash-=u.cost; STATE.level=u.lvl; while(STATE.bays.length<bayCount()) STATE.bays.push(freshBay());
   if(u.lvl===4){ STATE.passive+=1200; } if(u.lvl===5){ STATE.passive+=1500; }
   sHit(); renderHUD(); toast('LEVEL '+u.lvl+'.\nNew bay + crew + aircraft.'); go('floor'); }
+
+SCREENS.manual=function(){
+  var s=function(title,body){ return '<div class="panel"><div class="sub" style="margin-top:0">'+title+'</div><div class="note" style="text-align:left;margin-top:4px">'+body+'</div></div>'; };
+  var html='<h2 class="scrn">SHOP MANUAL</h2>'
+    +'<div class="panel"><div class="note" style="text-align:left">Everything you need to run the shop. Tap BACK when you are ready.</div></div>'
+    +s('THE LOOP',
+       'The Floor is home base: your bays, your crew, your cash. Get Work shows a board of prospects. You can also Drum Up Business to warm leads before they walk in. Meet the customer and pick your approach. Build the quote. Schedule a tech. Run shifts. Collect one invoice when the job is done. Repeat, and grow toward AEA Shop of the Year.')
+    +s('READING CUSTOMERS',
+       'Four types, each wants a different pitch. Budget-minded wants honest value: lead with TALK SHOP. Status-seeker wants the best: SELL THE DREAM PANEL. Safety-minded wants it legal and right: LEAD WITH SAFETY. Tire-kicker is just shopping around. Match the right approach and you warm them up, which raises the price they will accept. A returning customer shows their type on the board. A new walk-in is a read.')
+    +s('THE QUOTE',
+       'The quote is labor plus avionics plus consumables. Warmer customers and higher charisma let you charge more. If you are an authorized dealer for the avionics maker, selling the PREMIUM tier pays you a dealer kickback on top of the sale price. But do not overprice: padding the bill or pushing premium on a budget customer will hurt your review.')
+    +s('DOING THE WORK',
+       'Every job fills four quality bars: Workmanship, Diagnostics, Compliance, and Finish. Your techs\'s skills fill them, and how well the airplane fits the job sets the ceiling. Fit ratings run Amazing, Solid, Risky, or Dead. Do not take a dead-fit job. Running OVERTIME pushes a bar forward but tires the crew. A tired crew and a weak safety culture lead to callbacks. At delivery you run a functional test and fix any squawk that comes up.')
+    +s('SAFETY IS A CHOICE',
+       'On the floor you will face judgment calls: rush it or do it right, cut a corner or take the time. Good calls protect your reputation and your crew. Bad calls risk rework, callbacks, and a hit to your name. There are no random penalties, only the consequences of your own choices.')
+    +s('GROWING THE SHOP',
+       'Train techs up the credential ladder: Apprentice, CAET, Advanced, Master. Buy AEA courses that lift the whole shop. Become a dealer, Stocking then Authorized then Premier, to unlock gear and the kickback. Start an apprenticeship program to grow your own people and draw grant funding. Keep techs current with training or they lapse off certified work.')
+    +s('MONEY',
+       'Money settles once per job, on one invoice at Collect Payment: labor, parts, the kickback, and your shop overhead, netted out. That is the only finance moment in the loop. Keep cash above water and keep the work flowing.')
+    +s('HOW YOU WIN',
+       'Shop of the Year is not for sale. It rewards your reputation above all: star rating and loyal repeat customers. It rewards your people: apprentices graduated and certified techs. Safety culture and dealer standing matter too. Early on you will hit a Regional Up-and-Comer milestone. To win the big one, invest in your crew and your customer relationships, not just cash.');
+  return { html:html, actions:[ {label:'BACK', on:function(){ go('shop'); }} ] };
+};
 
 SCREENS.hire=function(){
   var open=STATE.crew.length<crewSlots(); var avail=CREW_POOL.filter(function(c){ return c.lvl<=STATE.level && !STATE.hired[c.key]; });
