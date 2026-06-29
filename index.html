@@ -485,6 +485,14 @@ var HF=[
     safe:{ label:"Pull the manual and ask Echo.", run:function(){ STATE.safe.good++; nudge('diag',12); return {t:"You did it right the first time instead of fast the wrong way.", tone:'good'}; } },
     risk:{ label:"Wing it from a similar install.", run:function(){ if(Math.random()<0.35){ nudge('diag',5); return {t:"Close enough to the last one that it worked. Could have gone the other way.", tone:'neutral'}; } STATE.safe.bad++; nudge('diag',-16); STATE.cash-=700; return {t:"Wrong assumption, a small puff of smoke, and a "+money(700)+" board to replace. Rework.", tone:'bad'}; } } } ];
 
+function pickHFIndex(state, avoid){
+  var recent=(state&&state.recentHF)||[];
+  var pool=[]; for(var i=0;i<HF.length;i++){ if(recent.indexOf(i)<0 && i!==avoid) pool.push(i); }
+  if(!pool.length){ for(var k=0;k<HF.length;k++){ if(k!==avoid) pool.push(k); } }
+  if(!pool.length) pool=[0];
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+
 var CREW_POOL=[
   {key:'reroute', name:'Reroute', tag:"Left the airline life looking for shorter hours.", wiring:6,integ:7,trouble:6,paper:6, cred:1, fee:12000, lvl:1, color:'#5cc6ff'},
   {key:'sparks',  name:'Sparks',  tag:"Install and sheet-metal ace. Wires like a sewing machine.", wiring:8,integ:8,trouble:5,paper:4, cred:1, fee:18000, lvl:2, color:'#ffb028'},
@@ -958,6 +966,12 @@ function runShift(){
   STATE.week++; tickDemandWave(STATE); sRatchet(); sPing(1); renderHUD();
   if(nudged) toast(nudged+" is ready to certify.\nSee Training.");
   if(STATE._otj && STATE._otj.length){ toast(STATE._otj.slice(0,2).join(' / ')); STATE._otj=[]; }
+  if(STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }) && Math.random()<0.30){
+    var hi=pickHFIndex(STATE);
+    STATE.hf=hi; STATE.hfResult=null;
+    STATE.recentHF=(STATE.recentHF||[]); STATE.recentHF.push(hi); if(STATE.recentHF.length>4) STATE.recentHF.shift();
+    go('hf'); return;
+  }
   endShift();
 }
 function endShift(){
@@ -984,6 +998,34 @@ SCREENS.squawk=function(){
   if(answered) html+='<div class="explain'+(sq.result.ok?'':' miss')+'">'+(sq.result.ok?'\u2713 Cleared. ':'\u2717 Wrong tree. ')+sq.def.ex+'</div>';
   return { html:html, actions: answered ? [ {label:'CONTINUE \u25BA', cls:'btn-go', on:function(){ var ok=sq.result.ok, cb=sq.onResolve; STATE.activeSquawk=null; cb(ok); }} ] : [],
     init: answered ? null : function(){ document.querySelectorAll('.opt[data-sq]').forEach(function(el){ el.onclick=function(){ var i=+el.dataset.sq, ok=STATE.activeSquawk.opts[i].ok; STATE.activeSquawk.result={idx:i,ok:ok}; var bay=(typeof STATE.activeBay==='number')?STATE.bays[STATE.activeBay]:null; if(ok){ if(bay&&bay.job) bay.bars.diag+=70; sGood(); } else { if(bay&&bay.job) bay.bars.diag=Math.max(0,bay.bars.diag-45); sBad(); } go('squawk'); }; }); } };
+};
+SCREENS.hf=function(){
+  if(STATE.hf===null || STATE.hf===undefined){ go('floor'); return {html:'',actions:[]}; }
+  var beat=HF[STATE.hf];
+  var answered=STATE.hfResult!==null && STATE.hfResult!==undefined;
+  var toneColor=answered ? (STATE.hfResult.tone==='good'?'var(--scope)':STATE.hfResult.tone==='bad'?'var(--beacon)':'var(--amber)') : '';
+  var html='<h2 class="scrn">ON THE FLOOR</h2>'
+    +'<div class="squawk-head"><div class="s1">JUDGMENT CALL</div><div class="s2">'+beat.s+'</div></div>'
+    +'<div class="sub" style="margin-top:8px">'+(answered?'':'Your call. One choice, real stakes.')+'</div>';
+  if(!answered){
+    html+='<button class="opt" data-hf="safe">'+beat.safe.label+'</button>'
+         +'<button class="opt" data-hf="risk">'+beat.risk.label+'</button>';
+  } else {
+    html+='<div class="explain" style="color:'+toneColor+'">'+STATE.hfResult.t+'</div>';
+  }
+  return { html:html,
+    actions: answered ? [ {label:'CONTINUE ►', cls:'btn-go', on:function(){ STATE.hf=null; STATE.hfResult=null; endShift(); }} ] : [],
+    init: answered ? null : function(){
+      document.querySelectorAll('.opt[data-hf]').forEach(function(el){
+        el.onclick=function(){
+          var branch=el.dataset.hf==='safe' ? HF[STATE.hf].safe : HF[STATE.hf].risk;
+          STATE.hfResult=branch.run();
+          if(STATE.hfResult.tone==='good') sGood(); else if(STATE.hfResult.tone==='bad') sBad();
+          go('hf');
+        };
+      });
+    }
+  };
 };
 function score10(w,tgt){ return clamp(Math.round(w/(tgt||REVIEW_TARGET)*10),1,10); }
 function bayTarget(bay){ return REVIEW_TARGET*(((bay&&bay.shiftsNeed)||4)/4); }
@@ -1794,6 +1836,19 @@ check('known customer reuses stored personality, new walk-in is unknown', functi
   var r = customerPersonality('Test Pilot')==='status' && customerPersonality('Nobody New')===null;
   STATE.customers=save;
   return r;
+});
+
+check('HF beat pool is wired and resolves to a toned result', function(){
+  if(!Array.isArray(HF) || !HF.length) return false;
+  if(typeof HF[0].s !== 'string') return false;
+  if(typeof HF[0].safe.run !== 'function' || typeof HF[0].risk.run !== 'function') return false;
+  var tone;
+  try { tone=HF[0].safe.run().tone; } catch(e){ return false; }
+  return ['good','neutral','bad'].indexOf(tone) >= 0;
+});
+check('pickHFIndex avoids the recently shown beat', function(){
+  if(HF.length<2) return true;
+  var s={recentHF:[0]}; var i=pickHFIndex(s); return i!==0;
 });
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
