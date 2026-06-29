@@ -289,6 +289,7 @@ function rateMult(){ return RATES[(STATE.rate==null?1:STATE.rate)].mult; }
 function rateExpect(){ return RATES[(STATE.rate==null?1:STATE.rate)].expect; }
 function specXP(k){ return (STATE.spec&&STATE.spec[k])||0; }
 function specRank(k){ var x=specXP(k), r=0; for(var i=0;i<SPEC_THRESH.length;i++){ if(x>=SPEC_THRESH[i]) r=i; } return r; }
+function specEdge(jobKey){ var k=JOB_SPEC[jobKey]; return k ? (1 + specRank(k)*0.03) : 1; } // Unrated..Authority => 1.00..1.12
 function specMeta(k){ for(var i=0;i<SPECS.length;i++) if(SPECS[i].k===k) return SPECS[i]; return {k:k,n:k,s:k}; }
 function specName(k){ return specMeta(k).n; }
 function specShort(k){ return specMeta(k).s; }
@@ -908,9 +909,11 @@ SCREENS.baydetail=function(){
   var crewn=bay.crew.map(function(ci){ return STATE.crew[ci].name+' ('+credName(STATE.crew[ci].cred)+')'; }).join(', ');
   var bestCred=bay.crew.length?Math.max.apply(null,bay.crew.map(function(ci){ return STATE.crew[ci].cred; })):0;
   var under = bestCred < j.credReq;
+  var sk=JOB_SPEC[bay.job.j], sr=sk?specRank(sk):0;
   return { html:'<div class="titlebar"><span class="t pix">BAY '+(STATE.detailBay+1)+': '+j.name+'</span><span class="t pix">FIT '+bay.job.fit.toUpperCase()+'</span></div>'
       +'<div class="panel"><div class="ds" style="margin-bottom:6px">'+a.name+' \u2022 for '+bay.owner+'. On it: '+crewn+'.</div>'
       + (under?'<div class="infobox" style="margin-bottom:8px">This job wants '+credName(j.credReq)+'. Your crew is working above its training, so the build runs slower and rougher.</div>':'')
+      + (sr>0?'<div class="sub" style="margin-top:6px;color:var(--scope)">'+specName(sk)+' specialty: '+SPEC_RANK[sr]+' (+'+(sr*3)+'% build quality)</div>':'')
       +'<div class="dots" style="justify-content:center">'+dots+'</div>'
       + barRowStatic(bay.bars,'work','WORKMANSHIP','f-work','l-work')+barRowStatic(bay.bars,'diag','DIAGNOSTICS','f-diag','l-diag')+barRowStatic(bay.bars,'comp','COMPLIANCE','f-comp','l-comp')+barRowStatic(bay.bars,'fin','FINISH','f-fin','l-fin')
       +'<div class="tokens">OVERTIME '+toks+'</div></div>',
@@ -936,7 +939,7 @@ function runShift(){
   var advanced=false, nudged=null;
   STATE.bays.forEach(function(bay){ if(bay.job && bay.crew.length && bay.shiftsDone<bay.shiftsNeed){
     var bestCred=Math.max.apply(null,bay.crew.map(function(ci){ return STATE.crew[ci].cred; }));
-    var credPen=bestCred<(JOBS[bay.job.j].credReq||0)?0.7:1; var mult=FITMULT[bay.job.fit]*credPen;
+    var credPen=bestCred<(JOBS[bay.job.j].credReq||0)?0.7:1; var mult=FITMULT[bay.job.fit]*credPen*specEdge(bay.job.j);
     var oem=JOB_OEM[bay.job.j]; if(oem && bay.crew.some(function(ci){ return STATE.crew[ci].oemCerts&&STATE.crew[ci].oemCerts[oem]; })) mult*=1.12;
     if(STATE.courses.pitot && (bay.job.j==='cert'||bay.job.j==='xpdr')) mult*=1.08;
     if(STATE.courses.cyber && (bay.job.j==='datalink'||bay.job.j==='traffic')) mult*=1.08;
@@ -1768,6 +1771,16 @@ check('upgrade cash gates strictly increase by level', function(){
   for(var i=1;i<UPGRADES.length;i++){ if(UPGRADES[i].cost <= UPGRADES[i-1].cost) return false; }
   return true;
 });
+check('specialty edge scales with rank and is capped at +12pct', function(){
+  var save=STATE.spec;
+  STATE.spec={};            // glass family Unrated (rank 0)
+  var lo=specEdge('glass');
+  STATE.spec={glass:140};   // glass family Authority (rank 4; SPEC_THRESH[4]=140)
+  var hi=specEdge('glass');
+  STATE.spec=save;
+  return lo===1 && Math.abs(hi-1.12)<1e-9 && hi>lo;
+});
+check('jobs with no specialty mapping get no edge', function(){ return specEdge('nope_not_a_job')===1; });
 
 if (location.search.indexOf('test') >= 0) { runSelfTest(); }
 else if (location.search.indexOf('screen=') >= 0) { var _m=location.search.match(/screen=([^&]+)/); if(_m){ newBoard(); STATE.screen=decodeURIComponent(_m[1]); } render(); }
