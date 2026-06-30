@@ -252,7 +252,9 @@ You cannot buy Shop of the Year. The award score (target 85) sums five capped pi
 - **Dealers** (max 14): sum of dealer tiers.
 - **Business** (max 8): cash (capped low) and level.
 
-Winning also requires culture >= 70 and (a Premier dealer OR level 5). Game over if cash < -$4,000.
+Winning also requires culture >= 70 and a structural gate: **a Premier dealer OR level 4** (`awardLevelGate()`). Game over if cash < -$4,000.
+
+The structural gate was lowered from level 5 to level 4 on 2026-06-30 after an automated playthrough (see section 12) showed the merit score reaches 85 around job 45 but the level-5 climb did not finish until job ~95, leaving a ~50-job anticlimactic tail where the shop was award-worthy on merit but could not be crowned. Level 4 (a four-bay Regional Powerhouse) arrives near merit-max, so the crown now lands when it is earned. Level 5 remains the optional max-shop flex.
 
 ---
 
@@ -349,6 +351,16 @@ The award is currently unreachable without active workforce development and deal
 - **Hold for the Task 11 playthrough (recommendations 3 and 4):** lowering the Premier sales requirement and raising the payout floor were inferences, not simulated outputs (the model never chased Premier and no player went broke). Revisit only if the real end-to-end playthrough shows them as walls.
 
 ---
+
+### Automated playthrough validation (2026-06-30)
+
+A headless auto-player drove the REAL game (clicking through every screen), which the earlier trace could not do. Findings:
+
+- **Robustness:** a full 80-job reactive run completed with ZERO JavaScript errors, zero crashes, zero stuck states, and cash never went negative. The core loop is solid end to end.
+- **The award cannot be cheesed:** a player who only runs the job loop (no upgrades, dealers, or training) plateaus around 58/85 and never wins. Confirmed by design.
+- **The win is reachable:** an engaged driver that also plays the management side (upgrades, dealers, training, apprenticeship) reaches Shop of the Year reproducibly (job ~93 to ~106 across runs), maxing all five pillars (100/85), with no errors.
+- **The fix that shipped:** the merit score crossed 85 around job ~45, but the old level-5 win gate delayed the crown to job ~95, a ~50-job anticlimactic tail. Lowering the structural gate to level 4 (`awardLevelGate`) aligns the crown with the achievement. See section 9.6.
+- The auto-player harness is a throwaway in the session scratchpad (`autoplay.html`); it does not ship.
 
 ## 13. Player-facing instructions plan (derived)
 

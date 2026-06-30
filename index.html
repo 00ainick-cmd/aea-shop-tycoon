@@ -1346,7 +1346,8 @@ function awardParts(s){ var v=s||awardVals();
   return { rep:rep, work:work, safe:safe, deal:deal, biz:biz, total:rep+work+safe+deal+biz }; }
 function awardScore(s){ return awardParts(s).total; }
 var AWARD_TARGET=85;
-function checkAward(){ if(STATE.awardWon) return false; if(awardScore()>=AWARD_TARGET && STATE.culture>=70 && (hasPremier()||STATE.level>=5)){ STATE.awardWon=true; return true; } return false; }
+function awardLevelGate(){ return hasPremier() || STATE.level>=4; } /* a real multi-bay shop (level 4+) or a Premier dealer; keeps the crown tied to genuine expansion without a long post-merit grind */
+function checkAward(){ if(STATE.awardWon) return false; if(awardScore()>=AWARD_TARGET && STATE.culture>=70 && awardLevelGate()){ STATE.awardWon=true; return true; } return false; }
 function cultureBar(){ var c=Math.round(STATE.culture); var col=c>=70?'var(--scope)':(c>=45?'var(--caution)':'var(--beacon)'); var lab=c>=85?'exemplary':c>=70?'strong':c>=45?'shaky':'poor'; return '<div class="ledger"><span>Safety culture</span><b style="color:'+col+'">'+c+' \u2022 '+lab+'</b></div><div class="qmeter"><div style="width:'+c+'%;background:'+col+'"></div></div>'; }
 
 /* ---- the shop (management) ---- */
@@ -1649,7 +1650,7 @@ SCREENS.personnel=function(){
 SCREENS.awardeval=function(){
   var a=awardParts();
   var row=function(lab,v,max){ return '<div class="qbar"><div class="qt"><span>'+lab+'</span><span class="qv">'+Math.round(v)+' / '+max+'</span></div><div class="track"><div class="fill f-fin" data-pct="'+clamp(v/max*100,0,100)+'"></div></div></div>'; };
-  var gate=(hasPremier()||STATE.level>=5)?'':'<div class="infobox" style="margin-top:6px">You also need at least one Premier dealer or a level-five shop to be eligible.</div>';
+  var gate=awardLevelGate()?'':'<div class="infobox" style="margin-top:6px">You also need at least one Premier dealer or a level-four shop to be eligible.</div>';
   var cl=STATE.culture>=70?'':'<div class="infobox" style="margin-top:6px">A clean safety record is required. Raise your safety culture to 70.</div>';
   return { html:'<h2 class="scrn">SHOP OF THE YEAR</h2><div class="sub">The AEA weighs a shop people love and the people it grew, not your bank balance. Target '+AWARD_TARGET+'.</div><div class="panel">'
      +row('Customer reputation',a.rep,30)+row('Workforce development',a.work,30)+row('Safety record',a.safe,18)+row('Dealer portfolio',a.deal,14)+row('Business scale and cash',a.biz,8)
@@ -1935,6 +1936,11 @@ check('level 5 cash gate lowered to 180k', function(){
 check('upgrade cash gates strictly increase by level', function(){
   for(var i=1;i<UPGRADES.length;i++){ if(UPGRADES[i].cost <= UPGRADES[i-1].cost) return false; }
   return true;
+});
+check('award win gate: a level 4 shop qualifies, a level 1 does not', function(){
+  var sl=STATE.level, sd=STATE.dealers; STATE.dealers={};
+  STATE.level=4; var ok4=awardLevelGate(); STATE.level=1; var ok1=awardLevelGate();
+  STATE.level=sl; STATE.dealers=sd; return ok4===true && ok1===false;
 });
 check('specialty edge scales with rank and is capped at +12pct', function(){
   var save=STATE.spec;
