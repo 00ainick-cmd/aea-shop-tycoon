@@ -284,7 +284,7 @@ var SEASONS={
   fall:{ name:'FALL', sky:['#2f9fd6','#f0a83a','#ffd676'], wash:'#f0922f', sun:'#ffcf5a', sunY:64, weather:'clear', tag:'Training season. Send your techs to the conference to keep them current.' }
 };
 function season(){ return SEASONS[seasonKey()]; }
-function seasonHint(){ var k=seasonKey(); return k==='spring'?'\u25C8 AEA SHOW':k==='summer'?'HIRING SEASON':k==='fall'?'CONFERENCE':'TAXES DUE'; }
+function seasonHint(){ var k=seasonKey(); return k==='spring'?'\u25C8 AEA SHOW':k==='summer'?'HIRING SEASON':k==='fall'?'CONFERENCE':'ANNUAL RUSH'; }
 /* ---- shop specialties ---- */
 var SPECS=[ {k:'retrofit',n:'RETROFIT & PANEL',s:'RETROFIT'},{k:'autopilot',n:'AUTOPILOTS',s:'AUTOPILOT'},{k:'glass',n:'GLASS & DECKS',s:'GLASS'},{k:'surveillance',n:'SURVEILLANCE',s:'SURVEIL'},{k:'engine',n:'ENGINE MONITORING',s:'ENGINE'},{k:'cabin',n:'CABIN & CONNECT',s:'CABIN'},{k:'inspections',n:'INSPECTIONS & CERTS',s:'INSPECT'} ];
 var JOB_SPEC={ audio:'cabin', elt:'surveillance', cert:'inspections', xpdr:'inspections', harness:'retrofit', radio:'retrofit', glass:'glass', ap:'autopilot', eis:'engine', adsb:'surveillance', datalink:'cabin', radar:'cabin', traffic:'surveillance', expglass:'glass' };
@@ -420,8 +420,8 @@ var AIRCRAFT={
 var JOBS={
   audio:{name:'Audio Panel Upgrade', era:1, credReq:0, ds:'New audio panel, intercom, jacks.', w:{work:1,diag:0.6,comp:0.7,fin:1.3}, pay:6000, fit:{piston:'amazing',lsa:'amazing'}},
   elt:{name:'ELT 406 Install', era:1, credReq:0, ds:'Modern beacon plus registration.', w:{work:1,diag:0.5,comp:1.4,fin:0.6}, pay:5000, fit:{}},
-  cert:{name:'Pitot-Static & Altimeter (91.411)', era:1, credReq:0, ds:'24-month static system, altimeter, and altitude-reporting test. Keeps the airplane IFR-legal.', w:{work:0.6,diag:1.3,comp:1.5,fin:0.4}, pay:4800, shifts:2, fit:{}},
-  xpdr:{name:'Transponder Test (91.413)', era:1, credReq:0, ds:'24-month ATC transponder check, Mode C and Mode S, run with the static test.', w:{work:0.5,diag:1.4,comp:1.4,fin:0.4}, pay:3600, shifts:2, fit:{}},
+  cert:{name:'Pitot-Static & Altimeter (91.411)', era:1, credReq:0, ds:'24-month static system, altimeter, and altitude-reporting test. Keeps the airplane IFR-legal.', w:{work:0.6,diag:1.3,comp:1.5,fin:0.4}, pay:1600, shifts:1, fit:{}},
+  xpdr:{name:'Transponder Test (91.413)', era:1, credReq:0, ds:'24-month ATC transponder check, Mode C and Mode S, run with the static test.', w:{work:0.5,diag:1.4,comp:1.4,fin:0.4}, pay:1100, shifts:1, fit:{}},
   harness:{name:'Wiring Harness Fab', era:1, credReq:0, ds:'Build a clean custom harness.', w:{work:1.6,diag:0.7,comp:0.8,fin:1.1}, pay:7000, fit:{experimental:'amazing',warbird:'amazing'}},
   radio:{name:'Com/Nav Radio Swap', era:1, credReq:0, ds:'Pull the old box, hang the new.', w:{work:1.1,diag:1,comp:0.8,fin:0.9}, pay:5000, fit:{}},
   glass:{name:'Glass Panel Retrofit', era:2, credReq:1, ds:'Steam gauges out, PFD/MFD in.', w:{work:1.4,diag:0.9,comp:1.1,fin:1.3}, pay:24000, fit:{tprop1:'amazing',tprop2:'amazing',twinpiston:'amazing',taildragger:'dead',experimental:'risky',warbird:'risky'}},
@@ -515,7 +515,7 @@ var UPGRADES=[
 
 var EVENTS=[
   { key:'aog', title:'AOG EMERGENCY', weight:3, text:"A charter operator has a jet stranded on the ramp with a dead box. Crew and passengers are waiting. They will pay a premium for a same-day fix.",
-    choices:[ {label:'DROP EVERYTHING', run:function(){ STATE.activeBay=null; launchSquawk(pickSquawk(), function(ok){ if(ok){ var p=Math.round(9000+Math.random()*6000); STATE.cash+=p; STATE.rep+=4; result("AOG saved. They wired "+money(p)+" and told everyone on the field. +4 rep."); } else { STATE.rep=Math.max(0,STATE.rep-2); result("You chased the wrong lead and they called another shop. -2 rep."); } }); return null; }},
+    choices:[ {label:'DROP EVERYTHING', run:function(){ STATE.activeBay=null; launchSquawk(pickSquawk(), function(ok){ if(ok){ var p=Math.round((3000+Math.random()*2500)*(1+(STATE.era-1)*0.8)); STATE.cash+=p; STATE.rep+=4; result("AOG saved. They wired "+money(p)+" and told everyone on the field. +4 rep."); } else { STATE.rep=Math.max(0,STATE.rep-2); result("You chased the wrong lead and they called another shop. -2 rep."); } }); return null; }},
       {label:'STAY ON SCHEDULE', run:function(){ STATE.rep=Math.max(0,STATE.rep-1); return "You kept your commitments to the bays already open. The operator went elsewhere. -1 rep, but no broken promises."; }} ]},
   { key:'audit', title:'SURPRISE FAA AUDIT', weight:2, text:"An FAA inspector drops in unannounced to audit your records and conformity. Time to open the logbooks.",
     choices:[ {label:'SHOW THE LOGBOOKS', run:function(){ if(bestStat('paper')>=7 || STATE.rep>=40){ STATE.rep+=3; return "Clean records. The inspector left impressed and the field heard about it. +3 rep."; } var fine=Math.round(2000+Math.random()*2000); STATE.cash-=fine; return "A few paperwork gaps. Minor finding and a "+money(fine)+" fix-it. Worth having someone who lives in the records."; }} ]},
@@ -975,7 +975,8 @@ SCREENS.assign=function(){
     actions:[ {label:'BACK', on:function(){ go('board'); }}, {label:'START THE JOB', cls:'btn-go', disabled:STATE.sel.length===0, on:function(){ if(STATE.sel.length===0){ toast('Assign at least one tech.'); return; }
         if(STATE.pendingJob.boardIdx!=null){ STATE.board.splice(STATE.pendingJob.boardIdx,1); STATE.pendingJob.boardIdx=null; }
         var bay=freshBay(); bay.job=STATE.pendingJob; bay.shiftsNeed=JOBS[STATE.pendingJob.j].shifts||4; bay.owner=STATE.pendingJob.owner; bay.crew=STATE.sel.slice();
-        STATE.sel.forEach(function(ci){ STATE.crew[ci].bay=STATE.fillBay; STATE.crew[ci].power=100; });
+        /* Fatigue carries over between jobs. Rest comes from time off the bay, not a new ticket. */
+        STATE.sel.forEach(function(ci){ STATE.crew[ci].bay=STATE.fillBay; });
         STATE.bays[STATE.fillBay]=bay; toast('Bay '+(STATE.fillBay+1)+' loaded.'); go('floor'); }} ],
     init: none ? null : function(){ document.querySelectorAll('.card[data-c]').forEach(function(el){ el.onclick=function(){ var ci=+el.dataset.c, p=STATE.sel.indexOf(ci); if(p>=0){ STATE.sel.splice(p,1); sBlip(); } else { if(certJob && isLapsed(STATE.crew[ci],STATE.week)){ toast(STATE.crew[ci].name+' is out of training currency. Refresh at the fall conference before dealer or certified work.'); return; } if(STATE.sel.length>=3){ toast('Three techs max on a bay.'); return; } STATE.sel.push(ci); sTab(); } go('assign'); }; }); } };
 };
@@ -1007,7 +1008,7 @@ SCREENS.overtime=function(){
   return { html:'<h2 class="scrn">CALL OVERTIME</h2><div class="sub">Burn a token, slam one area forward. Tires the crew a little.</div>'
       + b('work','WORKMANSHIP','l-work')+b('diag','DIAGNOSTICS','l-diag')+b('comp','COMPLIANCE','l-comp')+b('fin','FINISH','l-fin'),
     actions:[ {label:'NEVER MIND', on:function(){ go('baydetail'); }} ],
-    init:function(){ document.querySelectorAll('.opt[data-ot]').forEach(function(el){ el.onclick=function(){ var k=el.dataset.ot, bay=STATE.bays[STATE.detailBay]; bay.bars[k]+=110; STATE.tokens--; bay.crew.forEach(function(ci){ STATE.crew[ci].power=clamp(STATE.crew[ci].power-15,15,100); }); sOver(); toast('Overtime on Bay '+(STATE.detailBay+1)+'.'); go('baydetail'); }; }); } };
+    init:function(){ document.querySelectorAll('.opt[data-ot]').forEach(function(el){ el.onclick=function(){ var k=el.dataset.ot, bay=STATE.bays[STATE.detailBay]; bay.bars[k]+=110; STATE.tokens--; bay.crew.forEach(function(ci){ STATE.crew[ci].power=clamp(STATE.crew[ci].power-15,15,100); }); STATE.culture=clamp(STATE.culture-1,cultureFloor(),100); sOver(); toast('Overtime on Bay '+(STATE.detailBay+1)+'.'); go('baydetail'); }; }); } };
 };
 
 /* ---- the work day ---- */
@@ -1029,6 +1030,8 @@ function runShift(){
     bay.shiftsDone++; advanced=true;
   }});
   if(!advanced){ toast('Staff a bay with a job first.'); return; }
+  /* Techs off the bay catch their breath while the shop runs. */
+  STATE.crew.forEach(function(c){ if(c.bay===null) c.power=clamp((c.power||100)+15,15,100); });
   var overworked=0; STATE.crew.forEach(function(c){ if(c.bay!==null && (c.power||100)<=40) overworked++; });
   if(overworked>0) STATE.culture=clamp(STATE.culture - overworked*0.7, cultureFloor(), 100);
   STATE.crew.forEach(function(c){ if(canCertify(c) && (c.elig||0) < c.cred+1){ c.elig=c.cred+1; if(!nudged) nudged=c.name; } });
@@ -1093,8 +1096,12 @@ SCREENS.hf=function(){
     init: answered ? null : function(){
       document.querySelectorAll('.opt[data-hf]').forEach(function(el){
         el.onclick=function(){
-          var branch=el.dataset.hf==='safe' ? HF[STATE.hf].safe : HF[STATE.hf].risk;
+          var risky=el.dataset.hf==='risk';
+          var branch=risky ? HF[STATE.hf].risk : HF[STATE.hf].safe;
           STATE.hfResult=branch.run();
+          /* Corner-cutting erodes the culture even when you get away with it.
+             That is how a shop actually slides: one normalized deviation at a time. */
+          if(risky){ STATE.culture=clamp(STATE.culture-(STATE.hfResult.tone==='bad'?3:1),cultureFloor(),100); }
           if(STATE.hfResult.tone==='good') sGood(); else if(STATE.hfResult.tone==='bad') sBad();
           go('hf');
         };
@@ -1208,7 +1215,7 @@ function collect(){
   if(STATE.culture<45 && Math.random() < (0.45-STATE.culture/100)){ var rw=Math.round(STATE.lastPayout*0.10)+300; STATE.cash-=rw; STATE.rep=Math.max(0,STATE.rep-1); toast('Callback. A squawk came back.\n-'+money(rw)+' \u2022 weak safety culture.'); }
   if(STATE.scores.hit){ STATE.tokens=Math.min(3,STATE.tokens+1); STATE.fans+=1; }
   if(STATE.adsbRush>0) STATE.adsbRush--;
-  bay.crew.forEach(function(ci){ STATE.crew[ci].bay=null; STATE.crew[ci].power=100; });
+  bay.crew.forEach(function(ci){ STATE.crew[ci].bay=null; STATE.crew[ci].power=clamp((STATE.crew[ci].power||100)+30,15,100); });
   STATE.bays[idx]=freshBay();
   sCash(); renderHUD();
   STATE.deliverQueue=STATE.deliverQueue.filter(function(b){ return b!==idx; });
@@ -1220,8 +1227,10 @@ function finishDeliveries(){
   if(earlyMilestoneDue(STATE)){ STATE.milestoneShown=true; go('milestone'); return; }
   if(checkAward()){ go('victory'); return; }
   if(STATE.cash<-4000){ go('gameover'); return; }
-  var eraGate={3:2,7:3,12:4};
-  if(eraGate[STATE.jobsDone] && STATE.era<eraGate[STATE.jobsDone]){ STATE.pendingEra=eraGate[STATE.jobsDone]; go('eraEvent'); return; }
+  /* Eras arrive with experience AND scale: enough jobs done, and a shop big
+     enough to ride the wave. Threshold-based so a gate can never be missed. */
+  var dueEra = (STATE.jobsDone>=26 && STATE.level>=3) ? 4 : (STATE.jobsDone>=14 && STATE.level>=2) ? 3 : (STATE.jobsDone>=5) ? 2 : 1;
+  if(dueEra>STATE.era){ STATE.pendingEra=STATE.era+1; go('eraEvent'); return; }
   if(seasonKey()==='spring' && (STATE.lastShowYear||0) < gYear()){ STATE.lastShowYear=gYear(); startShow(); return; }
   if(seasonKey()==='fall' && (STATE.lastConfYear||0) < gYear() && STATE.crew.length){ STATE.lastConfYear=gYear(); STATE._confSel=[]; go('fallconf'); return; }
   if(STATE.week - (STATE.lastPersonnel||0) >= 3 && Math.random()<0.5){ var pr=personnelEvent(); if(pr){ STATE.lastPersonnel=STATE.week; go(pr); return; } }
@@ -1829,7 +1838,9 @@ function isLapsed(tech, week){ return (week-techCurrencyWeek(tech)) > CURRENCY_W
 function canDoDealerWork(tech, week){ return !isLapsed(tech, week); }
 function currencyStatus(tech, week){ var age=week-techCurrencyWeek(tech); if(age>CURRENCY_WEEKS) return 'lapsed'; if(age>=CURRENCY_WEEKS-4) return 'soon'; return 'current'; }
 function refreshCurrency(tech){ tech.trainedThrough=STATE.week; tech.lastTrain=STATE.week; if(STATE._seenTips) delete STATE._seenTips.trainingLapse; }
-function isDealerOrCertJob(pj){ if(!pj) return false; var j=JOBS[pj.j]; return (j && j.credReq>0) || !!JOB_OEM[pj.j]; }
+/* Certification tests are the most tightly controlled work in a real shop:
+   calibrated equipment and current training. They gate on currency too. */
+function isDealerOrCertJob(pj){ if(!pj) return false; var j=JOBS[pj.j]; return (j && j.credReq>0) || !!JOB_OEM[pj.j] || pj.j==='cert' || pj.j==='xpdr'; }
 var AVI_FACTS=[
  "A 406 MHz ELT does nothing until its unique ID is coded and registered to the owner.",
  "Pitot-static certification under 91.411 is due every 24 calendar months for IFR flight.",
@@ -1944,10 +1955,12 @@ check('chief: once-tips not repeated', function(){
 /* Phase 4 self-test checks: training currency */
 check('currency lapses after a year', function(){ return isLapsed({lastTrain:1}, 60)===true && isLapsed({lastTrain:50}, 60)===false; });
 check('lapsed tech blocked from dealer work', function(){ return canDoDealerWork({lastTrain:1}, 60)===false; });
-check('currency gate flags dealer and certified jobs only', function(){
+check('currency gate flags dealer, certified, and inspection jobs', function(){
   return isDealerOrCertJob({j:'glass'})===true   /* credReq>0 */
       && isDealerOrCertJob({j:'audio'})===true   /* OEM dealer job */
-      && isDealerOrCertJob({j:'cert'})===false   /* routine inspection */
+      && isDealerOrCertJob({j:'cert'})===true    /* 91.411 needs current training */
+      && isDealerOrCertJob({j:'xpdr'})===true    /* 91.413 too */
+      && isDealerOrCertJob({j:'harness'})===false /* plain bench work is open */
       && isDealerOrCertJob(null)===false;
 });
 
