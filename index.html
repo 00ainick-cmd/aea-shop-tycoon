@@ -532,10 +532,10 @@ var EVENTS=[
   { key:'veteran', title:'A VET WANTS IN', min:2, weight:1, text:"An Air Force avionics technician is transitioning out and wants into the civilian side. Strong fundamentals, ready to work. Needs an open slot.",
     choices:[ {label:'BRING THEM ON ($10,000)', run:function(){ if(STATE.crew.length>=crewSlots()) return "No open bench right now. You promised to call when one opens."; if(STATE.cash<10000) return "You cannot cover the start cost yet."; STATE.cash-=10000; STATE.crew.push(mkCrew('Sarge',"Air Force avionics vet. Disciplined, sharp, no drama.",7,6,8,6,2,'#ffd27a')); return "Sarge is on the team, already certified and steady. Military fundamentals translate straight to the bench."; }},
       {label:'PASS', run:function(){ return "Not the right time. You wished them luck."; }} ]},
-  { key:'poach', title:'COMPETITOR POACHING', min:2, weight:1, text:"A bigger shop across the field is trying to hire one of your best techs away with a fat offer.",
+  { key:'poach', title:'COMPETITOR POACHING', min:2, weight:1, text:"Vance Mercer runs the big shop across the field, and he is trying to hire one of your best techs away with a fat offer.",
     choices:[ {label:'COUNTER-OFFER ($4,000)', run:function(){ if(STATE.cash<4000) return "You cannot match the offer in cash. You make your case on culture and hope it holds."; STATE.cash-=4000; STATE.rep+=1; return "You took care of your people and they stayed. Loyalty is cheaper than turnover. +1 rep."; }},
       {label:'LET THEM SHOP AROUND', run:function(){ return "You trusted the relationship. They tested the market, kicked the tires, and stayed put."; }} ]},
-  { key:'changeorder', title:'CUSTOMER WANTS MORE', weight:2, cond:function(){ return STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); }, text:"A customer with a job on the bench wants to add a backup radio while you are already in the panel.", choices:[ {label:'WRITE THE CHANGE ORDER', run:function(){ var ip=STATE.bays.filter(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); if(!ip.length) return "By the time you called back, the bay had already closed up. No change made."; var b=ip[Math.floor(Math.random()*ip.length)]; var add=Math.round(2500+Math.random()*2500); if(b.job.quote){ b.job.quote.total+=add; b.job.quote.parts=(b.job.quote.parts||0)+Math.round(add*0.12); } b.shiftsNeed+=1; STATE.rep+=1; return "Change order signed. About "+money(add)+" added to that ticket and one more shift on the bay. +1 rep."; }}, {label:'HOLD THE SCOPE', run:function(){ return "You kept the job tight so it ships clean and on time. The owner understood."; }} ] },
+  { key:'changeorder', title:'CUSTOMER WANTS MORE', weight:2, cond:function(){ return STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); }, text:"A customer with a job on the bench wants to add a backup radio while you are already in the panel.", choices:[ {label:'WRITE THE CHANGE ORDER', run:function(){ var ip=STATE.bays.filter(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); if(!ip.length) return "By the time you called back, the bay had already closed up. No change made."; var b=ip[Math.floor(Math.random()*ip.length)]; var add=Math.round(2500+Math.random()*2500); if(b.job.quote){ b.job.quote.total+=add; b.job.quote.parts=(b.job.quote.parts||0)+Math.round(add*0.12); if(b.job.quote.cogs!=null) b.job.quote.cogs+=Math.round(add*0.35); } b.shiftsNeed+=1; STATE.rep+=1; return "Change order signed. About "+money(add)+" added to that ticket and one more shift on the bay. +1 rep."; }}, {label:'HOLD THE SCOPE', run:function(){ return "You kept the job tight so it ships clean and on time. The owner understood."; }} ] },
   { key:'anxious', title:'THE CUSTOMER CALLS', weight:2, cond:function(){ return STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); }, text:"An owner whose airplane is torn down is nervous about the downtime and wants to hear from you.", choices:[ {label:'TALK THEM THROUGH IT', run:function(){ if((STATE.charisma||3)>=5 || Math.random()<0.6){ STATE.culture=clamp(STATE.culture+2,0,100); STATE.rep+=1; return "You walked them through the work and set expectations. They hung up reassured. +1 rep."; } return "You did your best to reassure them. Still a little anxious, but they appreciated the call."; }}, {label:'TELL THEM IT IS HANDLED', run:function(){ if(Math.random()<0.5){ STATE.rep=Math.max(0,STATE.rep-1); return "You brushed it off. They felt dismissed and grumbled to a hangar neighbor. -1 rep."; } return "Short and to the point. They let it go this time."; }} ] } ];
 
 /* ---- STATE ---- */
@@ -551,6 +551,7 @@ function makeState(){
     event:null, _result:null, recentEvents:[], pendingEra:0, adsbRush:0,
     aeaRep:0, charisma:3, warm:0, hotBoard:false, lastHustle:0, culture:68, oemSales:{}, dealers:{}, courses:{}, apprentice:false, grant:false, gradCount:0,
     branches:[], conventions:0, scholarships:0, lastShowYear:0, lastConfYear:0, lastStmt:1, lastStmtData:null, awardWon:false, milestoneShown:false, _confSel:[], _lastCred:null, _certTech:null, _certNext:0,
+    invites:[], showList:null, showIdx:0, _mgYear:0, _mgUsed:0, _dealerBuy:null, _withheld:0,
     pendingHire:null, personnel:null, lastPersonnel:0,
     customers:{}, reviewsFeed:[], starRating:0, custSeq:0,
     pendingOverhead:0, _lastReview:null, _respondIdx:null,
@@ -559,26 +560,7 @@ function makeState(){
     tutorial:{step:0, done:false} };
 }
 var STATE=makeState();
-
-/* ---- Task 3: seed sample customers and reviews for UI dev ---- */
-(function seedDev(){
-  /* A believable opening book: a couple of early customers from the soft open,
-     both dated to opening week so the player's own work moves the rating from
-     here, not a pile of future-dated history. */
-  var c0=ensureCustomer('Frank Alderman','piston','budget');
-  c0.rel=1; c0.ltv=3800; c0.lastWeek=1; c0.jobsDone=1;
-
-  var c1=ensureCustomer('Rita Vasquez','twinpiston','safety');
-  c1.rel=1; c1.ltv=6200; c1.lastWeek=1; c1.jobsDone=1;
-
-  STATE.reviewsFeed=[
-    {custId:c1.id,cust:'Rita Vasquez',aircraft:'Piston Twin',stars:5,week:1,answered:false,
-     text:"First shop that explained exactly what they were doing and why. I will be back."},
-    {custId:c0.id,cust:'Frank Alderman',aircraft:'Piston Single',stars:4,week:1,answered:false,
-     text:"Fair price and honest work. No complaints."}
-  ];
-  STATE.starRating = starAvg(STATE.reviewsFeed);
-})();
+/* A new shop opens with an empty book and no reviews. The wall is earned. */
 
 var REVIEW_TARGET=210, MAXBAR=320;
 var CRED_SKILL=[0, 4.0, 6.5, 8.5];
@@ -685,7 +667,10 @@ function newBoard(){ var ai=unlockedAircraft(), ji=unlockedJobs();
   var board=[gen(),gen(),gen()];
   if(!board.some(function(b){ return b.fit==='amazing'||b.fit==='solid'; })){ var a=pick(ai); var good=ji.filter(function(j){ return fitFor(a,j)!=='dead'; }); var jj=good[0]||ji[0]; board[0]={a:a,j:jj,fit:fitFor(a,jj),owner:pick(OWNERS)}; }
   if(STATE.hotBoard){ board=board.map(function(b){ var f=fitFor(b.a,b.j); if(f==='dead'||f==='risky'){ var good=ji.filter(function(jj){ var ff=fitFor(b.a,jj); return ff==='amazing'||ff==='solid'; }); if(good.length){ var nj=pick(good); return {a:b.a,j:nj,fit:fitFor(b.a,nj),owner:b.owner}; } } return b; }); STATE.hotBoard=false; }
+  /* Called-in accounts stay on the board until they are seen or they walk. */
+  (STATE.invites||[]).forEach(function(iv){ board.push(iv); });
   STATE.board=board; STATE.boardWeek=STATE.week; }
+function dropInvite(owner){ if(STATE.invites) STATE.invites=STATE.invites.filter(function(iv){ return iv.owner!==owner; }); }
 /* One board of prospects per week. It refreshes when the shop clock moves, not when you re-tap the bay. */
 function boardFresh(){ return STATE.boardWeek===STATE.week && STATE.board.length>0; }
 
@@ -720,7 +705,7 @@ SCREENS.meet=function(){
     actions:[ {label:'WALK AWAY', on:function(){ go('floor'); }} ],
     init:function(){ document.querySelectorAll('.opt[data-ap]').forEach(function(el){ el.onclick=function(){ var ap=el.dataset.ap, match=(ap===ct.val);
         /* A badly pitched cold tire-kicker can simply leave. */
-        if(!match && !pj.known && ct.k==='tire' && Math.random()<0.35){ sBad(); toast(pj.owner+' drifted off mid-pitch. Some of them were never buying.'); if(pj.boardIdx!=null) STATE.board.splice(pj.boardIdx,1); STATE.pendingJob=null; go('floor'); return; }
+        if(!match && !pj.known && ct.k==='tire' && Math.random()<0.35){ sBad(); toast(pj.owner+' drifted off mid-pitch. Some of them were never buying.'); if(pj.boardIdx!=null) STATE.board.splice(pj.boardIdx,1); dropInvite(pj.owner); STATE.pendingJob=null; go('floor'); return; }
         var interest=clamp(26+(match?34:8)+Math.round(cha*4)+Math.round(Math.random()*8)+(STATE.warm||0),0,100); STATE.warm=0;
         pj.interest=interest; pj.matched=match; pj.qsel=null; pj.balks=0;
         if(match) sGood(); else sBlip();
@@ -780,7 +765,7 @@ SCREENS.quote=function(){
         else {
           /* An over-budget send costs you the room. One balk sours them; two and they walk. */
           pj.balks=(pj.balks||0)+1;
-          if(pj.balks>=2 || (pj.ctype==='tire' && Math.random()<0.5)){ sBad(); toast(pj.owner+' walked. The number never came down to earth.'); if(pj.boardIdx!=null) STATE.board.splice(pj.boardIdx,1); STATE.pendingJob=null; go('floor'); return; }
+          if(pj.balks>=2 || (pj.ctype==='tire' && Math.random()<0.5)){ sBad(); toast(pj.owner+' walked. The number never came down to earth.'); if(pj.boardIdx!=null) STATE.board.splice(pj.boardIdx,1); dropInvite(pj.owner); STATE.pendingJob=null; go('floor'); return; }
           pj.interest=Math.max(0,(pj.interest||40)-12);
           sBad(); toast('They balked at the price. One more number like that and they walk.'); go('quote'); } }} ],
     init:function(){ document.querySelectorAll('button[data-q]').forEach(function(el){ el.onclick=function(){ pj.qsel[el.dataset.q]=el.dataset.v; sTab(); go('quote'); }; }); } };
@@ -818,14 +803,30 @@ SCREENS.book=function(){
       var acName=AIRCRAFT[c.aircraft]?AIRCRAFT[c.aircraft].name:c.aircraft;
       var lastVis=c.lastWeek?'Wk '+c.lastWeek:'never';
       var rvCount=c.reviews?c.reviews.length:0;
+      /* Working the book: a known account can be called in. Relationships are a
+         decision you spend on, not an owner-name lottery. */
+      var onBoard=STATE.board.some(function(b){ return b.owner===c.name; });
+      var canCall=c.rel>=2 && !onBoard && (STATE.week-(c.lastInvite||0))>=8;
+      var callBtn=canCall?'<button class="opt" style="margin-top:6px;min-height:44px" data-invite="'+c.id+'">CALL THEM IN ('+money(500)+')<br><span class="sml">A ramp visit and a call. Puts their next project on your board.</span></button>':'';
       return '<div class="cust-card"><div class="cc-name">'+c.name+'</div>'
         +'<div class="cc-row"><span class="rank-badge '+rankCls+'">'+rank.toUpperCase()+'</span>'+persChip+'<span class="spectag">'+acName+'</span></div>'
         +'<div class="cc-detail">LTV '+money(c.ltv)+' &bull; last visit '+lastVis+' &bull; '+c.jobsDone+' job'+(c.jobsDone!==1?'s':'')+(rvCount?' &bull; '+rvCount+' review'+(rvCount!==1?'s':''):'')+'</div>'
-        +'</div>';
+        +callBtn+'</div>';
     }).join('');
   }
   return { html:'<h2 class="scrn">CUSTOMER BOOK</h2><div class="panel" style="margin-bottom:0"><div class="note" style="text-align:left;font-family:\'Press Start 2P\',monospace;font-size:7px;color:var(--muted)">'+keys.length+' customer'+(keys.length!==1?'s':'')+' on the book</div></div>'+custList,
-    actions:[ {label:'BACK', on:function(){ go('info'); }} ] };
+    actions:[ {label:'BACK', on:function(){ go('info'); }} ],
+    init:function(){ document.querySelectorAll('.opt[data-invite]').forEach(function(el){ el.onclick=function(){
+      var c=STATE.customers[+el.dataset.invite]||STATE.customers[el.dataset.invite]; if(!c) return;
+      if(STATE.cash<500){ toast('Need '+money(500)+'.'); return; }
+      var ji=unlockedJobs(), a=(AIRCRAFT[c.aircraft]&&AIRCRAFT[c.aircraft].lvl<=STATE.level)?c.aircraft:pick(unlockedAircraft());
+      var good=ji.filter(function(j){ return fitFor(a,j)!=='dead'; });
+      var j=good.length?pickBiasedJob(good):pickBiasedJob(ji);
+      STATE.cash-=500; c.lastInvite=STATE.week;
+      var lead={a:a,j:j,fit:fitFor(a,j),owner:c.name};
+      STATE.invites=(STATE.invites||[]); STATE.invites.push(lead);
+      if(boardFresh()) STATE.board.push(lead);
+      sGood(); renderHUD(); toast(c.name+' is bringing the '+(AIRCRAFT[a]?AIRCRAFT[a].name:'airplane')+' in. They are on your board.'); go('book'); }; }); } };
 };
 
 SCREENS.reviews=function(){
@@ -959,6 +960,7 @@ SCREENS.assign=function(){
       + (none?'<div class="panel"><div class="note" style="text-align:left">Every tech is already on a bay. Deliver a job to free someone up, or hire more crew.</div></div>':'<div class="sub">Pick up to 3 techs. They learn on the job.</div>'+cards),
     actions:[ {label:'BACK', on:function(){ go('board'); }}, {label:'START THE JOB', cls:'btn-go', disabled:STATE.sel.length===0, on:function(){ if(STATE.sel.length===0){ toast('Assign at least one tech.'); return; }
         if(STATE.pendingJob.boardIdx!=null){ STATE.board.splice(STATE.pendingJob.boardIdx,1); STATE.pendingJob.boardIdx=null; }
+        dropInvite(STATE.pendingJob.owner);
         var bay=freshBay(); bay.job=STATE.pendingJob; bay.shiftsNeed=JOBS[STATE.pendingJob.j].shifts||4; bay.owner=STATE.pendingJob.owner; bay.crew=STATE.sel.slice();
         /* Fatigue carries over between jobs. Rest comes from time off the bay, not a new ticket. */
         STATE.sel.forEach(function(ci){ STATE.crew[ci].bay=STATE.fillBay; });
@@ -1028,6 +1030,13 @@ function runShift(){
     STATE.hf=hi; STATE.hfResult=null;
     STATE.recentHF=(STATE.recentHF||[]); STATE.recentHF.push(hi); if(STATE.recentHF.length>4) STATE.recentHF.shift();
     go('hf'); return;
+  }
+  /* Mid-job customer beats land DURING the work, the way the phone actually
+     rings. Only when nothing is ready to deliver, so the loop never stalls. */
+  var anyReady=STATE.bays.some(function(b){ return b.job && b.shiftsDone>=b.shiftsNeed; });
+  if(!anyReady && Math.random()<0.18){
+    var mj=EVENTS.filter(function(e){ return (e.key==='changeorder'||e.key==='anxious') && e.cond && e.cond(); });
+    if(mj.length){ STATE.event=pick(mj); go('event'); return; }
   }
   endShift();
 }
@@ -1266,10 +1275,12 @@ var OEMS={
  halcyon:{name:'Halcyon Dynamics', dom:'Experimental and non-cert glass', era:2, buyin:[0,5000,11000,20000], annual:[0,600,1300,2400], salesReq:[0,3,8,15], repReq:[0,14,36,68], certReq:[0,0,1,2], margin:[1,1.09,1.18,1.30]},
  quanta:{name:'Quanta Avionics', dom:'Transponders, ADS-B, surveillance', era:3, buyin:[0,6000,14000,26000], annual:[0,800,1700,3000], salesReq:[0,4,10,20], repReq:[0,18,42,75], certReq:[0,1,2,2], margin:[1,1.10,1.20,1.32]},
  stratoline:{name:'Stratoline', dom:'Cabin connectivity and datalink', era:4, buyin:[0,12000,26000,50000], annual:[0,1400,2800,5000], salesReq:[0,2,6,12], repReq:[0,30,55,92], certReq:[0,1,2,3], margin:[1,1.12,1.24,1.40]},
- tempest:{name:'Tempest Systems', dom:'Weather radar and hazard awareness', era:4, buyin:[0,10000,22000,42000], annual:[0,1200,2500,4400], salesReq:[0,2,6,12], repReq:[0,26,52,88], certReq:[0,1,2,3], margin:[1,1.11,1.22,1.36]}
+ tempest:{name:'Tempest Systems', dom:'Weather radar and hazard awareness', era:4, buyin:[0,10000,22000,42000], annual:[0,1200,2500,4400], salesReq:[0,2,6,12], repReq:[0,26,52,88], certReq:[0,1,2,3], margin:[1,1.11,1.22,1.36]},
+ /* The prize. Everybody hangs their boxes, few get the line. Premier Meridian is a late-game milestone. */
+ meridian:{name:'Meridian Avionics', dom:'Navigators and full-stack flight decks', era:3, buyin:[0,15000,32000,60000], annual:[0,1800,3400,6000], salesReq:[0,4,10,20], repReq:[0,40,70,100], certReq:[0,1,2,3], margin:[1,1.12,1.26,1.44]}
 };
-var OEM_ORDER=['larkfield','kestrel','vireon','tindall','halcyon','quanta','stratoline','tempest'];
-var JOB_OEM={ audio:'larkfield', elt:null, cert:null, xpdr:null, harness:null, radio:'vireon', glass:'vireon', ap:'tindall', eis:'kestrel', adsb:'quanta', datalink:'stratoline', radar:'tempest', traffic:'quanta', expglass:'halcyon' };
+var OEM_ORDER=['larkfield','kestrel','vireon','tindall','halcyon','quanta','stratoline','tempest','meridian'];
+var JOB_OEM={ audio:'larkfield', elt:null, cert:null, xpdr:null, harness:null, radio:'meridian', glass:'vireon', ap:'tindall', eis:'kestrel', adsb:'quanta', datalink:'stratoline', radar:'tempest', traffic:'quanta', expglass:'halcyon' };
 /* ---- AEA Convention: new-product showcase (cinematic reveal) ---- */
 var SHOW_PRODUCTS=[
  {n:'SkyView Audio 6', mk:'larkfield', kind:'audio', era:1, hype:'Six-place intercom, Bluetooth audio, and the clearest sidetone on the field.'},
@@ -1279,6 +1290,7 @@ var SHOW_PRODUCTS=[
  {n:'TrueTrack AP', mk:'tindall', kind:'autopilot', era:2, hype:'Two-axis digital autopilot with envelope protection and a level button that saves lives.'},
  {n:'OpenDeck X', mk:'halcyon', kind:'efis', era:2, hype:'Experimental glass for the homebuilt crowd. All the features, none of the cert tax.'},
  {n:'Sentinel XPDR-S', mk:'quanta', kind:'xpdr', era:3, hype:'Mode S, ADS-B Out, and the whole mandate handled in one slim box.'},
+ {n:'NavCore 750', mk:'meridian', kind:'gps', era:3, hype:'The navigator every panel on the field wants. The shops that carry it own the schedule.'},
  {n:'SkyTraffic In', mk:'quanta', kind:'adsb', era:3, hype:'See every target on the map and on your tablet, with free weather included.'},
  {n:'CabinNet Datalink', mk:'stratoline', kind:'datalink', era:4, hype:'Cockpit and cabin online at altitude. The connected cockpit finally arrives.'},
  {n:'StormScan Radar', mk:'tempest', kind:'radar', era:4, hype:'Solid-state weather radar that paints the cell long before it paints you.'}
@@ -1305,13 +1317,12 @@ function productArt(kind){
    +'<rect x="40" y="66" width="40" height="6" rx="2" fill="#2a4256"/>'
    +'</svg>';
 }
-function startShow(){ var ji=unlockedJobs(); var pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=STATE.era && ji.indexOf(SHOW_JOB[p.kind]||p.kind)>=0; }); if(!pool.length) pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=STATE.era; }); if(!pool.length) pool=SHOW_PRODUCTS.slice(); var p=pick(pool); STATE.showOne=p; STATE.rep+=3; STATE.aeaRep+=4; var dom=SHOW_JOB[p.kind]||p.kind; STATE.demandWave={brand:(OEMS[p.mk]?OEMS[p.mk].name:'a top house'), product:p.n, oem:p.mk, domain:dom, kind:p.kind, weeksLeft:6, premium:1.15}; if(STATE._seenTips) delete STATE._seenTips.dealerWave; sEra(); go('aeaShow'); }
-function closeShow(){ STATE.showOne=null; }
-SCREENS.aeaShow=function(){
-  var p=STATE.showOne; if(!p){ go('floor'); return {html:'',actions:[]}; }
-  var O=OEMS[p.mk], mk=O?O.name:'a show exhibitor', isDealer=dealerTier(p.mk)>0;
-  var wantJob=(JOBS[STATE.demandWave.domain]?JOBS[STATE.demandWave.domain].name:p.n);
-  var stage='<div class="hangarwrap"><svg viewBox="0 0 480 270" preserveAspectRatio="xMidYMid meet" aria-label="convention stage">'
+/* The show floor lineup: up to three era-appropriate reveals, headliner last. */
+function showLineup(era, ji){ var pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=era && ji.indexOf(SHOW_JOB[p.kind]||p.kind)>=0; }); if(!pool.length) pool=SHOW_PRODUCTS.filter(function(p){ return p.era<=era; }); if(!pool.length) pool=SHOW_PRODUCTS.slice(); return shuffle(pool).slice(0,3); }
+function startShow(){ STATE.showList=showLineup(STATE.era, unlockedJobs()); STATE.showIdx=0; sEra(); go('aeaShow'); }
+function closeShow(){ STATE.showOne=null; STATE.showList=null; STATE.showIdx=0; }
+function showStage(p){
+  return '<div class="hangarwrap"><svg viewBox="0 0 480 270" preserveAspectRatio="xMidYMid meet" aria-label="convention stage">'
     +'<defs><radialGradient id="spot" cx="0.5" cy="0.15" r="0.85"><stop offset="0" stop-color="#fff2b8" stop-opacity="0.55"/><stop offset="1" stop-color="#fff2b8" stop-opacity="0"/></radialGradient></defs>'
     +'<rect width="480" height="270" fill="#13386a"/><rect x="0" y="0" width="480" height="40" fill="#0e2c55"/>'
     +'<rect x="40" y="8" width="400" height="24" rx="4" fill="#0a2142" stroke="#ffd23f" stroke-width="3"/><text x="240" y="25" text-anchor="middle" font-family="Press Start 2P" font-size="9" fill="#ffd23f">AEA CONVENTION</text>'
@@ -1320,14 +1331,40 @@ SCREENS.aeaShow=function(){
     +'<rect x="0" y="40" width="46" height="156" fill="#a31f3a"/><rect x="40" y="40" width="6" height="156" fill="#7a1630"/><rect x="434" y="40" width="46" height="156" fill="#a31f3a"/><rect x="434" y="40" width="6" height="156" fill="#7a1630"/>'
     +'<g transform="translate(208,150)"><rect x="-36" y="8" width="72" height="14" fill="#0a2142"/><rect x="-30" y="0" width="60" height="10" fill="#2a4256"/></g>'
     +'<g transform="translate(132,64)">'+productArt(p.kind)+'</g></svg></div>';
+}
+/* The show is a tap-through: one reveal per tap, headliner last, then the
+   closing beat pays the buzz and kicks off the demand wave. Never passive. */
+SCREENS.aeaShow=function(){
+  var list=STATE.showList; if(!list||!list.length){ go('floor'); return {html:'',actions:[]}; }
+  var i=clamp(STATE.showIdx||0,0,list.length-1), p=list[i], last=(i>=list.length-1);
+  var O=OEMS[p.mk], mk=O?O.name:'a show exhibitor';
+  var counter=list.map(function(_,k){ return '<span class="d '+(k<=i?'done':'')+'"></span>'; }).join('');
+  return { html:'<h2 class="scrn">THE AEA SHOW</h2>'+showStage(p)
+     +'<div class="panel" style="margin-top:8px;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">'+mk.toUpperCase()+' UNVEILS</div><div class="nm pix" style="font-size:12px;color:var(--amber);margin-top:6px">'+p.n+'</div><div class="reason" style="margin-top:8px">'+p.hype+'</div>'
+     +'<div class="dots" style="justify-content:center;margin-top:10px">'+counter+'</div></div>'
+     +(last?'':'<div class="note">The crowd is moving to the next booth.</div>'),
+    actions:[ last ? {label:'THE BIG FINISH \u25BA', cls:'btn-go', on:function(){ go('aeaShowClose'); }}
+                   : {label:'NEXT REVEAL \u25BA', cls:'btn-go', on:function(){ STATE.showIdx=i+1; sPing(i+1); go('aeaShow'); }} ],
+    init:function(){ if(i===0) sHit(); } };
+};
+SCREENS.aeaShowClose=function(){
+  var list=STATE.showList; if(!list||!list.length){ go('floor'); return {html:'',actions:[]}; }
+  var p=list[list.length-1], O=OEMS[p.mk], isDealer=dealerTier(p.mk)>0;
+  /* The buzz pays out here, in front of the player, not silently. */
+  STATE.rep+=3; STATE.aeaRep+=4;
+  var dom=SHOW_JOB[p.kind]||p.kind;
+  STATE.demandWave={brand:(O?O.name:'a top house'), product:p.n, oem:p.mk, domain:dom, kind:p.kind, weeksLeft:6, premium:1.15};
+  if(STATE._seenTips) delete STATE._seenTips.dealerWave;
+  var wantJob=(JOBS[dom]?JOBS[dom].name:p.n);
   var move, moveAct;
   if(O && !isDealer){ move='Become a '+O.name+' dealer before the rush, so the premium upsell and the kickback are yours.'; moveAct={label:'GO TO DEALERS \u25BA', cls:'btn-go', on:function(){ closeShow(); go('dealers'); }}; }
   else { move='Book training seats so your techs are current and certified for the work about to flood in.'; moveAct={label:'BOOK TRAINING \u25BA', cls:'btn-go', on:function(){ closeShow(); go('crew'); }}; }
-  return { html:'<h2 class="scrn">THE AEA SHOW</h2>'+stage
-     +'<div class="panel" style="margin-top:8px;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">'+mk.toUpperCase()+' UNVEILS</div><div class="nm pix" style="font-size:12px;color:var(--amber);margin-top:6px">'+p.n+'</div><div class="reason" style="margin-top:8px">'+p.hype+'</div></div>'
+  return { html:'<h2 class="scrn">THE AEA SHOW</h2>'
+     +'<div class="panel" style="text-align:center;border-color:var(--amber)"><div class="kick pix" style="font-size:8px;color:var(--sky)">TALK OF THE SHOW</div><div class="nm pix" style="font-size:12px;color:var(--amber);margin-top:8px">'+p.n+'</div></div>'
+     +'<div class="panel"><div class="ledger"><span>Your booth and the hallway talk</span><b style="color:var(--scope)">+3 rep</b></div><div class="ledger"><span>AEA standing</span><b style="color:var(--scope)">+4</b></div></div>'
      +'<div class="panel"><div class="infobox" style="border-color:var(--scope);background:#0f2a20;color:#cfeede;box-shadow:inset 0 0 0 2px #1a4a38">DEMAND WAVE: owners across the field want '+wantJob+' now. Your job board fills with it for the next few weeks, at early-adopter prices.</div><div class="note" style="text-align:left;margin-top:8px">Your move: '+move+'</div></div>',
     actions:[ moveAct, {label:'BACK TO THE FLOOR', on:function(){ closeShow(); go('floor'); }} ],
-    init:function(){ sHit(); } };
+    init:function(){ sLevel(); renderHUD(); } };
 };
 var TIER_NAME=['None','Stocking Dealer','Authorized Dealer','Premier Dealer'];
 OEM_ORDER.forEach(function(o){ OEMS[o].certReq[1]=0; });
@@ -1422,7 +1459,7 @@ SCREENS.shop=function(){
     +((STATE.pendingOverhead||0)!==0?'<div class="ledger"><span>Overhead due next invoice</span><b style="color:'+(STATE.pendingOverhead<0?'var(--beacon)':'var(--scope)')+'">'+(STATE.pendingOverhead<0?'-':'+')+money(Math.abs(STATE.pendingOverhead))+'</b></div>':'')
     +'<div class="ledger"><span>Field rep \u2022 AEA standing</span><b style="color:var(--amber)">'+STATE.rep+' \u2022 '+STATE.aeaRep+'</b></div>'
     +'<div class="ledger"><span>Shop rating</span><b style="color:var(--scope)">'+(STATE.starRating||0).toFixed(1)+' / 5</b></div>'
-    +'<div class="ledger"><span>Dealer authorizations</span><b style="color:var(--sky)">'+dealerN+'/8'+(hasPremier()?' \u2605':'')+'</b></div>'
+    +'<div class="ledger"><span>Dealer authorizations</span><b style="color:var(--sky)">'+dealerN+'/'+OEM_ORDER.length+(hasPremier()?' \u2605':'')+'</b></div>'
     +(STATE.apprentice?'<div class="ledger"><span>Apprentices graduated</span><b style="color:var(--scope)">'+STATE.gradCount+'</b></div>':'')
     +'<div class="ledger"><span>Crew morale</span><b style="color:'+(ml<40?'var(--caution)':(ml<60?'var(--amber)':'var(--scope)'))+'">'+(ml>=75?'strong':ml>=60?'steady':ml>=40?'restless':'flight risk')+'</b></div>'
     +'<div class="ledger"><span>Labor rate</span><b style="color:var(--amber)">'+RATES[(STATE.rate==null?1:STATE.rate)].n+'</b></div>'
@@ -1472,17 +1509,6 @@ SCREENS.manual=function(){
     +s('HOW YOU WIN',
        'Shop of the Year is not for sale. It rewards your reputation above all: star rating and loyal repeat customers. It rewards your people: apprentices graduated and certified techs. Safety culture and dealer standing matter too. Early on you will hit a Regional Up-and-Comer milestone. To win the big one, invest in your crew and your customer relationships, not just cash.');
   return { html:html, actions:[ {label:'BACK', on:function(){ go('info'); }} ] };
-};
-
-SCREENS.hire=function(){
-  var open=STATE.crew.length<crewSlots(); var avail=CREW_POOL.filter(function(c){ return c.lvl<=STATE.level && !STATE.hired[c.key]; });
-  var body='';
-  if(!open){ body='<div class="panel"><div class="note" style="text-align:left">Every bench is full ('+STATE.crew.length+'/'+crewSlots()+'). Upgrade the shop to open another slot.</div></div>'; }
-  else if(!avail.length){ body='<div class="panel"><div class="note" style="text-align:left">No new candidates right now. Grow the shop to attract bigger talent, and watch the floor for walk-ins.</div></div>'; }
-  else { body=avail.map(function(c){ return '<div class="card flat" data-h="'+c.key+'"><div class="ico"><svg viewBox="0 0 56 42">'+crewSprite(28,38,c.color,'h'+c.key,0)+'</svg></div><div class="body"><div class="nm">'+c.name+' <span class="cred '+credCls(c.cred)+'">'+credName(c.cred).toUpperCase()+'</span></div><div class="ds">'+c.tag+'</div><div class="stats"><span class="stat">Wir <b>'+c.wiring+'</b></span><span class="stat">Int <b>'+c.integ+'</b></span><span class="stat">T/S <b>'+c.trouble+'</b></span><span class="stat">Pap <b>'+c.paper+'</b></span></div><div class="row2"><span class="pay">'+money(c.fee)+'</span></div></div></div>'; }).join(''); }
-  return { html:'<h2 class="scrn">HIRE CREW</h2><div class="sub">Slots '+STATE.crew.length+'/'+crewSlots()+'. Tap a candidate to sign.</div>'+body,
-    actions:[ {label:'BACK', on:function(){ go('shop'); }} ],
-    init:(open&&avail.length)?function(){ document.querySelectorAll('.card[data-h]').forEach(function(el){ el.onclick=function(){ var c=CREW_POOL.filter(function(x){ return x.key===el.dataset.h; })[0]; if(STATE.crew.length>=crewSlots()){ toast('No open slot.'); return; } if(STATE.cash<c.fee){ toast('Not enough cash.'); return; } STATE.cash-=c.fee; STATE.hired[c.key]=true; var nh=mkCrew(c.name,c.tag,c.wiring,c.integ,c.trouble,c.paper,c.cred,c.color); refreshCurrency(nh); STATE.crew.push(nh); sHit(); renderHUD(); toast(c.name+' joined the shop.'); go('shop'); }; }); }:null };
 };
 
 SCREENS.train=function(){
@@ -1598,13 +1624,6 @@ SCREENS.crew=function(){
     actions:[],
     init:function(){ document.querySelectorAll('.card[data-go]').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.go); }; }); } };
 };
-SCREENS.training=function(){
-  var nav=[['train','TECHNICIANS','The AEA credential ladder. Train skills and certify CAET, Advanced, Master.'],['courses','AEA COURSES','Shop-wide courses: compliance, wiring, human factors, cyber, business.'],['oemcert','OEM FACTORY TRAINING','Certify techs on the lines you sell. Cleaner work and higher dealer tiers.'],['apprentice','APPRENTICESHIP','Start a registered program. Grow your own bench and draw grant funding.']]
-    .map(function(n){ return '<div class="card" data-go="'+n[0]+'"><div class="body"><div class="nm">'+n[1]+'</div><div class="ds">'+n[2]+'</div></div></div>'; }).join('');
-  return { html:'<h2 class="scrn">TRAINING</h2><div class="sub">Your people are the product. This is where the shop is built.</div>'+nav,
-    actions:[ {label:'BACK', on:function(){ go('shop'); }} ],
-    init:function(){ document.querySelectorAll('.card[data-go]').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.go); }; }); } };
-};
 SCREENS.courses=function(){
   var cards=COURSE_ORDER.map(function(k){ var co=COURSES[k], have=STATE.courses[k]; return '<div class="card'+(have?' flat':'')+'" data-course="'+k+'"><div class="body"><div class="nm">'+co.name+(have?' <span class="cred c2">DONE</span>':'')+'</div><div class="ds">'+co.ds+'</div>'+(have?'':'<div class="row2"><span class="pay">'+money(co.cost)+'</span></div>')+'</div></div>'; }).join('');
   return { html:'<h2 class="scrn">AEA COURSES</h2><div class="sub">One-time investments that lift the whole shop and your AEA standing.</div>'+cards,
@@ -1680,7 +1699,7 @@ SCREENS.personnel=function(){
   var p=STATE.personnel; if(!p||!STATE.crew[p.idx]){ go('floor'); return {html:'',actions:[]}; }
   var c=STATE.crew[p.idx], wage=c.wage||marketWage(c);
   if(p.type==='poach'){ var bonus=Math.max(1500,p.offer-wage);
-    return { html:'<h2 class="scrn">A RIVAL IS CIRCLING</h2><div class="panel"><div class="evtext">A competing shop on the field made '+c.name+' an offer: '+money(p.offer)+' a month, up from '+money(wage)+'. '+((c.loyalty||0)<25?'Loyalty is thin and they are listening hard.':'They came to you first, but they want a reason to stay.')+'</div></div>'
+    return { html:'<h2 class="scrn">VANCE MERCER IS CIRCLING</h2><div class="panel"><div class="evtext">Mercer’s shop across the field made '+c.name+' an offer: '+money(p.offer)+' a month, up from '+money(wage)+'. '+((c.loyalty||0)<25?'Loyalty is thin and they are listening hard.':'They came to you first, but they want a reason to stay.')+'</div></div>'
        +'<div class="sub">Keep them, or lose them and every certification they carry.</div>'
        +'<button class="opt btn-go" data-p="match"><b>Match the offer</b> <span class="ok" style="float:right">'+money(p.offer)+'/mo</span><br><span class="ds">Raise the wage. Loyalty jumps, payroll rises.</span></button>'
        +'<button class="opt btn-amber" data-p="bonus"><b>One-time bonus</b> <span class="ok" style="float:right">'+money(bonus)+'</span><br><span class="ds">Buys time without raising payroll. Smaller, temporary lift.</span></button>'
@@ -1860,7 +1879,7 @@ var AVI_FACTS=[
 
 /* ---- PHASE 5: demand waves. The AEA Show kicks off a wave that biases the job
    board toward one kind of work for a few weeks, then it ticks down and clears. ---- */
-var SHOW_JOB={efis:'glass',autopilot:'ap',audio:'audio',adsb:'adsb',eis:'eis',xpdr:'xpdr',datalink:'datalink',radar:'radar'};
+var SHOW_JOB={efis:'glass',autopilot:'ap',audio:'audio',adsb:'adsb',eis:'eis',xpdr:'xpdr',datalink:'datalink',radar:'radar',gps:'radio'};
 function boardBiasWeight(domain, s){ return (s && s.demandWave && s.demandWave.domain===domain) ? 3 : 1; }
 function waveMult(j){ return (STATE.demandWave && STATE.demandWave.domain===j) ? (STATE.demandWave.premium||1) : 1; }
 function tickDemandWave(s){ if(s && s.demandWave){ s.demandWave.weeksLeft=(s.demandWave.weeksLeft||0)-1; if(s.demandWave.weeksLeft<=0) s.demandWave=null; } }
@@ -1888,7 +1907,10 @@ var CHIEF_TIPS = [
     text:function(s){ var c=lapsingTech(s); return '"'+(c?c.name:'One of your techs')+' is about to fall out of currency. Let it lapse and they cannot touch dealer or certified work until it is refreshed. The fall conference is the cheap fix. Book the seat before it bites."'; } },
   { id:'coldLoyals', priority:60, short:'A loyal account is cooling',
     when:function(s){ return coldLoyal(s)!==null; },
-    text:function(s){ var c=coldLoyal(s); return '"'+(c?c.name:'A loyal account')+' has not been in for a while. The loyal ones are exactly who a rival shop loves to poach. A ramp pass or a quick call keeps them yours. Do not let that relationship go cold."'; } },
+    text:function(s){ var c=coldLoyal(s); return '"'+(c?c.name:'A loyal account')+' has not been in for a while. The loyal ones are exactly who Vance Mercer loves to peel off. A ramp pass or a quick call keeps them yours. Do not let that relationship go cold."'; } },
+  { id:'meridianPrize', priority:55, short:'The Meridian line is in reach',
+    when:function(s){ return (s.era||1)>=3 && !((s.dealers||{}).meridian); },
+    text:function(s){ return '"Meridian is the line, boss. Every serious panel wants their navigator, and they hand the dealership to maybe one shop a region. Vance Mercer has been chasing it for years. Sales on their boxes, certified techs, a clean record, and a reputation they cannot ignore. Get there first."'; } },
   { id:'apprenticeReady', priority:50, short:'Time to grow your own',
     when:function(s){ return !s.apprentice && hasMentorTech(s) && (s.jobsDone||0)>=2; },
     text:function(s){ return '"You have a tech senior enough to mentor now. That is the moment to start a registered apprenticeship. Grow your own and you get loyal CAET techs nobody can poach, and AEA helps fund it. Slow, but it is how you build a bench that lasts."'; } }
@@ -1996,6 +2018,32 @@ check('invoice formats negative hit as a minus line', function(){
 
 check('halcyon has a job and it maps back', function(){
   return !!JOBS.expglass && JOB_OEM.expglass === 'halcyon' && JOB_SPEC.expglass === 'glass';
+});
+check('withheld payment renders as its own minus line', function(){
+  var inv = buildInvoice({labor:10000, parts:-1500, withheld:3000});
+  return inv.net === 10000-1500-3000 && inv.lines.some(function(l){ return l.amt===-3000 && /Withheld/.test(l.label); });
+});
+check('meridian is the ninth line and the era-3 prize', function(){
+  return OEM_ORDER.length===9 && OEMS.meridian && OEMS.meridian.era===3 && JOB_OEM.radio==='meridian'
+      && OEMS.meridian.repReq[3]>=OEMS.vireon.repReq[3];
+});
+check('dealer buy price improves with tier', function(){
+  return GEAR_COST_FRAC.length===4 && GEAR_COST_FRAC[0]>GEAR_COST_FRAC[1] && GEAR_COST_FRAC[1]>GEAR_COST_FRAC[3];
+});
+check('show lineup is a 1-3 reveal tap-through, era-legal', function(){
+  var l1=showLineup(1,['audio','elt','cert','xpdr','harness','radio']);
+  var l4=showLineup(4,Object.keys(JOBS));
+  return l1.length>=1 && l1.length<=3 && l1.every(function(p){ return p.era<=1; }) && l4.length===3;
+});
+check('dropInvite removes only that owner', function(){
+  var keep=STATE.invites; STATE.invites=[{owner:'A'},{owner:'B'}]; dropInvite('A');
+  var ok=STATE.invites.length===1 && STATE.invites[0].owner==='B'; STATE.invites=keep; return ok;
+});
+check('certs cost and run like the quick work they are', function(){
+  return JOBS.cert.pay<=1800 && JOBS.xpdr.pay<=1200 && JOBS.cert.shifts===1 && JOBS.xpdr.shifts===1;
+});
+check('a new shop opens with an empty book and no reviews', function(){
+  var s=makeState(); return Object.keys(s.customers).length===0 && s.reviewsFeed.length===0 && (s.starRating||0)===0;
 });
 check('expglass fits experimental aircraft well', function(){ return fitFor('experimental','expglass') === 'amazing'; });
 
