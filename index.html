@@ -1220,7 +1220,8 @@ function finishDeliveries(){
   if(STATE.week - STATE.lastStmt >= 4){ accrueOverhead(); }
   if(earlyMilestoneDue(STATE)){ STATE.milestoneShown=true; go('milestone'); return; }
   if(checkAward()){ go('victory'); return; }
-  if(STATE.cash<-4000){ go('gameover'); return; }
+  /* The bank carries a real shop through a rough month, not a rough quarter. */
+  if(STATE.cash<-25000){ go('gameover'); return; }
   /* Eras arrive with experience AND scale: enough jobs done, and a shop big
      enough to ride the wave. Threshold-based so a gate can never be missed. */
   var dueEra = (STATE.jobsDone>=26 && STATE.level>=3) ? 4 : (STATE.jobsDone>=14 && STATE.level>=2) ? 3 : (STATE.jobsDone>=5) ? 2 : 1;
@@ -1228,7 +1229,8 @@ function finishDeliveries(){
   if(seasonKey()==='spring' && (STATE.lastShowYear||0) < gYear()){ STATE.lastShowYear=gYear(); startShow(); return; }
   if(seasonKey()==='fall' && (STATE.lastConfYear||0) < gYear() && STATE.crew.length){ STATE.lastConfYear=gYear(); STATE._confSel=[]; go('fallconf'); return; }
   if(STATE.week - (STATE.lastPersonnel||0) >= 3 && Math.random()<0.5){ var pr=personnelEvent(); if(pr){ STATE.lastPersonnel=STATE.week; go(pr); return; } }
-  if(STATE.cash<1500) toast('Cash is tight.\nKeep the work flowing.');
+  if(STATE.cash<-10000) toast('The bank is calling.\nLand bigger tickets or the doors close at -$25,000.');
+  else if(STATE.cash<1500) toast('Cash is tight.\nKeep the work flowing.');
   if(Math.random()<0.5){ var e=rollEvent(); if(e){ STATE.event=e; go('event'); return; } }
   go('floor');
 }
@@ -1263,7 +1265,7 @@ SCREENS.event=function(){
 function result(text){ STATE._result=text; renderHUD(); go('result'); }
 SCREENS.result=function(){
   return { html:'<div class="panel"><div class="explain" style="background:#16202b;border-color:var(--hi);color:var(--ink);box-shadow:inset 0 0 0 2px var(--rivet)">'+STATE._result+'</div></div>',
-    actions:[ {label:'CONTINUE \u25BA', cls:'btn-go', on:function(){ if(STATE.cash<-4000){ go('gameover'); return; } if(checkAward()){ go('victory'); return; } go('floor'); }} ] };
+    actions:[ {label:'CONTINUE \u25BA', cls:'btn-go', on:function(){ if(STATE.cash<-25000){ go('gameover'); return; } if(checkAward()){ go('victory'); return; } go('floor'); }} ] };
 };
 
 /* ===== expansion: OEMs, dealers, courses, finance, award ===== */

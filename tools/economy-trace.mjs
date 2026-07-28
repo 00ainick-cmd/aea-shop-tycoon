@@ -51,8 +51,8 @@
 const JOBS = {
   audio:   { era:1, credReq:0, pay:6000,  shifts:4, fit:{piston:'amazing',lsa:'amazing'} },
   elt:     { era:1, credReq:0, pay:5000,  shifts:4, fit:{} },
-  cert:    { era:1, credReq:0, pay:4800,  shifts:2, fit:{} },
-  xpdr:    { era:1, credReq:0, pay:3600,  shifts:2, fit:{} },
+  cert:    { era:1, credReq:0, pay:1600,  shifts:1, fit:{} },
+  xpdr:    { era:1, credReq:0, pay:1100,  shifts:1, fit:{} },
   harness: { era:1, credReq:0, pay:7000,  shifts:4, fit:{experimental:'amazing',warbird:'amazing'} },
   radio:   { era:1, credReq:0, pay:5000,  shifts:4, fit:{} },
   glass:   { era:2, credReq:1, pay:24000, shifts:4, fit:{tprop1:'amazing',tprop2:'amazing',twinpiston:'amazing',taildragger:'dead',experimental:'risky',warbird:'risky'} },
@@ -103,12 +103,17 @@ const OEMS = {
   quanta:    { era:3, buyin:[0,6000,14000,26000], annual:[0,800,1700,3000],   salesReq:[0,4,10,20], repReq:[0,18,42,75],   certReq:[0,1,2,2], margin:[1,1.10,1.20,1.32] },
   stratoline:{ era:4, buyin:[0,12000,26000,50000],annual:[0,1400,2800,5000],  salesReq:[0,2,6,12],  repReq:[0,30,55,92],   certReq:[0,1,2,3], margin:[1,1.12,1.24,1.40] },
   tempest:   { era:4, buyin:[0,10000,22000,42000],annual:[0,1200,2500,4400],  salesReq:[0,2,6,12],  repReq:[0,26,52,88],   certReq:[0,1,2,3], margin:[1,1.11,1.22,1.36] },
+  meridian:  { era:3, buyin:[0,15000,32000,60000],annual:[0,1800,3400,6000],  salesReq:[0,4,10,20], repReq:[0,40,70,100],  certReq:[0,1,2,3], margin:[1,1.12,1.26,1.44] },
 };
+// Shop pays for the boxes it hangs. Buy price improves with dealer tier.
+const GEAR_COST_FRAC = [0.80, 0.70, 0.62, 0.55];
+const NON_OEM_MAT_FRAC = 0.60;
+const CONS_COST_FRAC = 0.80;
 // Stocking cert req forced to 0 in code: OEM_ORDER.forEach(o => OEMS[o].certReq[1]=0)
 Object.values(OEMS).forEach(o => o.certReq[1] = 0);
 
 const JOB_OEM = {
-  audio:'larkfield', elt:null, cert:null, xpdr:null, harness:null, radio:'vireon',
+  audio:'larkfield', elt:null, cert:null, xpdr:null, harness:null, radio:'meridian',
   glass:'vireon', ap:'tindall', eis:'kestrel', adsb:'quanta',
   datalink:'stratoline', radar:'tempest', traffic:'quanta',
 };
@@ -118,27 +123,30 @@ const UPGRADES = [
   { lvl:2, req:12, cost:20000 },
   { lvl:3, req:35, cost:60000 },
   { lvl:4, req:70, cost:150000 },
-  { lvl:5, req:110, cost:320000 },
+  { lvl:5, req:110, cost:180000 },
 ];
 
 // Overhead constants
 // Rent by level [unused, 600, 1400, 2800, 5000, 8000]
 const RENT = [0, 600, 1400, 2800, 5000, 8000];
 
-// Starting crew wages (from mkCrew formula: wage = round(500 + cred*350 + avgSkill*60))
-// Dana: wiring=8, integ=6, trouble=9, paper=4, cred=2
-//   avgSkill = (8+6+9+4)/4 = 6.75  wage = round(500 + 2*350 + 6.75*60) = round(500+700+405) = 1605
-// Gary: wiring=4, integ=4, trouble=3, paper=6, cred=1
-//   avgSkill = (4+4+3+6)/4 = 4.25  wage = round(500 + 1*350 + 4.25*60) = round(500+350+255) = 1105
-const STARTING_PAYROLL = 1605 + 1105; // 2710/qtr per crew at start
+// Starting crew wages (from mkCrew formula: wage = round(1500 + cred*1200 + avgSkill*180))
+// Dana: avgSkill 6.75, cred 2  -> round(1500 + 2400 + 1215) = 5115/mo
+// Gary: avgSkill 4.25, cred 1  -> round(1500 + 1200 +  765) = 3465/mo
+const STARTING_PAYROLL = 5115 + 3465; // 8580/mo, charged every 4 weeks
 
 // Insurance formula: clamp(round(1200 - culture*10), 300, 1300)
 function insurance(culture) {
   return Math.max(300, Math.min(1300, Math.round(1200 - culture * 10)));
 }
 
-// Era gates (jobsDone -> era)
-const ERA_GATE = { 3:2, 7:3, 12:4 };
+// Era gates: thresholds on jobsDone AND shop level (5 / 14+L2 / 26+L3)
+function dueEra(jobsDone, level, era) {
+  if (jobsDone >= 26 && level >= 3) return 4;
+  if (jobsDone >= 14 && level >= 2) return 3;
+  if (jobsDone >= 5) return 2;
+  return era;
+}
 
 // Award target
 const AWARD_TARGET = 85;
@@ -170,12 +178,17 @@ function computeQuote(jobKey, aircraftKey, fitKey, dealerTier, gearSel = 'standa
     kickback = Math.round(gear * (OEMS[oem].margin[dealerTier] - 1));
   }
 
-  return { base, gearCost: gear, consCost: cons, feeAmt, total, kickback, partsCost: cons };
+  // COGS: the shop pays for gear (cheaper with dealer tier) and consumables.
+  const cogs = Math.round(gear * (oem ? GEAR_COST_FRAC[dealerTier] : NON_OEM_MAT_FRAC))
+             + Math.round(consStd * CONS_COST_FRAC);
+
+  return { base, gearCost: gear, consCost: cons, feeAmt, total, kickback, partsCost: cogs };
 }
 
-// Payout from quality score (0.85 to 1.15 of quote total)
+// Payout from quality score (0.85 to 1.15 of quote total), with 30% withheld under 12/30
 function payout(quoteTotal, total) {
-  return Math.round(quoteTotal * (0.85 + (total / 30) * 0.30));
+  const p = Math.round(quoteTotal * (0.85 + (total / 30) * 0.30));
+  return total < 12 ? p - Math.round(quoteTotal * 0.30) : p;
 }
 
 // Rep gain formula
@@ -215,7 +228,7 @@ function awardParts(state) {
 const ERA_JOB_MIX = {
   1: { job:'audio',  aircraft:'piston',    fit:'amazing' },
   2: { job:'glass',  aircraft:'twinpiston',fit:'amazing' },
-  3: { job:'adsb',   aircraft:'piston',    fit:'amazing' },
+  3: { job:'glass',  aircraft:'twinpiston',fit:'amazing' }, // big tickets carry the payroll; adsb waves are gravy
   4: { job:'radar',  aircraft:'tprop1',    fit:'amazing' },
 };
 
@@ -242,7 +255,7 @@ function simulate(label, avgScore) {
   let payroll  = STARTING_PAYROLL;  // per overhead tick (per-job approximation)
 
   // Award tracking approximations
-  let starRating    = 4.0;   // seeded from opening reviews
+  let starRating    = 0;     // the wall starts empty now; first job sets the tone
   let loyalAccounts = 0;     // incremented every 4 hits
   let hitCount      = 0;
   let sumCreds      = 3;     // Dana(2) + Gary(1)
@@ -372,9 +385,9 @@ function simulate(label, avgScore) {
       if (rep >= u.req && cash >= u.cost) {
         cash -= u.cost;
         level = u.lvl;
-        // payroll grows roughly $800/qtr per new crew member hired at upgrade
-        // (rough -- one new hire at market wage for cred=1, avg skill=5: ~1000+350+300=1650 => split over 2 hires ~825 each)
-        payroll += 825;
+        // payroll grows per new hire at the new wage scale
+        // (one cred-1 hire at avg skill 5: 1500 + 1200 + 900 = 3600/mo)
+        payroll += 3600;
         console.log(`  [Job ${n}] Upgraded to Level ${level}. Cash now $${Math.round(cash)}. Rep=${rep}.`);
         if (u.lvl === 5) {
           l5Job = n;
@@ -396,9 +409,10 @@ function simulate(label, avgScore) {
       console.log(`      Limiting factor: ${earlyMilestoneLimitFactor}\n`);
     }
 
-    // 15. Check era advance
-    if (ERA_GATE[jobsDone] && era < ERA_GATE[jobsDone]) {
-      era = ERA_GATE[jobsDone];
+    // 15. Check era advance (thresholds, jobs AND level)
+    const de = dueEra(jobsDone, level, era);
+    if (de > era) {
+      era = era + 1;
       console.log(`  [Job ${n}] Era advanced to ${era}.`);
     }
 
