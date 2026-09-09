@@ -213,6 +213,24 @@
   .cust-card .cc-row{ display:flex; align-items:center; gap:6px; margin-top:5px; flex-wrap:wrap; }
   .cust-card .cc-detail{ font-size:17px; color:var(--muted); margin-top:4px; }
   .rank-badge{ font-family:'Press Start 2P',monospace; font-size:7px; padding:4px 6px; border-radius:4px; border:2px solid var(--edge); }
+/* Shop clarity pass: preserve the pixel scene, make decisions readable. */
+  button.card{width:100%;text-align:left;color:var(--ink);font:inherit;min-height:44px}
+  button:focus-visible{outline:3px solid #fff;outline-offset:3px}
+  .titlebar{flex-wrap:wrap}.titlebar .t{word-break:normal;overflow-wrap:normal;line-height:1.6}
+  .titlebar .t:last-child{font-family:'VT323',monospace;font-size:18px}
+  .chief-chip{color:var(--ink)}
+  .cash-forecast{padding:12px;background:#102a30;border:2px solid #39636b;border-radius:6px;margin:10px 0;color:#ecf3fb;font:16px/1.5 system-ui,sans-serif}
+  .cash-forecast>div{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .cash-forecast b{white-space:nowrap;color:#7ef1bf}.cash-forecast b.forecast-low{color:#ffb5ad}
+  .cash-forecast small{display:block;color:#bcced5;font-size:12px;margin-top:7px}
+  .chief-chip .cc-text{color:var(--ink)}
+  #soundbtn{min-width:44px;min-height:44px;color:var(--ink)}
+  .contract-brief{font:14px/1.5 system-ui,sans-serif;color:#d7e6ef;margin-top:8px}
+  .delivery-promise,.opening-progress{padding:12px;border:2px solid #936a27;border-radius:6px;background:#282418;color:#ffdc94;font:15px/1.5 system-ui,sans-serif;margin:10px 0}
+  .delivery-promise small,.opening-progress span{display:block;color:#e4d9c2;font-size:13px;margin-top:5px}
+  #toast{pointer-events:none}
+  html{scroll-padding-bottom:120px}
+  #stage button{scroll-margin-block:110px}
 </style>
 </head>
 <body>
@@ -535,7 +553,7 @@ var EVENTS=[
   { key:'poach', title:'COMPETITOR POACHING', min:2, weight:1, text:"Vance Mercer runs the big shop across the field, and he is trying to hire one of your best techs away with a fat offer.",
     choices:[ {label:'COUNTER-OFFER ($4,000)', run:function(){ if(STATE.cash<4000) return "You cannot match the offer in cash. You make your case on culture and hope it holds."; STATE.cash-=4000; STATE.rep+=1; return "You took care of your people and they stayed. Loyalty is cheaper than turnover. +1 rep."; }},
       {label:'LET THEM SHOP AROUND', run:function(){ return "You trusted the relationship. They tested the market, kicked the tires, and stayed put."; }} ]},
-  { key:'changeorder', title:'CUSTOMER WANTS MORE', weight:2, cond:function(){ return STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); }, text:"A customer with a job on the bench wants to add a backup radio while you are already in the panel.", choices:[ {label:'WRITE THE CHANGE ORDER', run:function(){ var ip=STATE.bays.filter(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); if(!ip.length) return "By the time you called back, the bay had already closed up. No change made."; var b=ip[Math.floor(Math.random()*ip.length)]; var add=Math.round(2500+Math.random()*2500); if(b.job.quote){ b.job.quote.total+=add; b.job.quote.parts=(b.job.quote.parts||0)+Math.round(add*0.12); if(b.job.quote.cogs!=null) b.job.quote.cogs+=Math.round(add*0.35); } b.shiftsNeed+=1; STATE.rep+=1; return "Change order signed. About "+money(add)+" added to that ticket and one more shift on the bay. +1 rep."; }}, {label:'HOLD THE SCOPE', run:function(){ return "You kept the job tight so it ships clean and on time. The owner understood."; }} ] },
+  { key:'changeorder', title:'CUSTOMER WANTS MORE', weight:2, cond:function(){ return STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); }, text:"A customer with a job on the bench wants to add a backup radio while you are already in the panel.", choices:[ {label:'WRITE THE CHANGE ORDER', run:function(){ var ip=STATE.bays.filter(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); if(!ip.length) return "By the time you called back, the bay had already closed up. No change made."; var b=ip[Math.floor(Math.random()*ip.length)]; var add=Math.round(2500+Math.random()*2500); if(b.job.quote){ b.job.quote.total+=add; b.job.quote.parts=(b.job.quote.parts||0)+Math.round(add*0.12); if(b.job.quote.cogs!=null) b.job.quote.cogs+=Math.round(add*0.35); } b.shiftsNeed+=1; if(b.dueWeek) b.dueWeek+=1; STATE.rep+=1; return "Change order signed. About "+money(add)+" added to that ticket and one more shift agreed for delivery. +1 rep."; }}, {label:'HOLD THE SCOPE', run:function(){ return "You kept the job tight so it ships clean and on time. The owner understood."; }} ] },
   { key:'anxious', title:'THE CUSTOMER CALLS', weight:2, cond:function(){ return STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }); }, text:"An owner whose airplane is torn down is nervous about the downtime and wants to hear from you.", choices:[ {label:'TALK THEM THROUGH IT', run:function(){ if((STATE.charisma||3)>=5 || Math.random()<0.6){ STATE.culture=clamp(STATE.culture+2,0,100); STATE.rep+=1; return "You walked them through the work and set expectations. They hung up reassured. +1 rep."; } return "You did your best to reassure them. Still a little anxious, but they appreciated the call."; }}, {label:'TELL THEM IT IS HANDLED', run:function(){ if(Math.random()<0.5){ STATE.rep=Math.max(0,STATE.rep-1); return "You brushed it off. They felt dismissed and grumbled to a hangar neighbor. -1 rep."; } return "Short and to the point. They let it go this time."; }} ] } ];
 
 /* ---- STATE ---- */
@@ -554,7 +572,7 @@ function makeState(){
     invites:[], showList:null, showIdx:0, _mgYear:0, _mgUsed:0, _dealerBuy:null, _withheld:0,
     pendingHire:null, personnel:null, lastPersonnel:0,
     customers:{}, reviewsFeed:[], starRating:0, custSeq:0,
-    pendingOverhead:0, _lastReview:null, _respondIdx:null,
+    pendingOverhead:0, openingDone:[], openingResults:[], openingCelebrated:false, contractBay:null, _lastReview:null, _respondIdx:null,
     _seenTips:{}, demandWave:null, _activeTip:null, chiefSteps:null, showOne:null,
     _jobHit:0, _jobHitLabel:null, _invoice:null,
     tutorial:{step:0, done:false} };
@@ -591,6 +609,14 @@ function ipBays(fn){ STATE.bays.forEach(function(b){ if(b.job && b.shiftsDone<b.
 function nudge(dim,amt){ ipBays(function(b){ b.bars[dim]=Math.max(0,b.bars[dim]+amt); }); }
 function crewRest(amt){ ipBays(function(b){ b.crew.forEach(function(ci){ STATE.crew[ci].power=clamp(STATE.crew[ci].power+amt,15,100); }); }); }
 
+function monthlyOverhead(){ var c=quarterCosts(); return quarterRevenue().grant-c.rent-c.payroll-c.insurance-c.fees; }
+function overheadDue(){ return (STATE.pendingOverhead||0)+Math.max(0,Math.floor((STATE.week-STATE.lastStmt)/4))*monthlyOverhead(); }
+function cashForecastHTML(){
+  var due=overheadDue(), available=STATE.cash+due;
+  return '<div class="cash-forecast"><div><span>After accrued costs</span><b class="'+(available<0?'forecast-low':'')+'">'+money(available)+'</b></div>'
+    +'<div><span>Monthly operating balance</span><b>'+money(monthlyOverhead())+'</b></div>'
+    +'<small>Costs settle on collection. Future job payments are not included.</small></div>';
+}
 function renderHUD(){
   var spk = musicOn ? '<svg width="22" height="20" viewBox="0 0 22 20"><rect x="2" y="7" width="5" height="6" fill="#ecf3fb"/><polygon points="7,7 13,2 13,18 7,13" fill="#ecf3fb"/><path d="M15 6 q3 4 0 8" stroke="#36e0a0" stroke-width="2" fill="none"/><path d="M17 4 q5 6 0 12" stroke="#36e0a0" stroke-width="2" fill="none"/></svg>'
     : '<svg width="22" height="20" viewBox="0 0 22 20"><rect x="2" y="7" width="5" height="6" fill="#8ea3ba"/><polygon points="7,7 13,2 13,18 7,13" fill="#8ea3ba"/><line x1="15" y1="6" x2="20" y2="14" stroke="#ff5a5f" stroke-width="2"/><line x1="20" y1="6" x2="15" y2="14" stroke="#ff5a5f" stroke-width="2"/></svg>';
@@ -599,7 +625,7 @@ function renderHUD(){
     +'<div id="hud"><div class="cell"><span class="lab">Shop</span><span class="val">Lv '+STATE.level+'</span></div>'
     +'<div class="cell"><span class="lab">Cash</span><span class="val '+(STATE.cash<0?'neg':'cash')+'">'+money(STATE.cash)+'</span></div>'
     +'<div class="cell"><span class="lab">Rep</span><span class="val rep">'+STATE.rep+(STATE.fans?(' \u2605'+STATE.fans):'')+'</span></div>'
-    +'<div id="soundbtn" role="button" aria-label="toggle sound" tabindex="0">'+spk+'</div></div>';
+    +'<button type="button" id="soundbtn" aria-label="Toggle sound" aria-pressed="'+musicOn+'">'+spk+'</button></div>';
   $('#soundbtn').onclick=function(){ musicOn=!musicOn; if(musicOn){ audioInit(); startMusic(); } else stopMusic(); renderHUD(); };
 }
 
@@ -662,7 +688,16 @@ SCREENS.intro=function(){
     actions:[ {label:'OPEN THE DOORS \u25BA', cls:'btn-go', on:function(){ newBoard(); go('floor'); }} ] };
 };
 function previewPay(a,j,fit){ var base=JOBS[j].pay*AIRCRAFT[a].tier*FITMULT[fit]; if(j==='adsb'&&STATE.adsbRush>0) base*=1.15; base*=rateMult(); base*=waveMult(j); return Math.round(base); }
+function openingBoard(){
+  var jobs=[
+    {openingId:'first-inspection',a:'piston',j:'xpdr',owner:'Captain Reyes',brief:'A quick first ticket. Compare the invoice with the time this bay needs.'},
+    {openingId:'audio-promise',a:'piston',j:'audio',owner:'Marlene',brief:'A panel job with a delivery promise. Leave room for a supplier surprise.'},
+    {openingId:'harness-return',a:'experimental',j:'harness',owner:'Captain Reyes',brief:'Earn another visit. Your customer remembers the last delivery.'}
+  ];
+  return jobs.filter(function(b){ return (STATE.openingDone||[]).indexOf(b.openingId)<0 && !STATE.bays.some(function(bay){return bay.job&&bay.job.openingId===b.openingId;}); }).map(function(b){b.fit=fitFor(b.a,b.j);return b;});
+}
 function newBoard(){ var ai=unlockedAircraft(), ji=unlockedJobs();
+  if((STATE.openingDone||[]).length<3){STATE.board=openingBoard();STATE.boardWeek=STATE.week;return;}
   function gen(){ var a=pick(ai); var j; if(STATE.adsbRush>0 && Math.random()<0.4 && JOBS.adsb.era<=STATE.era) j='adsb'; else if(Math.random()<0.32) j=pick(['cert','xpdr']); else j=pickBiasedJob(ji); return {a:a,j:j,fit:fitFor(a,j),owner:pick(OWNERS)}; }
   var board=[gen(),gen(),gen()];
   if(!board.some(function(b){ return b.fit==='amazing'||b.fit==='solid'; })){ var a=pick(ai); var good=ji.filter(function(j){ return fitFor(a,j)!=='dead'; }); var jj=good[0]||ji[0]; board[0]={a:a,j:jj,fit:fitFor(a,jj),owner:pick(OWNERS)}; }
@@ -734,6 +769,8 @@ SCREENS.quote=function(){
   var ceiling=Math.round(baseNoRate*ct.tol*(1+(pj.interest||40)/200)*(1+cha*0.01));
   var ratio=total/ceiling;
   var mood=ratio<=0.80?{c:'var(--scope)',t:'An easy yes. Maybe too easy.'}:(ratio<=0.97?{c:'var(--scope)',t:'They like the number.'}:(ratio<=1.06?{c:'var(--amber)',t:'Around their limit. Could go either way.'}:{c:'var(--beacon)',t:'That is over their budget.'}));
+  var contribution=total-gearCost-consCost+kickback;
+  var deliveryWeek=STATE.week+(JOBS[pj.j].shifts||4);
   var warmth=Math.round((pj.interest||40)/10);
   var hrRate=Math.round(95*rateMult()), hrs=Math.max(1,Math.round(labor/hrRate));
   var gearLbl={budget:'their budget pick',standard:'standard line',premium:'premium upsell'}[pj.qsel.gear];
@@ -750,7 +787,9 @@ SCREENS.quote=function(){
    +(feeAmt>0?'<div class="ledger"><span>Dealer fee</span><b>'+money(feeAmt)+'</b></div>':'')
    +(kickback>0?'<div class="ledger"><span>Your '+OEMS[oem].name+' kickback</span><b style="color:var(--scope)">+'+money(kickback)+'</b></div>':'')
    +'<div class="payout"><div class="pl">QUOTE TOTAL</div><div class="pv">'+money(total)+'</div></div></div>'
-   +'<div class="sub" style="margin-top:8px;color:'+mood.c+'">'+mood.t+'</div>';
+   +'<div class="sub" style="margin-top:8px;color:'+mood.c+'">'+mood.t+'</div>'
+   +'<div class="delivery-promise">Delivery promise: week '+deliveryWeek+'<small>'+ (JOBS[pj.j].shifts||4)+' staffed shifts from today. Delays affect the customer review.</small></div>'
+   +'<div class="cash-forecast"><div><span>After parts, before overhead</span><b>'+money(contribution)+'</b></div><div><span>Monthly operating balance</span><b>'+money(monthlyOverhead())+'</b></div><small>Estimate at the agreed price. Final quality adjustments and other jobs affect your result.</small></div>';
   return { html:html,
     actions:[ {label:'WALK AWAY', on:function(){ go('floor'); }}, {label:'SEND QUOTE \u25BA', cls:'btn-go', on:function(){
         if(total<=ceiling){ pj.quote={total:total,parts:cons,cogs:gearCost+consCost,kickback:kickback,gear:pj.qsel.gear,oem:oem};
@@ -760,7 +799,7 @@ SCREENS.quote=function(){
           else if(pj.ctype==='status'){ if(pj.qsel.gear==='premium') pf+=0.3; else if(pj.qsel.gear==='budget') pf-=0.3; }
           else if(pj.ctype==='safety'){ if(pj.qsel.cons==='lean') pf-=0.2; }
           pj.priceFair=clamp(pf,-1,1);
-          if(pj.matched) STATE.charisma=Math.min(10,(STATE.charisma||3)+0.1);
+          /* Progression is awarded only when this quote becomes a staffed job. */
           sHit(); toast('Sold. The ticket is yours.'); go('assign'); }
         else {
           /* An over-budget send costs you the room. One balk sours them; two and they walk. */
@@ -893,13 +932,15 @@ SCREENS.floor=function(){
     var crewn=bay.crew.map(function(ci){ return STATE.crew[ci].name; }).join(', ')||'no crew';
     return '<div class="card '+(ready?'bay-ready':'')+'" data-bay="'+i+'"><div class="ico">'+planeSVG(bay.job.a)+'</div><div class="body"><div class="baynum">BAY '+(i+1)+' \u2022 '+a.name+'</div><div class="nm">'+j.name+'</div>'
       +'<div class="ds">'+crewn+(ready?'':' \u2022 '+bay.shiftsDone+'/'+bay.shiftsNeed+' shifts')+'</div>'
+      + (bay.dueWeek?'<div class="contract-brief">Promised week '+bay.dueWeek+' / now '+STATE.week+'</div>':'')
       + (ready?'<div class="row2"><span class="badge b-amazing">READY TO DELIVER</span></div>':'<div class="dots">'+dots+'</div><div class="qmeter"><div style="width:'+comp+'%"></div></div>')+'</div></div>';
   }).join('');
   var canRun=STATE.bays.some(function(b){ return b.job && b.crew.length && b.shiftsDone<b.shiftsNeed; });
   var tip=pickChiefTip(STATE);
   var chiefChip = tip ? '<button class="chief-chip" style="width:100%;min-height:48px;display:flex;align-items:center;gap:10px;text-align:left;margin:8px 0;padding:8px 12px;background:#16202b;border:2px solid var(--amber);border-radius:8px;box-shadow:0 0 0 2px rgba(255,176,40,.18)">'+chiefSprite(34)+'<span style="display:flex;flex-direction:column"><span class="pix" style="font-size:8px;color:var(--amber)">CHIEF</span><span class="ds" style="margin-top:2px">'+tip.short+'</span></span><span class="pix" style="margin-left:auto;font-size:8px;color:var(--amber)">\u25ba</span></button>' : '';
 
-  return { html:tutorialBanner('floor')+'<div class="titlebar"><span class="t pix">'+STATE.shopName+'</span><span class="t pix">Bays '+bayCount()+' \u2022 Crew '+STATE.crew.length+'/'+crewSlots()+'</span></div>'
+  return { html:tutorialBanner('floor')+cashForecastHTML()+'<div class="titlebar"><span class="t pix">'+STATE.shopName+'</span><span class="t pix">Bays '+bayCount()+' \u2022 Crew '+STATE.crew.length+'/'+crewSlots()+'</span></div>'
+      + ((STATE.openingDone||[]).length<3?'<div class="opening-progress"><b>MAKE YOUR NAME: '+(STATE.openingDone||[]).length+'/3 CONTRACTS</b><span>Land the work. Keep the promise. Earn the next call.</span></div>':'')
       + hangarScene()
       + chiefChip
       +'<div class="panel"><div class="row2" style="margin-top:0"><span class="eratag">ERA '+STATE.era+': '+ERAS[STATE.era].name+'</span>'+ (STATE.passive>0?'<span class="eratag" style="color:var(--scope)">+'+money(STATE.passive)+'/job</span>':'') + (hasPremier()?'<span class="eratag" style="color:var(--amber)">PREMIER</span>':'')+'</div><div class="note" style="text-align:left;margin-top:8px;color:'+season().sun+'">'+season().tag+'</div><div class="note" style="text-align:left;margin-top:6px">'+standing+'</div></div>'
@@ -938,11 +979,11 @@ SCREENS.board=function(){
       +(persChip?'<div class="row2" style="margin-top:4px">'+persChip+'</div>':'')
       +'<div class="ds" style="opacity:.7">'+specName(JOB_SPEC[b.j])+' work</div>'
       +'<div class="row2"><span class="badge b-'+b.fit+'">'+b.fit.toUpperCase()+' FIT</span>'+ (j.credReq>0?'<span class="cred '+credCls(j.credReq)+'">'+credName(j.credReq).toUpperCase()+'</span>':'') +'<span class="pay">~'+money(previewPay(b.a,b.j,b.fit))+'</span></div>'
-      +'<div class="reason">'+FITWHY[b.fit]+'</div></div></div>'; }).join('');
+      +'<div class="reason">'+FITWHY[b.fit]+'</div>'+(b.brief?'<div class="contract-brief">'+b.brief+'</div>':'')+'</div></div>'; }).join('');
   if(!STATE.board.length) cards='<div class="panel"><div class="note" style="text-align:left">The week’s prospects are spoken for. Run a shift and check the board again, or go drum up business.</div></div>';
   return { html:tutorialBanner('board')+'<h2 class="scrn">JOB BOARD</h2><div class="sub">Loading Bay '+(STATE.fillBay+1)+'. Watch the fit.</div>'+cards,
     actions:[ {label:'BACK', on:function(){ go('floor'); }} ],
-    init:function(){ document.querySelectorAll('.card[data-i]').forEach(function(el){ el.onclick=function(){ sTab(); var b=STATE.board[+el.dataset.i]; var known=customerPersonality(b.owner); STATE.pendingJob={a:b.a,j:b.j,fit:b.fit,owner:b.owner,ctype:known||pick(CUSTYPES).k,known:!!known,boardIdx:+el.dataset.i}; STATE.sel=[]; STATE.floorPlane=b.a; go('meet'); }; }); } };
+    init:function(){ document.querySelectorAll('.card[data-i]').forEach(function(el){ el.onclick=function(){ sTab(); var b=STATE.board[+el.dataset.i]; var known=customerPersonality(b.owner); STATE.pendingJob={a:b.a,j:b.j,fit:b.fit,owner:b.owner,ctype:known||pick(CUSTYPES).k,known:!!known,boardIdx:+el.dataset.i,openingId:b.openingId,brief:b.brief}; STATE.sel=[]; STATE.floorPlane=b.a; go('meet'); }; }); } };
 };
 
 SCREENS.assign=function(){
@@ -959,9 +1000,12 @@ SCREENS.assign=function(){
   return { html:tutorialBanner('assign')+'<h2 class="scrn">CREW CALL</h2><div class="panel"><div class="nm pix" style="font-size:9px;color:var(--amber)">'+j.name+'</div><div class="ds" style="margin-top:6px">'+a.name+' \u2022 for '+STATE.pendingJob.owner+'</div><div class="reason" style="margin-top:6px">Leans on <b style="color:var(--ink)">'+wname+'</b>. '+credLine+'</div></div>'
       + (none?'<div class="panel"><div class="note" style="text-align:left">Every tech is already on a bay. Deliver a job to free someone up, or hire more crew.</div></div>':'<div class="sub">Pick up to 3 techs. They learn on the job.</div>'+cards),
     actions:[ {label:'BACK', on:function(){ go('board'); }}, {label:'START THE JOB', cls:'btn-go', disabled:STATE.sel.length===0, on:function(){ if(STATE.sel.length===0){ toast('Assign at least one tech.'); return; }
+        if(!STATE.pendingJob || STATE.pendingJob.committed || STATE.bays[STATE.fillBay].job) return;
+        STATE.pendingJob.committed=true;
+        if(STATE.pendingJob.matched) STATE.charisma=Math.min(10,(STATE.charisma||3)+0.1);
         if(STATE.pendingJob.boardIdx!=null){ STATE.board.splice(STATE.pendingJob.boardIdx,1); STATE.pendingJob.boardIdx=null; }
         dropInvite(STATE.pendingJob.owner);
-        var bay=freshBay(); bay.job=STATE.pendingJob; bay.shiftsNeed=JOBS[STATE.pendingJob.j].shifts||4; bay.owner=STATE.pendingJob.owner; bay.crew=STATE.sel.slice();
+        var bay=freshBay(); bay.job=STATE.pendingJob; bay.shiftsNeed=JOBS[STATE.pendingJob.j].shifts||4; bay.dueWeek=STATE.week+bay.shiftsNeed; bay.owner=STATE.pendingJob.owner; bay.crew=STATE.sel.slice();
         /* Fatigue carries over between jobs. Rest comes from time off the bay, not a new ticket. */
         STATE.sel.forEach(function(ci){ STATE.crew[ci].bay=STATE.fillBay; });
         STATE.bays[STATE.fillBay]=bay; toast('Bay '+(STATE.fillBay+1)+' loaded.'); go('floor'); }} ],
@@ -1025,21 +1069,34 @@ function runShift(){
   STATE.week++; tickDemandWave(STATE); sRatchet(); sPing(1); renderHUD();
   if(nudged) toast(nudged+" is ready to certify.\nSee Training.");
   if(STATE._otj && STATE._otj.length){ toast(STATE._otj.slice(0,2).join(' / ')); STATE._otj=[]; }
-  if(STATE.bays.some(function(b){ return b.job && b.shiftsDone<b.shiftsNeed; }) && Math.random()<0.30){
-    var hi=pickHFIndex(STATE);
-    STATE.hf=hi; STATE.hfResult=null;
-    STATE.recentHF=(STATE.recentHF||[]); STATE.recentHF.push(hi); if(STATE.recentHF.length>4) STATE.recentHF.shift();
-    go('hf'); return;
-  }
+  var supplierBay=STATE.bays.findIndex(function(b){return b.job&&b.job.openingId==='audio-promise'&&b.shiftsDone===1&&!b.promiseHandled;});
+  if(supplierBay>=0){STATE.contractBay=supplierBay;go('contractCall');return;}
   /* Mid-job customer beats land DURING the work, the way the phone actually
      rings. Only when nothing is ready to deliver, so the loop never stalls. */
   var anyReady=STATE.bays.some(function(b){ return b.job && b.shiftsDone>=b.shiftsNeed; });
-  if(!anyReady && Math.random()<0.18){
+  if(STATE.openingDone.length>=3 && !anyReady && Math.random()<0.18){
     var mj=EVENTS.filter(function(e){ return (e.key==='changeorder'||e.key==='anxious') && e.cond && e.cond(); });
     if(mj.length){ STATE.event=pick(mj); go('event'); return; }
   }
   endShift();
 }
+function applyContractDecision(choice){
+  var bay=STATE.bays[STATE.contractBay];
+  if(!bay||!bay.job||bay.promiseHandled||['expedite','reschedule','wait'].indexOf(choice)<0) return;
+  bay.promiseHandled=true; bay.promiseChoice=choice;
+  if(choice==='expedite'){bay.job.quote.cogs+=650;bay.promiseNote='Expedited parts: $650 charged on this invoice.';}
+  else {bay.shiftsNeed++;if(choice==='reschedule'){bay.dueWeek++;bay.job.quote.total=Math.round(bay.job.quote.total*0.95);bay.promiseNote='Customer agreed to one more week and a 5% discount.';}
+    else {bay.promiseNote='Parts arrived one week later. The original delivery promise still stands.';}}
+}
+SCREENS.contractCall=function(){
+  var bay=STATE.bays[STATE.contractBay];
+  return {html:'<h2 class="scrn">THE PART WILL BE LATE</h2><div class="panel"><div class="evtext">'+bay.owner+' expects the airplane in week '+bay.dueWeek+'. Your supplier needs another week. The bay will stay occupied. How do you handle it?</div></div>'
+    +'<button class="opt" data-contract="expedite"><span class="t">PAY FOR EXPEDITED DELIVERY</span>Keep the date. An extra $650 comes off the job invoice.</button>'
+    +'<button class="opt" data-contract="reschedule"><span class="t">AGREE ON A NEW DATE</span>The customer accepts one more week with a 5% discount. Protect trust, earn less.</button>'
+    +'<button class="opt" data-contract="wait"><span class="t">WAIT WITHOUT RENEGOTIATING</span>No extra parts charge. One more week of work, with the original promise still due.</button>',actions:[],init:function(){
+      document.querySelectorAll('[data-contract]').forEach(function(el){el.onclick=function(){applyContractDecision(el.dataset.contract);STATE.contractBay=null;endShift();};});
+    }};
+};
 function endShift(){
   /* Random human-factors popups are a rejected pattern. Safety now lands as a
      consequence of player choices (rushing, overtime, weak culture) and in the
@@ -1143,7 +1200,9 @@ function buildInvoice(parts){
 }
 
 SCREENS.review=function(){
+  accrueOverhead();
   var s=STATE.scores, bay=STATE.bays[STATE.activeBay], j=JOBS[bay.job.j];
+  var promise=bay.dueWeek ? '<div class="delivery-promise">'+(STATE.week<=bay.dueWeek?'PROMISE KEPT':'DELIVERY LATE')+'<small>Promised week '+bay.dueWeek+' / completed week '+STATE.week+'</small>'+(bay.promiseNote?'<small>'+bay.promiseNote+'</small>':'')+'</div>':'';
   var rv=function(n,q,sc){ return '<div class="reviewer"><div class="who"><div class="rn">'+n+'</div><div class="rq">'+q+'</div></div><div class="score">'+sc+'/10</div></div>'; };
   var cQ=s.cust>=8?'"Looks factory. I am bringing the whole fleet here." - '+bay.owner:s.cust>=5?'"Good work. Fair price." - '+bay.owner:'"It works, I guess." - '+bay.owner;
   var iQ=s.insp>=8?'"Paperwork is airtight. Signed."':s.insp>=5?'"A couple notes, but it conforms."':'"Logbook is a mess. Fix it."';
@@ -1170,7 +1229,7 @@ SCREENS.review=function(){
     var col = pos ? 'var(--scope)' : 'var(--beacon)';
     return '<div class="ledger"><span>'+l.label+'</span><b style="color:'+col+'">'+display+'</b></div>';
   }).join('');
-  return { html:tutorialBanner('review')+'<h2 class="scrn">DELIVERY: '+j.name.toUpperCase()+'</h2>'+rv('THE CUSTOMER',cQ,s.cust)+rv('THE INSPECTOR',iQ,s.insp)+rv('THE PILOT',pQ,s.pilot)
+  return { html:tutorialBanner('review')+'<h2 class="scrn">DELIVERY: '+j.name.toUpperCase()+'</h2>'+promise+rv('THE CUSTOMER',cQ,s.cust)+rv('THE INSPECTOR',iQ,s.insp)+rv('THE PILOT',pQ,s.pilot)
       +'<div class="panel">'+barRowStatic(bay.bars,'work','WORKMANSHIP','f-work','l-work')+barRowStatic(bay.bars,'diag','DIAGNOSTICS','f-diag','l-diag')+barRowStatic(bay.bars,'comp','COMPLIANCE','f-comp','l-comp')+barRowStatic(bay.bars,'fin','FINISH','f-fin','l-fin')+'</div>'
       +'<div class="sub" style="margin-top:8px;color:'+(s.squawkOk?'var(--scope)':'var(--caution)')+'">Functional test: '+(s.squawkOk?'cleared on the bench':'a squawk slipped to the test flight')+'</div><div class="total"><div class="tn">FINAL SCORE</div><div class="tv">'+s.total+' / 30</div>'+(s.hit?'<div class="hit">★ HIT! THE FIELD IS TALKING ★</div>':'')+'</div>'
       +'<div class="panel" style="margin-top:8px">'+ledgerRows+'<div class="payout"><div class="pl">NET TO SHOP</div><div class="pv" id="payv">'+money(0)+'</div></div></div>',
@@ -1180,6 +1239,7 @@ SCREENS.review=function(){
 function collect(){
   var idx=STATE.activeBay, bay=STATE.bays[idx];
   if(STATE.tutorial) STATE.tutorial.done=true;
+  if(bay.job.openingId && STATE.openingDone.indexOf(bay.job.openingId)<0) STATE.openingDone.push(bay.job.openingId);
   /* --- the heartbeat: the customer leaves a review based on how the job actually ran --- */
   var cust=ensureCustomer(bay.owner, bay.job.a, bay.job.ctype||'budget');
   var rv=computeReview(jobOutcome(bay), cust);
@@ -1203,6 +1263,7 @@ function collect(){
   var invoiceNet = (STATE._invoice && STATE._invoice.net != null) ? STATE._invoice.net : STATE.lastNet;
   STATE.cash += invoiceNet; STATE.pendingOverhead=0; STATE._invoice=null; STATE._jobHit=0; STATE._jobHitLabel=null; STATE._withheld=0;
   STATE.lastNet=invoiceNet; /* keep in sync for compatibility */
+  if(bay.job.openingId) STATE.openingResults.push({owner:bay.owner,job:JOBS[bay.job.j].name,onTime:!bay.dueWeek||STATE.week<=bay.dueWeek,net:invoiceNet,choice:bay.promiseChoice||null});
   STATE.rep+=STATE._repGain; STATE.jobsDone++; STATE.floorPlane=bay.job.a;
   var soldOem=JOB_OEM[bay.job.j]; if(soldOem){ STATE.oemSales[soldOem]=(STATE.oemSales[soldOem]||0)+1; }
   addSpecXP(JOB_SPEC[bay.job.j], STATE.scores&&STATE.scores.hit?12:8);
@@ -1218,6 +1279,7 @@ function collect(){
 function finishDeliveries(){
   STATE.scores=null;
   if(STATE.week - STATE.lastStmt >= 4){ accrueOverhead(); }
+  if(STATE.openingDone.length===3&&!STATE.openingCelebrated){STATE.openingCelebrated=true;go('openingComplete');return;}
   if(earlyMilestoneDue(STATE)){ STATE.milestoneShown=true; go('milestone'); return; }
   if(checkAward()){ go('victory'); return; }
   /* The bank carries a real shop through a rough month, not a rough quarter. */
@@ -1231,7 +1293,7 @@ function finishDeliveries(){
   if(STATE.week - (STATE.lastPersonnel||0) >= 3 && Math.random()<0.5){ var pr=personnelEvent(); if(pr){ STATE.lastPersonnel=STATE.week; go(pr); return; } }
   if(STATE.cash<-10000) toast('The bank is calling.\nLand bigger tickets or the doors close at -$25,000.');
   else if(STATE.cash<1500) toast('Cash is tight.\nKeep the work flowing.');
-  if(Math.random()<0.5){ var e=rollEvent(); if(e){ STATE.event=e; go('event'); return; } }
+  if(STATE.openingDone.length>=3 && Math.random()<0.5){ var e=rollEvent(); if(e){ STATE.event=e; go('event'); return; } }
   go('floor');
 }
 
@@ -1246,6 +1308,11 @@ SCREENS.eraEvent=function(){
     actions:[ {label:'BRING IT ON \u25BA', cls:'btn-go', on:function(){ STATE.era=e; if(e===3) STATE.adsbRush=4; sEra(); STATE.pendingEra=0; toast('ERA '+e+': '+ERAS[e].name); go('floor'); }} ] };
 };
 
+SCREENS.openingComplete=function(){
+  var kept=STATE.openingResults.filter(function(r){return r.onTime;}).length;
+  var rows=STATE.openingResults.map(function(r){return '<div class="panel"><b>'+r.job+'</b><div class="contract-brief">'+r.owner+' / '+(r.onTime?'promise kept':'delivered late')+'</div><div class="contract-brief">Net invoice: '+money(r.net)+'</div></div>';}).join('');
+  return {html:'<h2 class="scrn">YOUR FIRST THREE CONTRACTS</h2><div class="opening-progress"><b>'+kept+' OF 3 PROMISES KEPT</b><span>The field knows your work now. Your invoices, reviews and customer relationships carry into the open shop.</span></div>'+rows+cashForecastHTML(),actions:[{label:'KEEP THE SHOP RUNNING',cls:'btn-go',on:function(){go('floor');}}]};
+};
 SCREENS.milestone=function(){
   var nm=STATE.shopName||'YOUR SHOP';
   return { html:'<div class="panel" style="text-align:center"><div class="kick pix" style="font-size:8px;color:var(--sky)">A NAME ON THE FIELD</div><div class="big pix" style="font-size:15px;color:var(--amber);line-height:1.6;margin:12px 0">REGIONAL UP-AND-COMER</div></div>'
@@ -1409,14 +1476,15 @@ var RECRUIT=[
 ];
 function recruitFrom(src){ if(STATE.crew.length>=crewSlots()){ toast('No open slot. Upgrade the shop.'); return; } var cost=src.cost; if(src.key==='cte'&&STATE.apprentice) cost=Math.round(cost*0.5); if(STATE.cash<cost){ toast('Need '+money(cost)+'.'); return; } STATE.cash-=cost; var names=['Rook','Wrench','Patch','Volt','Lex','Mac','Indy','Sol','Rae','Bit','Cole','Nyx']; var nm=names[Math.floor(Math.random()*names.length)]; var c=mkCrew(nm,src.tag,src.sk[0],src.sk[1],src.sk[2],src.sk[3],src.cred,src.color); c.loyalty=src.lo; c.lastTrain=STATE.week; if(src.key==='military') STATE.culture=clamp(STATE.culture+3,0,100); if(src.key==='cte'&&STATE.apprentice) STATE.aeaRep+=2; STATE.crew.push(c); sHit(); renderHUD(); toast(nm+' joined the shop.'); go('recruit'); }
 
-function quarterCosts(){ var rent=[0,600,1400,2800,5000,8000][STATE.level]||600; var payroll=0; STATE.crew.forEach(function(c){ payroll += (c.wage||marketWage(c)); }); if(STATE.courses.business){ rent=Math.round(rent*0.8); payroll=Math.round(payroll*0.8); } var insurance=clamp(Math.round(1200 - STATE.culture*10),300,1300); var fees=0; OEM_ORDER.forEach(function(o){ var t=dealerTier(o); if(t) fees+=OEMS[o].annual[t]; }); return {rent:rent,payroll:payroll,insurance:insurance,fees:fees}; }
+function quarterCosts(){ var rent=[0,600,1400,2800,5000,8000][STATE.level]||600; var payroll=0; STATE.crew.forEach(function(c){ payroll += (c.wage||marketWage(c)); }); if(STATE.courses.business){ rent=Math.round(rent*0.8); payroll=Math.round(payroll*0.8); } var insurance=clamp(Math.round(1200 - STATE.culture*10),300,1300); var fees=0; OEM_ORDER.forEach(function(o){ var t=dealerTier(o); if(t) fees+=OEMS[o].annual[t]/12; }); return {rent:rent,payroll:payroll,insurance:insurance,fees:fees}; }
 function quarterRevenue(){ var grant=0; if(STATE.apprentice&&STATE.grant){ var appr=0; STATE.crew.forEach(function(c){ if(c.cred===0) appr++; }); grant=2500+appr*1200; } return {grant:grant}; }
 /* Overhead is the P&L plumbing, kept. But there is no periodic statement popup.
    It accrues silently and settles inside the next Collect Payment invoice, so
    money settles once per job as a single invoice. */
 function accrueOverhead(){
   /* Charge one tick per elapsed 4-week month, so skipped beats and week jumps are never free. */
-  var ticks=Math.max(1,Math.floor((STATE.week-STATE.lastStmt)/4));
+  var ticks=Math.max(0,Math.floor((STATE.week-STATE.lastStmt)/4));
+  if(!ticks) return;
   var co=quarterCosts(), r=quarterRevenue(); var net=(r.grant-(co.rent+co.payroll+co.insurance+co.fees))*ticks;
   STATE.pendingOverhead=(STATE.pendingOverhead||0)+net; STATE.lastStmt+=ticks*4; STATE.culture=clamp(STATE.culture+(STATE.courses.hf?3:1),cultureFloor(),100);
   STATE.crew.forEach(function(c){ var mkt=marketWage(c); var gap=mkt-(c.wage||mkt); var d=1; if(gap>0) d-=Math.min(9,Math.round(gap/350)); else d+=1; if(STATE.culture>=75) d+=2; else if(STATE.culture<45) d-=2; c.loyalty=clamp((c.loyalty==null?70:c.loyalty)+d,0,100); if(STATE.week-(c.lastTrain||0)>40){ ['wiring','integ','trouble','paper'].forEach(function(k){ c[k]=Math.max(2,Math.round((c[k]-0.1)*10)/10); }); } });
@@ -1771,6 +1839,12 @@ function render(){ renderHUD(); var same=(render._last===STATE.screen), y=window
     document.querySelectorAll('#tabbar .tab').forEach(function(el){ el.onclick=function(){ sTab(); go(el.dataset.tab); }; });
   } else { tb.innerHTML=''; app.classList.remove('has-tabs'); }
   bar.style.display = bar.children.length ? '' : 'none';
+  /* Native controls retain keyboard and touch behavior through each render. */
+  document.querySelectorAll('div.card[data-fill],div.card[data-bay],div.card[data-i],div.card[data-c]').forEach(function(card){
+    var button=document.createElement('button'); button.type='button';
+    Array.from(card.attributes).forEach(function(a){ button.setAttribute(a.name,a.value); });
+    button.innerHTML=card.innerHTML; card.replaceWith(button);
+  });
   if(scr.init) scr.init();
   /* Selection taps re-render the same screen: keep the player's place. */
   if(same) window.scrollTo(0,y); else window.scrollTo(0,0); }
@@ -1851,7 +1925,7 @@ function computeReview(outcome, customer){
 function jobOutcome(bay){
   var s=STATE.scores||{};
   var pf=bay.job.priceFair; if(pf==null) pf=0;
-  return {quality:clamp((s.total||0)/30,0,1), onTime:!!s.squawkOk, priceFair:pf, persoMatch:!!bay.job.matched};
+  return {quality:clamp((s.total||0)/30,0,1), onTime:!bay.dueWeek || STATE.week<=bay.dueWeek, priceFair:pf, persoMatch:!!bay.job.matched};
 }
 
 /* ---- PHASE 4: annual training currency. Skill grows on the job, but currency is
