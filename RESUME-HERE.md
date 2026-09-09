@@ -1,6 +1,8 @@
 # Resume here: AEA Member Shop Tycoon (shop-first refocus)
 
-**Last worked:** 2026-07-28. **Where we are:** all six refocus phases are built, plus a five-pass review-driven overhaul (stakes, skill, realism, UX, content) recorded in `docs/plans/2026-07-28-review-fix-overhaul.md`. 48 self-tests pass. Fonts are embedded, so the single file is fully self-contained.
+**Latest implementation:** 2026-09-09. See `docs/plans/2026-09-09-opening-contracts.md` for the current verified opening, economy fixes and remaining work. Branch: `codex/shop-tycoon-economy`. The phase checklist below is historical and is superseded by that record.
+
+**Previous overhaul:** 2026-07-28. **Where we are:** all six refocus phases are built, plus a five-pass review-driven overhaul (stakes, skill, realism, UX, content) recorded in `docs/plans/2026-07-28-review-fix-overhaul.md`. 48 self-tests pass. Fonts are embedded, so the single file is fully self-contained.
 
 **Live demo (shareable, plays on any device):** https://00ainick-cmd.github.io/aea-shop-tycoon/
 **Repo (public):** https://github.com/00ainick-cmd/aea-shop-tycoon . Pages serves `index.html` from the `main` branch root, so every push to `main` updates the live demo automatically.
